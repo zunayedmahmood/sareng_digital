@@ -305,56 +305,32 @@ export default function VendorPaymentPage() {
     ],
   });
 
-  const poVendorProductOptions = useMemo(() => {
-    const vendorId = parseInt(purchaseForm.vendor_id || '0', 10);
-    if (vendorId && !poShowAllProducts) {
-      return products.filter((p) => (p as any).vendor_id === vendorId);
-    }
-    return products;
-  }, [products, purchaseForm.vendor_id, poShowAllProducts]);
-
-  // If a parent category is chosen, include all child categories (tree-based filtering)
-  const poCategoryIdSet = useMemo(() => {
-    const cid = parseInt(poCategoryId || '0', 10);
-    if (!cid) return null;
-
-    const ids = new Set<number>();
-    const collectAll = (node: any) => {
-      if (!node) return;
-      if (typeof node.id === 'number') ids.add(node.id);
-      const children = node.children || node.all_children || [];
-      if (Array.isArray(children)) children.forEach(collectAll);
-    };
-    const findAndCollect = (nodes: any[]): boolean => {
-      for (const n of nodes) {
-        if (!n) continue;
-        if (n.id === cid) {
-          collectAll(n);
-          return true;
-        }
-        const children = n.children || n.all_children || [];
-        if (Array.isArray(children) && findAndCollect(children)) return true;
-      }
-      return false;
-    };
-
-    if (Array.isArray(categoryTree) && categoryTree.length > 0) {
-      findAndCollect(categoryTree as any);
-    }
-
-    // Fallback: if tree wasn't loaded for any reason, keep exact match
-    if (ids.size === 0) ids.add(cid);
-    return ids;
-  }, [poCategoryId, categoryTree]);
-
   const poFinderProducts = useMemo(() => {
-    let list = poVendorProductOptions;
+    let list: Product[] = products;
 
-    if (poCategoryIdSet && poCategoryIdSet.size > 0) {
+    // Category filter — include all descendant categories
+    const cid = parseInt(poCategoryId || '0', 10);
+    if (cid) {
+      const ids = new Set<number>();
+      const collectAll = (node: any) => {
+        if (!node) return;
+        if (typeof node.id === 'number') ids.add(node.id);
+        (node.children || node.all_children || []).forEach(collectAll);
+      };
+      const findAndCollect = (nodes: any[]): boolean => {
+        for (const n of nodes) {
+          if (!n) continue;
+          if (n.id === cid) { collectAll(n); return true; }
+          if (findAndCollect(n.children || n.all_children || [])) return true;
+        }
+        return false;
+      };
+      if (Array.isArray(categoryTree) && categoryTree.length > 0) findAndCollect(categoryTree as any);
+      if (ids.size === 0) ids.add(cid);
       list = list.filter((p: any) => {
         const raw = p?.category_id ?? p?.category?.id;
         const pid = typeof raw === 'string' ? parseInt(raw, 10) : raw;
-        return typeof pid === 'number' && poCategoryIdSet.has(pid);
+        return typeof pid === 'number' && ids.has(pid);
       });
     }
 
@@ -367,8 +343,16 @@ export default function VendorPaymentPage() {
       });
     }
 
-    return list.slice(0, 30);
-  }, [poVendorProductOptions, poSearch, poCategoryIdSet]);
+    // Group by base_name / SKU — only keep one representative per group (the first product)
+    // so the list shows base names rather than every individual variation
+    const seenKeys = new Set<string>();
+    return list.filter((p) => {
+      const key = (p as any).base_name?.trim().toLowerCase() || getVariantGroupKey(p) || String(p.id);
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+  }, [products, poSearch, poCategoryId, categoryTree]);
 
   const addProductToPO = (productId: number) => {
     if (!productId) return;
@@ -1481,29 +1465,24 @@ export default function VendorPaymentPage() {
 
           {/* Search & add products */}
           <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-700/30">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-end mb-3">
               <div className="lg:col-span-5">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search & add products</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search products</label>
                 <input
                   value={poSearch}
                   onChange={(e) => setPoSearch(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Type product name or SKU..."
+                  placeholder="Type name or SKU…"
                 />
-                <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                  {purchaseForm.vendor_id && !poShowAllProducts
-                    ? 'Showing products for selected vendor (toggle “Show all” to see everything).'
-                    : 'Showing all products.'}
-                </p>
               </div>
 
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-5">
                 <CategoryTreeSelector
                   categories={categoryTree}
                   selectedCategoryId={poCategoryId}
                   onSelect={setPoCategoryId}
                   disabled={false}
-                  label="Category"
+                  label="Filter by category"
                   required={false}
                   placeholder="All categories"
                   showSelectedInfo={false}
@@ -1512,86 +1491,85 @@ export default function VendorPaymentPage() {
                 />
               </div>
 
-              <div className="lg:col-span-2 flex items-center gap-2 pb-1">
-                <input
-                  type="checkbox"
-                  checked={poShowAllProducts}
-                  disabled={!purchaseForm.vendor_id}
-                  onChange={(e) => setPoShowAllProducts(e.target.checked)}
-                  className="w-4 h-4"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">Show all</span>
-              </div>
-
               <div className="lg:col-span-2">
                 <button
                   type="button"
                   onClick={() => setShowQuickProduct(true)}
                   disabled={!purchaseForm.vendor_id}
                   className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg bg-gray-900 hover:bg-gray-700 text-white disabled:opacity-50"
-                  title={!purchaseForm.vendor_id ? 'Select a vendor first' : 'Create a new product quickly'}
+                  title={!purchaseForm.vendor_id ? 'Select a vendor first' : 'Quick-create a new product'}
                 >
                   <Plus className="w-4 h-4" />
-                  Quick add new product
+                  Quick add
                 </button>
               </div>
             </div>
 
-            <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-              {poFinderProducts.map((p: any) => (
-                <div key={p.id} className="flex items-center gap-3 px-3 py-2">
-                  <img
-                    src={getProductPrimaryImage(p)}
-                    alt={p.name}
-                    className="w-10 h-10 rounded-md object-cover border border-gray-200 dark:border-gray-700 cursor-zoom-in"
-                    title="View image"
-                    onClick={() => setImagePreview({ url: getProductPrimaryImage(p), name: p.name })}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = '/placeholder-image.jpg';
-                    }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{p.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {p.sku}
-                      {p.category?.title ? ` • ${p.category.title}` : ''}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => addProductToPO(p.id)}
-                    className="px-3 py-1.5 text-xs rounded-md bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    Add
-                  </button>
-
-                  {(() => {
-                    const count = getVariantGroupProducts(p).length;
-                    if (count <= 1) return null;
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => openVariantPicker(String(p.id))}
-                        className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
-                        title="Add variations"
-                      >
-                        Variations ({count})
-                      </button>
-                    );
-                  })()}
-                </div>
-              ))}
-
-              {poFinderProducts.length === 0 && (
+            {/* Product results — grouped by base name */}
+            <div className="max-h-72 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+              {poFinderProducts.length === 0 ? (
                 <div className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                  No products found. Try a different search or category.
+                  {poCategoryId || poSearch ? 'No products found. Try a different search or category.' : 'Select a category or search to browse products.'}
                 </div>
+              ) : (
+                poFinderProducts.map((p: any) => {
+                  const variantCount = getVariantGroupProducts(p).length;
+                  const baseName = (p as any).base_name || p.name;
+                  const img = getProductPrimaryImage(p);
+                  const isInPO = purchaseForm.items.some((it: any) => String(it.product_id) === String(p.id));
+                  return (
+                    <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                      <img
+                        src={img}
+                        alt={baseName}
+                        className="w-10 h-10 rounded-md object-cover border border-gray-200 dark:border-gray-700 flex-shrink-0 cursor-zoom-in"
+                        onClick={() => setImagePreview({ url: img, name: baseName })}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder-image.jpg'; }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{baseName}</div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-gray-400 font-mono">{p.sku}</span>
+                          {p.category?.title && <span className="text-[11px] text-gray-400">• {p.category.title}</span>}
+                          {variantCount > 1 && (
+                            <span className="text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
+                              {variantCount} variations
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {variantCount > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => openVariantPicker(String(p.id))}
+                          className="flex-shrink-0 px-3 py-1.5 text-xs rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                          Pick variation
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => addProductToPO(p.id)}
+                          className={`flex-shrink-0 px-3 py-1.5 text-xs rounded-md ${isInPO ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                        >
+                          {isInPO ? 'Added ✓' : 'Add'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
+
+            {/* Result count */}
+            {poFinderProducts.length > 0 && (
+              <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 text-right">
+                {poFinderProducts.length} product group{poFinderProducts.length !== 1 ? 's' : ''} shown
+              </p>
+            )}
           </div>
 
-          {/* Products in PO */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Products</h3>
@@ -1612,7 +1590,7 @@ export default function VendorPaymentPage() {
                       className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       <option value="">Select product</option>
-                      {poVendorProductOptions.map((p: any) => (
+                      {products.map((p: any) => (
                         <option key={p.id} value={p.id}>
                           {p.name} ({p.sku})
                         </option>
