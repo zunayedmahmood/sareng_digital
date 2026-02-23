@@ -131,7 +131,7 @@ export async function renderBarcodeLabelBase64(opts: {
   ctx.fillStyle = "#000";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.font = `700 ${Math.round(hPx * 0.11)}px Arial`;
+  ctx.font = `900 ${Math.round(hPx * 0.11)}px Arial`;
   ctx.fillText((opts.brandName || "ERRUM BD").trim() || "ERRUM BD", centerX, topPad);
 
   // Product name — up to 3 lines, shrinking font as needed
@@ -168,8 +168,8 @@ export async function renderBarcodeLabelBase64(opts: {
   const JsBarcode = (window as any).JsBarcode;
 
   const maxBcW = Math.round((wPx - pad * 2) * 0.98);
-  const maxBcH = Math.round(hPx * 0.36);
-  const bcHeight = Math.round(hPx * 0.17);
+  const maxBcH = Math.round(hPx * 0.56);
+  const bcHeight = Math.round(hPx * 0.28);
   const bcFontSize = Math.round(hPx * 0.062);
 
   const renderBarcodeCanvas = (barWidth: number) => {
@@ -190,7 +190,7 @@ export async function renderBarcodeLabelBase64(opts: {
   // Pick the largest integer barWidth that fits
   let bw = 1;
   let bcCanvas = renderBarcodeCanvas(bw);
-  while (bw < 3) {
+  while (bw < 6) {
     const next = renderBarcodeCanvas(bw + 1);
     if (next.width <= maxBcW && next.height <= maxBcH) {
       bw += 1;
@@ -212,9 +212,9 @@ export async function renderBarcodeLabelBase64(opts: {
   // Price
   const priceText = `Price (VAT inc.): ৳${Number(opts.price || 0).toLocaleString("en-BD")}`;
   ctx.textBaseline = "bottom";
-  const priceFontSize = Math.round(hPx * 0.082);
+  const priceFontSize = Math.round(hPx * 0.095);
   // Use a mono-style numeric font stack for clearer digit differentiation (e.g., 6 vs 8)
-  ctx.font = `800 ${priceFontSize}px "Consolas", "Lucida Console", "DejaVu Sans Mono", "Courier New", monospace`;
+  ctx.font = `700 ${priceFontSize}px "Consolas", "Lucida Console", "DejaVu Sans Mono", "Courier New", monospace`;
   const priceY = hPx - pad;
   ctx.fillText(fitText(ctx, priceText, wPx - pad * 2), centerX, priceY);
 

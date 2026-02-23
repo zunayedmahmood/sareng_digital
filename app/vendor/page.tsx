@@ -659,7 +659,7 @@ export default function VendorPaymentPage() {
   const loadProducts = async () => {
     try {
       const response = await productService.getAll({
-        per_page: 1000,
+        per_page: 100000,
       });
       setProducts(Array.isArray((response as any).data) ? (response as any).data : []);
     } catch (error: any) {
