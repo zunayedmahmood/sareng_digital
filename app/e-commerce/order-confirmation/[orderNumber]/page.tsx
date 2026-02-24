@@ -48,7 +48,7 @@ export default function OrderConfirmationPage() {
 
   if (loading) {
     return (
-      <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+      <div className="ec-root min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
@@ -62,7 +62,7 @@ export default function OrderConfirmationPage() {
 
   if (error || !order) {
     return (
-      <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+      <div className="ec-root min-h-screen">
         <Navigation />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
@@ -81,7 +81,7 @@ export default function OrderConfirmationPage() {
   }
 
   return (
-    <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+    <div className="ec-root min-h-screen">
       <Navigation />
       
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

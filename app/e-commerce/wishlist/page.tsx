@@ -58,7 +58,7 @@ export default function WishlistPage() {
     return (
       <>
         <Navigation />
-        <div className="ec-root min-h-screen py-12" style={{ background: 'var(--ink)' }}>
+        <div className="ec-root min-h-screen py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <button
               onClick={() => router.push('/e-commerce')}
@@ -95,7 +95,7 @@ export default function WishlistPage() {
   return (
     <>
       <Navigation />
-      <div className="ec-root min-h-screen py-12" style={{ background: 'var(--ink)' }}>
+      <div className="ec-root min-h-screen py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <button
             onClick={() => router.push('/e-commerce')}

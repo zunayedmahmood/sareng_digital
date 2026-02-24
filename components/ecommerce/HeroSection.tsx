@@ -77,7 +77,7 @@ export default function HeroSection() {
   return (
     <section
       className="ec-root relative overflow-hidden"
-      style={{ background: 'var(--ink)', minHeight: 'min(92vh, 720px)' }}
+      style={{ minHeight: 'min(92vh, 720px)' }}
     >
 
 
@@ -286,7 +286,7 @@ export default function HeroSection() {
 
       {/* ── Bottom fade transition to page background ── */}
       <div className="absolute bottom-0 inset-x-0 h-24 pointer-events-none"
-           style={{ background: 'linear-gradient(to bottom, transparent, var(--paper))' }} />
+           style={{ background: 'linear-gradient(to bottom, transparent, rgba(13,13,13,0.6))' }} />
     </section>
   );
 }

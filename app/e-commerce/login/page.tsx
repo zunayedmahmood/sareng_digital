@@ -69,7 +69,7 @@ export default function LoginRegisterPage() {
   const inputClass = "ec-dark-input";
 
   return (
-    <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+    <div className="ec-root min-h-screen">
       <Navigation />
 
       <div className="ec-container flex min-h-[calc(100vh-68px)] items-center justify-center py-12">

@@ -49,62 +49,7 @@ body {
     isolation: isolate;
   }
 
-  /* ── Global dark-page background texture ──────────────────────────────
-     Applied automatically to every dark page via the [style*="--ink"] selector.
-     Three stacked layers (all pointer-events:none, z-index:-1):
-       1. Fine grid lines  — subtle white crosshatch
-       2. Grain noise      — organic film-grain feel
-       3. Radial glow      — warm gold bloom at top-left
-     These sit behind all content via a fixed pseudo-element so they
-     scroll with the page naturally and don't repeat per-section.
-  ───────────────────────────────────────────────────────────────────── */
-  .ec-root[style*="var(--ink)"]::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
 
-    /* Layer 1 — fine grid */
-    background-image:
-      linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px),
-    /* Layer 2 — grain (SVG feTurbulence data URI) */
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='1'/%3E%3C/svg%3E"),
-    /* Layer 3 — base ink */
-      var(--ink);
-
-    background-size:
-      52px 52px,   /* grid cell size */
-      52px 52px,   /* grid cell size (cross direction) */
-      180px 180px, /* grain tile */
-      100% 100%;   /* base fill */
-
-    /* grain blended at very low opacity */
-    background-blend-mode: normal, normal, soft-light, normal;
-    opacity: 1;
-  }
-
-  /* Warm gold glow — top-left atmospheric light source */
-  .ec-root[style*="var(--ink)"]::after {
-    content: "";
-    position: fixed;
-    top: -20vh;
-    left: -15vw;
-    width: 70vw;
-    height: 70vw;
-    max-width: 900px;
-    max-height: 900px;
-    z-index: -1;
-    pointer-events: none;
-    border-radius: 50%;
-    background: radial-gradient(
-      circle at center,
-      rgba(176,124,58,0.10) 0%,
-      rgba(176,124,58,0.04) 35%,
-      transparent 70%
-    );
-  }
 
   .ec-root :where(h1, h2, h3, h4, h5, h6, .ec-heading) {
     font-family: "Cormorant Garamond", ui-serif, Georgia, serif;
@@ -115,6 +60,28 @@ body {
 }
 
 /* ─── Layout ────────────────────────────────────────────── */
+
+  /* ── Site-wide dark texture class ──────────────────────────────────────
+     Put this on the layout wrapper. The grid + grain sit directly on the
+     element background so child stacking contexts can't block them.
+     A separate fixed glow div in JSX handles the radial gold bloom.
+  ─────────────────────────────────────────────────────────────────────── */
+  .ec-bg-texture {
+    background-color: var(--ink);
+    background-image:
+      /* fine crosshatch grid */
+      linear-gradient(rgba(255,255,255,0.032) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.032) 1px, transparent 1px),
+      /* film-grain noise */
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='1'/%3E%3C/svg%3E");
+    background-size:
+      56px 56px,
+      56px 56px,
+      200px 200px;
+    background-blend-mode: normal, normal, overlay;
+    background-attachment: fixed;
+  }
+
 @layer components {
   .ec-container {
     max-width: 1280px;

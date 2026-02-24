@@ -28,7 +28,7 @@ export default function CategoriesPage() {
   }, []);
 
   return (
-    <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+    <div className="ec-root min-h-screen">
       <Navigation />
 
       {/* Header */}

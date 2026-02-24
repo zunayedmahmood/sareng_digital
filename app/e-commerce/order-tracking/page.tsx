@@ -57,7 +57,7 @@ export default function OrderTrackingByPhonePage() {
   };
 
   return (
-    <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+    <div className="ec-root min-h-screen">
       <Navigation />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

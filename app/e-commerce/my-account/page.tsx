@@ -5,7 +5,7 @@ import PaymentStatusChecker from '@/components/ecommerce/Paymentstatuschecker';
 
 export default function MyAccount(){
     return (
-        <div className="ec-root min-h-screen" style={{ background: 'var(--ink)' }}>
+        <div className="ec-root min-h-screen">
             {/* Navigation Bar */}
             <Navigation />
             {/* If user returns from SSLCommerz (or refreshes), this will verify & show a toast */}

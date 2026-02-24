@@ -85,7 +85,7 @@ const Navbar = () => {
       {/* ── Main navbar ─────────────────────────────────────────────── */}
       <nav
         className={`ec-nav sticky top-0 z-50 transition-shadow duration-300 ${scrolled ? 'shadow-[0_4px_24px_rgba(0,0,0,0.35)]' : ''}`}
-        style={{ background: 'var(--ink)' }}
+       
       >
         <div className="ec-container">
           <div className="flex h-16 items-center justify-between gap-6 sm:h-[68px]">
