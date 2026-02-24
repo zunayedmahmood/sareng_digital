@@ -23,7 +23,7 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
   onAddToCart,
   compact = false,
 }) => {
-  const primaryImage = product.images?.find((img) => img?.is_primary)?.url || product.images?.[0]?.url || '';
+  const primaryImage = product.images?.[0]?.url || '';
   const shouldUseFallback = imageErrored || !primaryImage;
   const imageUrl = shouldUseFallback ? '/images/placeholder-product.jpg' : primaryImage;
 
@@ -93,7 +93,7 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
         <p className="mb-1 line-clamp-1 text-[10px] font-medium uppercase tracking-[0.18em] text-neutral-500">
           {categoryName}
         </p>
-        <h3 className={`line-clamp-2 text-neutral-900 ${compact ? 'min-h-[2.5rem] text-sm font-semibold' : 'min-h-[2.75rem] text-sm font-semibold sm:text-[15px]'}`}>
+        <h3 className={`line-clamp-3 text-neutral-900 ${compact ? 'min-h-[3.75rem] text-sm font-semibold' : 'min-h-[4rem] text-sm font-semibold sm:text-[15px]'}`}>
           {product.display_name || product.base_name || product.name}
         </h3>
         <div className="mt-2 flex items-end justify-between gap-2">

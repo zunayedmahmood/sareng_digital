@@ -30,6 +30,8 @@ const Navbar = () => {
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
   const [cartCount, setCartCount] = useState(0);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showCatDropdown, setShowCatDropdown] = useState(false);
+  const catDropdownRef = useRef<HTMLDivElement>(null);
 
   // Ref for dropdown to handle click outside
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -76,22 +78,17 @@ const Navbar = () => {
   // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowUserDropdown(false);
+      }
+      if (catDropdownRef.current && !catDropdownRef.current.contains(event.target as Node)) {
+        setShowCatDropdown(false);
       }
     };
 
-    if (showUserDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserDropdown]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -168,8 +165,20 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0">
-            <Link href="/e-commerce" className="flex items-center space-x-2">
-              <div className="text-gray-900 font-bold text-2xl tracking-tight">
+            <Link href="/e-commerce" className="flex items-center">
+              <img
+                src="/logo.png"
+                alt="Errum"
+                className="h-10 w-auto object-contain"
+                onError={(e) => {
+                  // Fallback to text if logo image is missing
+                  const img = e.currentTarget as HTMLImageElement;
+                  img.style.display = 'none';
+                  const fallback = img.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'block';
+                }}
+              />
+              <div className="text-gray-900 font-bold text-2xl tracking-tight" style={{ display: 'none' }}>
                 ER<span className="text-neutral-900">RUM</span>
               </div>
             </Link>
@@ -185,28 +194,27 @@ const Navbar = () => {
             </Link>
 
             {/* Categories Dropdown */}
-            <div className="relative group">
-              <button className="text-gray-700 hover:text-neutral-900 transition flex items-center text-sm font-medium">
+            <div className="relative" ref={catDropdownRef}>
+              <button
+                className="text-gray-700 hover:text-neutral-900 transition flex items-center text-sm font-medium"
+                onClick={() => setShowCatDropdown(v => !v)}
+              >
                 Categories
-                <ChevronDown className="ml-1 h-4 w-4" />
+                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showCatDropdown ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}
-              {!loading && categories.length > 0 && (
-                <div className="absolute left-0 mt-3 w-60 bg-white rounded-xl shadow-xl ring-1 ring-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              {showCatDropdown && !loading && categories.length > 0 && (
+                <div className="absolute left-0 mt-3 w-60 bg-white rounded-xl shadow-xl ring-1 ring-gray-100">
                   <div className="py-2">
                     {categories.map((category) => (
                       <div key={category.id}>
                         <Link
                           href={`/e-commerce/${encodeURIComponent(categorySlug(category))}`}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-neutral-50 hover:text-neutral-900 transition"
+                          onClick={() => setShowCatDropdown(false)}
                         >
                           {category.name}
-                          {category.product_count > 0 && (
-                            <span className="ml-2 text-xs text-gray-500">
-                              ({category.product_count})
-                            </span>
-                          )}
                         </Link>
 
                         {/* Sub-categories */}
@@ -217,13 +225,9 @@ const Navbar = () => {
                                 key={child.id}
                                 href={`/e-commerce/${encodeURIComponent(categorySlug(child))}`}
                                 className="block px-4 py-1.5 text-xs text-gray-600 hover:bg-neutral-50 hover:text-neutral-900 transition rounded-md"
+                                onClick={() => setShowCatDropdown(false)}
                               >
                                 {child.name}
-                                {child.product_count > 0 && (
-                                  <span className="ml-2 text-gray-500">
-                                    ({child.product_count})
-                                  </span>
-                                )}
                               </Link>
                             ))}
                           </div>
@@ -462,11 +466,6 @@ const Navbar = () => {
                         onClick={() => setIsOpen(false)}
                       >
                         {category.name}
-                        {category.product_count > 0 && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            ({category.product_count})
-                          </span>
-                        )}
                       </Link>
                       {category.children && category.children.length > 0 && (
                         <button
@@ -495,11 +494,6 @@ const Navbar = () => {
                               onClick={() => setIsOpen(false)}
                             >
                               {child.name}
-                              {child.product_count > 0 && (
-                                <span className="ml-2 text-xs text-gray-500">
-                                  ({child.product_count})
-                                </span>
-                              )}
                             </Link>
                           ))}
                         </div>
