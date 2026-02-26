@@ -113,6 +113,28 @@ const SubcategoryProductTabs: React.FC<{ tabsCount?: number; productsPerTab?: nu
   const [tabData,     setTabData]     = useState<Record<number, TabData>>({});
   const [loadingCats, setLoadingCats] = useState(true);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [heroImgByCat, setHeroImgByCat] = useState<Record<number, string>>({});
+
+  const findSneakersNode = (flat: CatalogCategory[]): CatalogCategory | null => {
+    const exact = flat.find(c => normalizeKey(c?.slug) === 'sneakers' || normalizeKey(c?.name) === 'sneakers') || null;
+    if (exact) return exact;
+    const singular = flat.find(c => normalizeKey(c?.slug) === 'sneaker' || normalizeKey(c?.name) === 'sneaker') || null;
+    if (singular) return singular;
+    // relaxed match (e.g. "Sneakers Collection")
+    return flat.find(c => normalizeKey(c?.slug).includes('sneaker') || normalizeKey(c?.name).includes('sneaker')) || null;
+  };
+
+  const uniqById = (list: CatalogCategory[]): CatalogCategory[] => {
+    const seen = new Set<number>();
+    const out: CatalogCategory[] = [];
+    list.forEach(c => {
+      const id = Number(c?.id || 0);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      out.push(c);
+    });
+    return out;
+  };
 
   /* ── load category tree ─────────────────────────────────────────── */
   useEffect(() => {
@@ -122,16 +144,40 @@ const SubcategoryProductTabs: React.FC<{ tabsCount?: number; productsPerTab?: nu
         const tree = await catalogService.getCategories();
         const flat = flattenAll(tree);
 
-        // Prefer leaf categories (no children) as they are the most specific
-        let leaves = flat.filter(c => c.name && !c.children?.length);
-        leaves.sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0));
-        let selected = leaves.slice(0, tabsCount);
+        /**
+         * Desired behavior (per request):
+         * - This section is "Shop by Subcategory"
+         * - Show ALL subcategories under "Sneakers"
+         * - Top 3 (by product_count) appear as image banner cards
+         * - The rest appear as pill/capsule tabs
+         */
+        const sneakers = findSneakersNode(flat);
+        let selected: CatalogCategory[] = [];
 
-        // Fallback: if not enough leaves, use all categories sorted by product_count
-        if (selected.length < 2) {
-          const allNamed = [...flat].filter(c => c.name);
-          allNamed.sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0));
-          selected = allNamed.slice(0, tabsCount);
+        if (sneakers) {
+          if (sneakers.children?.length) {
+            const descendants = flattenAll(sneakers.children);
+            let leaves = descendants.filter(c => c.name && !c.children?.length);
+            if (!leaves.length) leaves = descendants.filter(c => c.name);
+            selected = uniqById(leaves);
+          } else {
+            selected = [sneakers];
+          }
+
+          selected.sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0));
+        }
+
+        // Fallback: previous behavior if sneakers not found or empty
+        if (!selected.length) {
+          let leaves = flat.filter(c => c.name && !c.children?.length);
+          leaves.sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0));
+          selected = leaves.slice(0, tabsCount);
+
+          if (selected.length < 2) {
+            const allNamed = [...flat].filter(c => c.name);
+            allNamed.sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0));
+            selected = allNamed.slice(0, tabsCount);
+          }
         }
 
         if (!alive) return;
@@ -145,6 +191,44 @@ const SubcategoryProductTabs: React.FC<{ tabsCount?: number; productsPerTab?: nu
     })();
     return () => { alive = false; };
   }, [tabsCount]);
+
+  /**
+   * Ensure top 3 banner cards have an image.
+   * If category image is missing, use the first product image from that subcategory.
+   */
+  useEffect(() => {
+    let alive = true;
+    const top3 = tabs.slice(0, 3);
+    if (!top3.length) return;
+
+    (async () => {
+      for (const cat of top3) {
+        const existing = heroImgByCat[cat.id];
+        const direct = cat.image_url || (cat as any).image || '';
+        if (existing || direct) continue;
+
+        try {
+          const response = await catalogService.getProducts({
+            page: 1,
+            per_page: 6,
+            category_id: cat.id,
+            sort_by: 'newest',
+            sort_order: 'desc',
+          } as any);
+          const cards = buildCardProductsFromResponse(response);
+          const img = (cards?.[0]?.images?.[0] as any)?.url || '';
+          if (alive && img) {
+            setHeroImgByCat(prev => ({ ...prev, [cat.id]: img }));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    })();
+
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabs.map(t => t.id).join('|')]);
 
   /* ── fetch products for active tab ──────────────────────────────── */
   useEffect(() => {
@@ -306,7 +390,7 @@ const SubcategoryProductTabs: React.FC<{ tabsCount?: number; productsPerTab?: nu
             >
               {tabs.slice(0, 3).map((cat, idx) => {
                 const active = cat.id === activeId;
-                const imgUrl = cat.image_url || (cat as any).image || null;
+                const imgUrl = cat.image_url || (cat as any).image || heroImgByCat[cat.id] || null;
 
                 return (
                   <button
@@ -412,7 +496,10 @@ const SubcategoryProductTabs: React.FC<{ tabsCount?: number; productsPerTab?: nu
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed" style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }} py-14 text-center>
+              <div
+                className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-14 text-center"
+                style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
+              >
                 <p className="ec-heading text-lg font-medium " style={{ color: 'rgba(255,255,255,0.35)' }}>No products in this category yet</p>
                 <p className="mt-1 text-sm " style={{ color: 'rgba(255,255,255,0.25)' }}>Check back soon for new arrivals</p>
               </div>

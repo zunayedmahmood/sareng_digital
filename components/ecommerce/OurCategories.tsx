@@ -8,17 +8,24 @@ import SectionHeader from '@/components/ecommerce/ui/SectionHeader';
 const slugify = (v: string) =>
   v.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
-const flattenPreferred = (items: CatalogCategory[]): CatalogCategory[] => {
-  const out: CatalogCategory[] = [];
-  const seen = new Set<number>();
-  items.forEach(cat => {
-    const children = Array.isArray(cat.children) ? cat.children : [];
-    if (children.length > 0) {
-      children.forEach(child => { if (!seen.has(child.id)) { seen.add(child.id); out.push(child); } });
-    } else if (!seen.has(cat.id)) { seen.add(cat.id); out.push(cat); }
+/**
+ * Home "Shop by Category" should show TOP-LEVEL categories (not subcategories).
+ * If the API ever returns a flat list, we fall back gracefully.
+ */
+const getTopLevelCategories = (items: CatalogCategory[]): CatalogCategory[] => {
+  const named = (Array.isArray(items) ? items : []).filter(c => c && c.name);
+
+  // Prefer top-level categories if present
+  const top = named.filter(c => (c.parent_id ?? null) === null);
+  const base = top.length ? top : named;
+
+  // Sort by product_count desc, then name for stability
+  return [...base].sort((a, b) => {
+    const da = Number(a.product_count || 0);
+    const db = Number(b.product_count || 0);
+    if (db !== da) return db - da;
+    return String(a.name || '').localeCompare(String(b.name || ''));
   });
-  items.forEach(cat => { if (!seen.has(cat.id)) { seen.add(cat.id); out.push(cat); } });
-  return out;
 };
 
 const PALETTE = [
@@ -59,7 +66,7 @@ const OurCategories: React.FC<OurCategoriesProps> = ({ categories: categoriesPro
     return () => { active = false; };
   }, [categoriesProp]);
 
-  const display = flattenPreferred(categories || []).filter(c => c.name).slice(0, 10);
+  const display = getTopLevelCategories(categories || []).slice(0, 10);
 
   if (loading || isFetching) {
     return (
