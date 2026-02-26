@@ -54,6 +54,21 @@ export interface Field {
   order: number;
 }
 
+export interface ForceDeleteSummary {
+  product_id: number;
+  product_name?: string;
+  product_sku?: string;
+  deleted_at?: string;
+  // Any other counters returned by backend (batches_deleted, barcodes_deleted, etc.)
+  [key: string]: any;
+}
+
+export interface ForceDeleteResponse {
+  success: boolean;
+  message: string;
+  data: ForceDeleteSummary;
+}
+
 export interface CreateProductData {
   // Backward compatible: you may send `name` only.
   // Recommended for variations: send `base_name` + `variation_suffix` and the backend computes `name`.
@@ -382,6 +397,37 @@ export const productService = {
       console.error('Delete product error:', error);
       throw new Error(error.response?.data?.message || 'Failed to delete product');
     }
+  },
+
+
+  /**
+   * Force delete product and ALL related data (Admin only)
+   * Backend spec: DELETE /api/employee/products/{id}/force-delete
+   */
+  async forceDelete(id: number | string): Promise<ForceDeleteResponse> {
+    const candidates = [
+      `/employee/products/${id}/force-delete`,
+      `/products/${id}/force-delete`, // fallback for deployments without /employee prefix
+    ];
+
+    let lastErr: any = null;
+
+    for (const url of candidates) {
+      try {
+        const res = await axiosInstance.delete(url);
+        return res.data as ForceDeleteResponse;
+      } catch (e: any) {
+        lastErr = e;
+        // Try next candidate only if endpoint not found
+        if (e?.response?.status === 404) continue;
+
+        console.error('Force delete product error:', e);
+        throw new Error(e?.response?.data?.message || 'Failed to force delete product');
+      }
+    }
+
+    console.error('Force delete endpoint not found:', candidates);
+    throw new Error(lastErr?.response?.data?.message || 'Force delete endpoint not found');
   },
 
   /** Archive product */
