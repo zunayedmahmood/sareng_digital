@@ -844,10 +844,16 @@ export default function AddEditProductPage({
     // }
 
     if (!isEditMode && hasVariations && variations.length > 0) {
-      const hasValidVariation = variations.some(v => v.color.trim());
-      
-      if (!hasValidVariation) {
-        setToast({ message: 'Please add at least one color for variations', type: 'error' });
+      // Variations are generated from either a Color, a Size, or both.
+      // (Color and Size are NOT mandatory; but at least one of them must exist
+      // to generate a distinct variant.)
+      const hasAnyVariantAttr = variations.some(v =>
+        Boolean(String(v.color || '').trim()) ||
+        (Array.isArray(v.sizes) && v.sizes.some(s => Boolean(String(s || '').trim())))
+      );
+
+      if (!hasAnyVariantAttr) {
+        setToast({ message: 'Please add at least one variation attribute (color or size).', type: 'error' });
         return false;
       }
     }
@@ -1030,20 +1036,15 @@ export default function AddEditProductPage({
         };
 
         if (hasVariations && variations.length > 0) {
-          const colorField = availableFields.find(f => f.title === 'Color');
-          const sizeField = availableFields.find(f => f.title === 'Size');
-
-          if (!colorField || !sizeField) {
-            setToast({ 
-              message: 'Color and Size fields must exist in Fields table to create variations', 
-              type: 'error' 
-            });
-            setLoading(false);
-            return;
-          }
+          const normTitle = (v: any) => String(v?.title || v?.name || '').trim().toLowerCase();
+          const colorField = availableFields.find(f => ['color', 'colour'].includes(normTitle(f)));
+          const sizeField = availableFields.find(f => normTitle(f) === 'size');
 
           const createdProducts: any[] = [];
-          const VARIATION_FIELD_IDS = [colorField.id, sizeField.id];
+          const VARIATION_FIELD_IDS = [
+            colorField?.id,
+            sizeField?.id,
+          ].filter(Boolean) as number[];
           const baseCustomFields = customFields.filter(
             cf => !VARIATION_FIELD_IDS.includes(cf.field_id)
           );
@@ -1061,23 +1062,27 @@ export default function AddEditProductPage({
           }> = [];
 
           for (const variation of variations) {
-            const hasColor = variation.color.trim();
-            const validSizes = variation.sizes.filter(s => s.trim());
+            const colorVal = String(variation.color || '').trim();
+            const validSizes = (variation.sizes || []).map(s => String(s || '').trim()).filter(Boolean);
+            const hasColor = Boolean(colorVal);
             const hasSizes = validSizes.length > 0;
-            
-            if (!hasColor) continue;
+
+            // If neither color nor size is provided, this variation can't produce a unique product.
+            if (!hasColor && !hasSizes) continue;
 
             const sizesToCreate = hasSizes ? validSizes : [''];
 
             for (const size of sizesToCreate) {
               const variationSuffix = buildVariationSuffix(variation.color, size);
               
-              const varCustomFields = [
-                ...baseCustomFields,
-                { field_id: colorField.id, value: variation.color }
-              ];
+              const varCustomFields = [...baseCustomFields];
 
-              if (size) {
+              // Color / Size are optional (only attach the field if both exist and value is non-empty)
+              if (colorField && hasColor) {
+                varCustomFields.push({ field_id: colorField.id, value: colorVal });
+              }
+
+              if (sizeField && size) {
                 varCustomFields.push({ field_id: sizeField.id, value: size });
               }
 
@@ -2012,7 +2017,7 @@ export default function AddEditProductPage({
                         Product Variations
                       </h2>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Create variations with different colors and sizes. Color is required, sizes are optional.
+                        Create variations with different colors and/or sizes. Both are optional — add at least one of them to generate a unique variant.
                       </p>
 
                       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
@@ -2021,9 +2026,9 @@ export default function AddEditProductPage({
                         </h4>
                         <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
                           <li>• All variations use the same SKU: "<strong>{formData.sku || 'Leave empty to auto-generate'}</strong>"</li>
-                          <li>• Each <strong>color is required</strong> for a variation</li>
-                          <li>• Sizes are optional - leave empty for "One Size" products</li>
-                          <li>• Each color gets one set of images (shared across all sizes)</li>
+                          <li>• <strong>Color is optional</strong> — you can create size-only variants</li>
+                          <li>• <strong>Size is optional</strong> — you can create color-only variants</li>
+                          <li>• Each variation card gets one set of images (shared across all sizes in that card)</li>
                           <li>• Name format: "<strong>{formData.name || 'base'}-blue-m</strong>" (base_name + variation_suffix)</li>
                         </ul>
                       </div>
