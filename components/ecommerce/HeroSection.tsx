@@ -1,293 +1,315 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, useCallback } from 'react';
-import { ArrowRight, ShoppingBag, ChevronRight } from 'lucide-react';
-import catalogService, { CatalogCategory } from '@/services/catalogService';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Search as SearchIcon, X, Facebook, Instagram, Youtube, MessageCircle } from 'lucide-react';
 
-const SLIDES = [
-  {
-    eyebrow:    'New Season · 2025',
-    headline1:  'Wear the',
-    headline2:  'Difference',
-    sub:        'Premium fashion & lifestyle collections, curated for Bangladesh.',
-    accent:     'var(--gold)',
-    badge:      'Up to 30% off selected styles',
-  },
-  {
-    eyebrow:    'Exclusive Drop',
-    headline1:  'Timeless',
-    headline2:  'Elegance',
-    sub:        'Handpicked panjabis, polos, perfumes and more — for every occasion.',
-    accent:     '#8faad4',
-    badge:      'New arrivals every week',
-  },
-  {
-    eyebrow:    'Official Store',
-    headline1:  'Style That',
-    headline2:  'Speaks',
-    sub:        'Fast delivery across Bangladesh. Authentic products. Easy returns.',
-    accent:     '#b8a99a',
-    badge:      'Free delivery above ৳1,000',
-  },
-];
+import catalogService, { type CatalogCategory } from '@/services/catalogService';
+import {
+  CLIENT_FACEBOOK,
+  CLIENT_INSTAGRAM,
+  CLIENT_YOUTUBE,
+  CLIENT_PHONE,
+} from '@/lib/constants';
 
-const STATS = [
-  { value: '500+', label: 'Products' },
-  { value: '4.9',  label: 'Rating',   icon: '★' },
-  { value: '10k+', label: 'Customers' },
-  { value: '3',    label: 'Stores',   icon: '📍' },
-];
+/* ──────────────────────────────────────────────────────────────────────────
+   Hero (background image + search + socials)
+   - No navigation/menu link required (home uses it directly)
+   - Search routes to /e-commerce/search?q=
+────────────────────────────────────────────────────────────────────────── */
+
+const toWaMeLink = (phone: string) => {
+  const digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  return `https://wa.me/${digits}`;
+};
+
+const getCoverImageFromCategories = (cats: CatalogCategory[]) =>
+  cats.find(c => c.image || c.image_url)?.image || cats.find(c => c.image_url)?.image_url || '';
 
 export default function HeroSection() {
-  const [slide,      setSlide]      = useState(0);
-  const [animating,  setAnimating]  = useState(false);
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [mounted,    setMounted]    = useState(false);
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  const [query, setQuery] = useState('');
+  const [bgUrl, setBgUrl] = useState<string>('');
+  const [topCategories, setTopCategories] = useState<CatalogCategory[]>([]);
+
+  // Background image: try newest product image, fallback to category image, else just keep gradients.
   useEffect(() => {
-    setMounted(true);
-    catalogService.getCategories()
-      .then(tree => {
-        const flat: CatalogCategory[] = [];
-        const walk = (l: CatalogCategory[]) => l.forEach(c => { flat.push(c); if (c.children?.length) walk(c.children); });
-        walk(tree);
-        setCategories(
-          flat.filter(c => c.name)
-              .sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0))
-              .slice(0, 6)
-        );
-      })
-      .catch(() => {});
+    let alive = true;
+
+    (async () => {
+      try {
+        const res = await catalogService.getProducts({
+          per_page: 1,
+          page: 1,
+          sort_by: 'newest',
+          _suppressErrorLog: true,
+        });
+
+        const first = res?.products?.[0];
+        const img = first?.images?.[0]?.url;
+        if (alive && img) setBgUrl(img);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const goTo = useCallback((idx: number) => {
-    if (animating || idx === slide) return;
-    setAnimating(true);
-    setTimeout(() => { setSlide(idx); setAnimating(false); }, 350);
-  }, [animating, slide]);
-
+  // Fetch top-level categories for “quick chips”.
   useEffect(() => {
-    const t = setInterval(() => goTo((slide + 1) % SLIDES.length), 5500);
-    return () => clearInterval(t);
-  }, [slide, goTo]);
+    let alive = true;
 
-  const current = SLIDES[slide];
+    catalogService
+      .getCategories()
+      .then((tree) => {
+        const flat: CatalogCategory[] = [];
+        const walk = (list: CatalogCategory[]) =>
+          list.forEach((c) => {
+            flat.push(c);
+            if (c.children?.length) walk(c.children);
+          });
+        walk(tree);
+
+        const parents = flat
+          .filter((c) => (c.parent_id === null || c.parent_id === undefined) && c.name)
+          .sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0))
+          .slice(0, 8);
+
+        if (!alive) return;
+        setTopCategories(parents);
+
+        // If we still don't have a background, attempt a category hero image.
+        const catImg = getCoverImageFromCategories(parents);
+        if (catImg) setBgUrl((prev) => prev || catImg);
+      })
+      .catch(() => {});
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const socials = useMemo(() => {
+    const items = [
+      { label: 'Facebook', href: CLIENT_FACEBOOK, Icon: Facebook },
+      { label: 'Instagram', href: CLIENT_INSTAGRAM, Icon: Instagram },
+      { label: 'YouTube', href: CLIENT_YOUTUBE, Icon: Youtube },
+      { label: 'WhatsApp', href: toWaMeLink(CLIENT_PHONE), Icon: MessageCircle },
+    ];
+    return items.filter((s) => Boolean(s.href));
+  }, []);
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
+  };
+
+  const clear = () => {
+    setQuery('');
+    inputRef.current?.focus();
+  };
 
   return (
-    <section
-      className="ec-root relative overflow-hidden"
-      style={{ minHeight: 'min(92vh, 720px)' }}
-    >
+    <section className="ec-root relative overflow-hidden" style={{ minHeight: 'min(92vh, 720px)' }}>
+      {/* Background image */}
+      <div className="absolute inset-0">
+        {bgUrl ? (
+          <img
+            src={bgUrl}
+            alt="Hero background"
+            className="h-full w-full object-cover"
+            onError={() => setBgUrl('')}
+          />
+        ) : null}
 
-
-      {/* ── Hero-local ambient blobs (complement the global glow layer) ── */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {/* Left gold — reinforces the global top-left bloom specifically inside hero */}
-        <div className="absolute -left-20 -top-20 h-[480px] w-[480px] rounded-full"
-             style={{ background: 'radial-gradient(circle, rgba(176,124,58,0.12) 0%, transparent 65%)', filter: 'blur(30px)' }} />
-        {/* Right cool */}
-        <div className="absolute -right-16 bottom-0 h-[360px] w-[360px] rounded-full"
-             style={{ background: 'radial-gradient(circle, rgba(90,110,160,0.07) 0%, transparent 65%)', filter: 'blur(40px)' }} />
+        {/* Premium overlays */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/45 to-[#0d0d0d]" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(900px 600px at 18% 12%, rgba(176,124,58,0.20), transparent 55%), radial-gradient(700px 520px at 82% 68%, rgba(120,160,220,0.14), transparent 60%)',
+          }}
+        />
       </div>
 
-
-
-      <div className="ec-container relative flex flex-col justify-center" style={{ minHeight: 'inherit', paddingTop: '5rem', paddingBottom: '5rem' }}>
-        <div className="grid items-center gap-12 lg:grid-cols-[1fr_420px] xl:grid-cols-[1fr_480px]">
-
-          {/* ── Left: Editorial text ── */}
-          <div>
-            {/* Slide eyebrow */}
-            <div
-              key={`eyebrow-${slide}`}
-              className={`ec-anim-slide-right ${mounted ? '' : 'opacity-0'}`}
-              style={{ fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '0.22em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}
+      {/* Socials (hidden on small) */}
+      {socials.length > 0 && (
+        <div className="pointer-events-none absolute left-5 top-1/2 z-10 hidden -translate-y-1/2 flex-col gap-2 lg:flex">
+          {socials.map(({ label, href, Icon }) => (
+            <a
+              key={label}
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="pointer-events-auto group flex h-10 w-10 items-center justify-center rounded-full"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.25)',
+              }}
+              aria-label={label}
+              title={label}
             >
-              — {current.eyebrow}
+              <Icon className="h-4 w-4 text-white/75 transition group-hover:text-white" />
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="ec-container relative z-10 flex flex-col justify-center" style={{ minHeight: 'inherit', paddingTop: '5.5rem', paddingBottom: '5rem' }}>
+        <div className="mx-auto w-full max-w-3xl text-center">
+          <p className="ec-eyebrow justify-center">Search the catalogue</p>
+
+          <h1
+            className="mt-4 text-white"
+            style={{
+              fontSize: 'clamp(40px, 6vw, 72px)',
+              lineHeight: 1.02,
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Find your next <span style={{ color: 'var(--gold-light)' }}>favorite</span>
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-xl text-[14px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.62)' }}>
+            Search by product name, SKU, or category — then explore variants, sizes, and colors in one place.
+          </p>
+
+          {/* Search bar */}
+          <form onSubmit={onSubmit} className="mx-auto mt-8 w-full max-w-2xl">
+            <div
+              className="relative overflow-hidden rounded-2xl"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.14)',
+                backdropFilter: 'blur(12px)',
+                boxShadow: '0 22px 70px rgba(0,0,0,0.45)',
+              }}
+            >
+              <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/55" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search products… (e.g., sneaker, panjabi, perfume, SKU)"
+                className="w-full bg-transparent py-4 pl-12 pr-32 text-[14px] text-white outline-none placeholder:text-white/40"
+                autoComplete="off"
+              />
+
+              {query && (
+                <button
+                  type="button"
+                  onClick={clear}
+                  className="absolute right-[7.25rem] top-1/2 -translate-y-1/2 rounded-lg p-2 text-white/55 transition hover:text-white"
+                  aria-label="Clear"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={!query.trim()}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  background: 'var(--gold)',
+                  color: 'white',
+                  boxShadow: '0 10px 26px rgba(176,124,58,0.35)',
+                }}
+              >
+                Search
+              </button>
             </div>
+          </form>
 
-            {/* Giant headline */}
-            <div
-              key={`headline-${slide}`}
-              className={`mt-4 ${mounted ? 'ec-anim-fade-up' : 'opacity-0'}`}
-              style={{ transition: 'opacity 0.35s ease' }}
-            >
-              <h1 style={{ fontFamily: "'Cormorant Garamond', serif", lineHeight: 0.95, letterSpacing: '-0.02em' }}>
-                <span className="block text-white" style={{ fontSize: 'clamp(56px, 9vw, 112px)', fontWeight: 300 }}>
-                  {current.headline1}
-                </span>
-                <span
-                  className="block"
+          {/* Quick category chips */}
+          {topCategories.length > 0 && (
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              {topCategories.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/e-commerce/${encodeURIComponent(c.slug || c.name)}`}
+                  className="rounded-full px-3 py-1.5 text-[11px] font-medium transition"
                   style={{
-                    fontSize: 'clamp(64px, 10vw, 124px)',
-                    fontWeight: 600,
-                    color: current.accent,
-                    transition: 'color 0.6s ease',
-                    WebkitTextStroke: '1px transparent',
+                    border: '1px solid rgba(255,255,255,0.14)',
+                    color: 'rgba(255,255,255,0.70)',
+                    background: 'rgba(255,255,255,0.04)',
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement;
+                    el.style.borderColor = 'var(--gold-light)';
+                    el.style.color = 'var(--gold-light)';
+                    el.style.background = 'rgba(176,124,58,0.10)';
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLAnchorElement;
+                    el.style.borderColor = 'rgba(255,255,255,0.14)';
+                    el.style.color = 'rgba(255,255,255,0.70)';
+                    el.style.background = 'rgba(255,255,255,0.04)';
                   }}
                 >
-                  {current.headline2}
-                </span>
-              </h1>
-            </div>
-
-            {/* Subtext */}
-            <p
-              key={`sub-${slide}`}
-              className={`mt-6 max-w-md text-[15px] leading-relaxed ec-anim-fade-up ec-delay-2 ${mounted ? '' : 'opacity-0'}`}
-              style={{ color: 'rgba(255,255,255,0.55)' }}
-            >
-              {current.sub}
-            </p>
-
-            {/* CTAs */}
-            <div className={`mt-8 flex flex-wrap gap-3 ec-anim-fade-up ec-delay-3 ${mounted ? '' : 'opacity-0'}`}>
-              <Link
-                href="/e-commerce/products"
-                className="ec-btn ec-btn-gold"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                Shop Now
-              </Link>
-              <Link
-                href="/e-commerce/categories"
-                className="ec-btn flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.12)' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.13)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.08)'; }}
-              >
-                Browse Collections
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            {/* Category quick links */}
-            {categories.length > 0 && (
-              <div className={`mt-8 flex flex-wrap gap-2 ec-anim-fade-up ec-delay-4 ${mounted ? '' : 'opacity-0'}`}>
-                {categories.map(cat => (
-                  <Link
-                    key={cat.id}
-                    href={`/e-commerce/${encodeURIComponent(cat.slug || cat.name)}`}
-                    className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-all"
-                    style={{
-                      border: '1px solid rgba(255,255,255,0.15)',
-                      color: 'rgba(255,255,255,0.5)',
-                      background: 'rgba(255,255,255,0.04)',
-                      letterSpacing: '0.05em',
-                    }}
-                    onMouseEnter={e => {
-                      const el = e.currentTarget as HTMLAnchorElement;
-                      el.style.borderColor = 'var(--gold-light)';
-                      el.style.color = 'var(--gold-light)';
-                      el.style.background = 'rgba(176,124,58,0.08)';
-                    }}
-                    onMouseLeave={e => {
-                      const el = e.currentTarget as HTMLAnchorElement;
-                      el.style.borderColor = 'rgba(255,255,255,0.15)';
-                      el.style.color = 'rgba(255,255,255,0.5)';
-                      el.style.background = 'rgba(255,255,255,0.04)';
-                    }}
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Slide indicators */}
-            <div className={`mt-10 flex items-center gap-3 ec-anim-fade-in ec-delay-5 ${mounted ? '' : 'opacity-0'}`}>
-              {SLIDES.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => goTo(i)}
-                  className="transition-all duration-300"
-                  style={{
-                    height: '2px',
-                    width:  i === slide ? '32px' : '16px',
-                    background: i === slide ? 'var(--gold)' : 'rgba(255,255,255,0.2)',
-                    borderRadius: '2px',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                  aria-label={`Slide ${i + 1}`}
-                />
+                  {c.name}
+                </Link>
               ))}
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.2)', marginLeft: '8px' }}>
-                0{slide + 1} / 0{SLIDES.length}
-              </span>
             </div>
-          </div>
+          )}
 
-          {/* ── Right: Stats + promo card ── */}
-          <div className={`ec-anim-scale-in ec-delay-2 ${mounted ? '' : 'opacity-0'}`}>
-            {/* Outer card frame */}
-            <div className="relative rounded-3xl p-px overflow-hidden"
-                 style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.04) 50%, rgba(176,124,58,0.3) 100%)' }}>
-              <div className="rounded-3xl p-5 sm:p-6" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}>
-
-                {/* Stats row */}
-                <div className="grid grid-cols-4 gap-2 mb-5">
-                  {STATS.map(({ value, label, icon }) => (
-                    <div key={label} className="rounded-2xl p-3 text-center"
-                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      <div className="text-lg font-bold" style={{ fontFamily: "'Cormorant Garamond', serif", color: 'var(--gold-light)', letterSpacing: '-0.02em' }}>
-                        {icon && <span className="text-sm mr-0.5">{icon}</span>}{value}
-                      </div>
-                      <div style={{ fontSize: '9px', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', fontFamily: "'DM Mono', monospace" }}>
-                        {label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Promo badge */}
-                <div className="rounded-2xl p-4 mb-4 flex items-center justify-between"
-                     style={{ background: 'linear-gradient(135deg, rgba(176,124,58,0.2) 0%, rgba(176,124,58,0.08) 100%)', border: '1px solid rgba(176,124,58,0.25)' }}>
-                  <div>
-                    <p className="text-[13px] font-semibold text-white">{current.badge}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--gold-light)' }}>Limited time offer</p>
-                  </div>
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0"
-                       style={{ background: 'var(--gold)', color: 'white' }}>
-                    <span style={{ fontSize: '16px' }}>✦</span>
-                  </div>
-                </div>
-
-                {/* Feature grid */}
-                {[
-                  { icon: '🚚', title: 'Free Delivery',  sub: 'On orders ৳1,000+' },
-                  { icon: '✓',  title: 'Authentic',       sub: '100% genuine' },
-                  { icon: '↩',  title: 'Easy Returns',    sub: '7-day policy' },
-                  { icon: '💬', title: '24/7 Support',    sub: 'Always here for you' },
-                ].map(({ icon, title, sub }) => (
-                  <div key={title} className="flex items-center gap-3 py-2.5 border-b last:border-0"
-                       style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
-                    <span className="text-lg w-7 text-center flex-shrink-0">{icon}</span>
-                    <div>
-                      <p className="text-[12px] font-semibold text-white">{title}</p>
-                      <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>{sub}</p>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Store label */}
-                <div className="mt-4 flex items-center justify-between">
-                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '9px', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.2)' }}>
-                    ERRUM STORE · BD
-                  </span>
-                  <Link href="/e-commerce/contact" className="flex items-center gap-1 text-[11px]"
-                        style={{ color: 'var(--gold-light)' }}>
-                    Locations <ChevronRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </div>
+          {/* Socials (mobile) */}
+          {socials.length > 0 && (
+            <div className="mt-6 flex items-center justify-center gap-2 lg:hidden">
+              {socials.map(({ label, href, Icon }) => (
+                <a
+                  key={`m-${label}`}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    backdropFilter: 'blur(10px)',
+                  }}
+                  aria-label={label}
+                  title={label}
+                >
+                  <Icon className="h-4 w-4 text-white/75" />
+                </a>
+              ))}
             </div>
+          )}
+
+          {/* Secondary CTA */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/e-commerce/products" className="ec-btn ec-btn-gold">
+              Browse Products
+            </Link>
+            <Link
+              href="/e-commerce/categories"
+              className="ec-btn"
+              style={{
+                background: 'rgba(255,255,255,0.08)',
+                color: 'rgba(255,255,255,0.82)',
+                border: '1px solid rgba(255,255,255,0.14)',
+              }}
+            >
+              Browse Categories
+            </Link>
           </div>
         </div>
       </div>
-
-
     </section>
   );
 }
