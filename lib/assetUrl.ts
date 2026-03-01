@@ -1,6 +1,5 @@
 const LOCAL_FRONTEND_PATH_PREFIXES = [
   '/placeholder',
-  '/images/',
   '/icons/',
   '/logos/',
   '/favicon',
@@ -42,7 +41,14 @@ function hasProtocolRelativeUrl(value: string): boolean {
 }
 
 function shouldKeepAsLocalFrontendPath(value: string): boolean {
-  return LOCAL_FRONTEND_PATH_PREFIXES.some((prefix) => value.startsWith(prefix));
+  // Keep ONLY known frontend-local placeholder assets.
+  // IMPORTANT: real product images may arrive as `/images/...` from backend,
+  // so we must not treat every `/images/*` path as local.
+  const isPlaceholder =
+    /^\/(?:images\/)?placeholder-product\.(?:png|jpe?g|webp|svg)$/i.test(value) ||
+    /^\/placeholder-product\.(?:png|jpe?g|webp|svg)$/i.test(value);
+
+  return isPlaceholder || LOCAL_FRONTEND_PATH_PREFIXES.some((prefix) => value.startsWith(prefix));
 }
 
 /**

@@ -264,11 +264,25 @@ const toAbsoluteAssetUrl = (value: any): string => {
     return raw;
   }
 
+  // Prefer explicit envs
   const apiBase = normalizeString(process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
   const appBase = normalizeString(process.env.NEXT_PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
+  // Runtime fallback (helps when deployment env is missing/misconfigured but API calls still work)
+  // Uses axios baseURL from our shared instance (e.g. https://backend.example.com/api)
+  let runtimeApiBase = '';
+  try {
+    runtimeApiBase = normalizeString((api as any)?.defaults?.baseURL || '').replace(/\/$/, '');
+  } catch {
+    runtimeApiBase = '';
+  }
+
   const backendBase =
+    // 1) NEXT_PUBLIC_API_URL (strip /api)
     (apiBase ? apiBase.replace(/\/api(?:\/v\d+)?$/i, '') : '') ||
+    // 2) axios runtime baseURL (strip /api)
+    (runtimeApiBase ? runtimeApiBase.replace(/\/api(?:\/v\d+)?$/i, '') : '') ||
+    // 3) explicit base
     appBase ||
     '';
 
