@@ -517,7 +517,7 @@ const normalizeProduct = (
     total_variants: raw?.total_variants !== undefined ? toNumber(raw?.total_variants, 0) : undefined,
     sku: normalizeString(raw?.sku || raw?.product_sku || ''),
     slug: raw?.slug || undefined,
-    description: normalizeString(raw?.description || context?.description || ''),
+    description: normalizeString(raw?.description || ''),
     short_description: normalizeString(raw?.short_description || ''),
     cost_price: costPrice,
     selling_price: sellingPrice,
