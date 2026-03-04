@@ -111,16 +111,26 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     return `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${imagePath}`;
   };
 
-  const images = product?.images || [];
-  const activeImages = images.filter(img => img.is_active);
-  const displayImages = activeImages.length > 0 ? activeImages : images;
-  const selectedImage = displayImages[selectedImageIndex];
+  // Prefer backend-provided merged gallery (SKU-core fallback)
+  const images = (product as any)?.display_images || product?.images || [];
+  const activeImages = images.filter((img: any) => img.is_active !== false);
+  const displayImagesRaw = activeImages.length > 0 ? activeImages : images;
+  const displayImages = displayImagesRaw.length > 0 ? displayImagesRaw : [{
+    id: 0,
+    image_path: '',
+    is_primary: true,
+    is_active: true,
+    sort_order: 0,
+  } as any];
+  const selectedImage = displayImages[selectedImageIndex] || displayImages[0];
 
   const nextImage = () => {
+    if (displayImages.length <= 1) return;
     setSelectedImageIndex((prev) => (prev + 1) % displayImages.length);
   };
 
   const prevImage = () => {
+    if (displayImages.length <= 1) return;
     setSelectedImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
   };
 

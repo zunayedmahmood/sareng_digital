@@ -13,6 +13,8 @@ export interface Product {
   is_archived: boolean;
   custom_fields?: CustomField[];
   images?: ProductImage[];
+  /** Gallery-safe images (SKU-core fallback merged with variant image) */
+  display_images?: ProductImage[];
   variants?: any[]; // Product variants
   category?: {
     id: number;
@@ -121,6 +123,7 @@ function transformProduct(product: any): Product {
     is_archived: product.is_archived,
     custom_fields: product.custom_fields,
     images: product.images,
+    display_images: product.display_images,
     variants: product.variants,
     category: product.category,
     vendor: product.vendor,
