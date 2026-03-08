@@ -58,24 +58,41 @@ export function getProductPrimaryImage(product: any): string {
 }
 
 /**
+ * Sort an images array so the is_primary image always comes first.
+ */
+function sortImagesPrimaryFirst(imgs: any[]): any[] {
+  if (!Array.isArray(imgs) || imgs.length <= 1) return imgs;
+  const primaryIdx = imgs.findIndex((img: any) => !!img?.is_primary);
+  if (primaryIdx <= 0) return imgs;
+  const sorted = [...imgs];
+  const [primary] = sorted.splice(primaryIdx, 1);
+  sorted.unshift(primary);
+  return sorted;
+}
+
+/**
  * Given a list of variant-level product objects, find the first non-empty
- * image array across all of them and return it.  Returns [] if none have images.
+ * image array across all of them and return it — sorted primary-first.
+ * Returns [] if none have images.
  */
 function pickFallbackImages(variants: any[]): any[] {
   for (const v of variants) {
     const imgs = Array.isArray(v?.images) ? v.images : [];
-    if (imgs.length > 0) return imgs;
+    if (imgs.length > 0) return sortImagesPrimaryFirst(imgs);
   }
   return [];
 }
 
 /**
- * Apply the fallback image set to any variant that has an empty images array.
+ * Apply the fallback image set (already sorted primary-first) to any variant
+ * that has an empty images array.
  */
 function applyImageFallback<T extends { images?: any[] }>(variants: T[], fallback: any[]): T[] {
   if (!fallback.length) return variants;
   return variants.map((v) =>
-    Array.isArray(v.images) && v.images.length > 0 ? v : { ...v, images: fallback }
+    Array.isArray(v.images) && v.images.length > 0
+      ? { ...v, images: sortImagesPrimaryFirst(v.images) }
+      : { ...v, images: fallback }
   );
 }
 

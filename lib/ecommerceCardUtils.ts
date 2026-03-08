@@ -55,10 +55,24 @@ const dedupeVariants = (variants: SimpleProduct[]): SimpleProduct[] => {
   return list;
 };
 
+/**
+ * Sort an images array so the is_primary image always comes first.
+ * This prevents secondary images from being shown on product cards.
+ */
+const sortImagesPrimaryFirst = (imgs: any[]): any[] => {
+  if (!Array.isArray(imgs) || imgs.length <= 1) return imgs;
+  const primaryIdx = imgs.findIndex((img: any) => !!img?.is_primary);
+  if (primaryIdx <= 0) return imgs; // already first or not found
+  const sorted = [...imgs];
+  const [primary] = sorted.splice(primaryIdx, 1);
+  sorted.unshift(primary);
+  return sorted;
+};
+
 const pickSharedImages = (items: SimpleProduct[]): SimpleProduct['images'] => {
   for (const p of items) {
     const imgs = (p as any)?.images;
-    if (Array.isArray(imgs) && imgs.length > 0) return imgs;
+    if (Array.isArray(imgs) && imgs.length > 0) return sortImagesPrimaryFirst(imgs);
   }
   return [];
 };
@@ -101,7 +115,7 @@ const propagateImagesAcrossListBySku = (list: SimpleProduct[]): SimpleProduct[] 
     const imgs = (p as any)?.images;
     if (!sku) continue;
     if (!skuToImages.has(sku) && Array.isArray(imgs) && imgs.length > 0) {
-      skuToImages.set(sku, imgs);
+      skuToImages.set(sku, sortImagesPrimaryFirst(imgs));
     }
   }
 
