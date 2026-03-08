@@ -2,196 +2,203 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Filter, ShoppingBag } from 'lucide-react';
+import { ChevronDown, Filter, Loader2, ShoppingBag } from 'lucide-react';
 
 import Navigation from '@/components/ecommerce/Navigation';
 import CartSidebar from '@/components/ecommerce/cart/CartSidebar';
-import { useCart } from '@/app/e-commerce/CartContext';
 import catalogService, {
   CatalogCategory,
   GetProductsParams,
   PaginationMeta,
-  Product,
   SimpleProduct,
 } from '@/services/catalogService';
 import SlugStyleProductCard from '@/components/ecommerce/ui/SlugStyleProductCard';
-import { groupProductsByMother } from '@/lib/ecommerceProductGrouping';
+
+import {
+  buildCardProductsFromResponse,
+  getCardNewestSortKey,
+} from '@/lib/ecommerceCardUtils';
 
 type ProductSort = NonNullable<GetProductsParams['sort_by']>;
 
-const UI_CARDS_PER_PAGE = 20;
-const API_PER_PAGE = 60;
-const MAX_API_PAGES = 50;
+type FlatCategory = CatalogCategory & { depth: number };
 
-const normalizeKey = (value: string) =>
-  decodeURIComponent(value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ');
+const PRODUCTS_PER_PAGE = 20;
+const BACKEND_BATCH_SIZE = 100;
 
-const flattenCategories = (cats: CatalogCategory[]): CatalogCategory[] => {
-  const result: CatalogCategory[] = [];
+const normalize = (value: unknown) => String(value ?? '').trim().toLowerCase();
 
-  const walk = (items: CatalogCategory[]) => {
-    items.forEach((cat) => {
-      result.push(cat);
-      if (Array.isArray(cat.children) && cat.children.length > 0) {
-        walk(cat.children);
-      }
-    });
-  };
-
-  walk(cats);
-  return result;
-};
-
-const getDescendantCategoryNodes = (category: CatalogCategory | null | undefined): CatalogCategory[] => {
-  if (!category) return [];
-  const nodes: CatalogCategory[] = [];
-  const walk = (node: CatalogCategory) => {
-    nodes.push(node);
-    if (Array.isArray(node.children)) node.children.forEach(walk);
-  };
-  walk(category);
-  return nodes;
-};
-
-const buildAllowedCategoryKeys = (category: CatalogCategory | null) => {
-  const ids = new Set<number>();
-  const keys = new Set<string>();
-
-  const addKey = (v: string | undefined | null) => {
-    const k = normalizeKey(String(v || ''));
-    if (k) keys.add(k);
-  };
-
-  if (category) {
-    for (const node of getDescendantCategoryNodes(category)) {
-      const id = Number((node as any)?.id || 0);
-      if (id > 0) ids.add(id);
-      addKey(node.name);
-      addKey(node.slug);
+const flattenCategories = (nodes: CatalogCategory[], depth = 0): FlatCategory[] => {
+  const out: FlatCategory[] = [];
+  for (const node of nodes) {
+    out.push({ ...node, depth });
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      out.push(...flattenCategories(node.children, depth + 1));
     }
   }
-
-  return { ids, keys };
+  return out;
 };
 
-const productMatchesAllowedCategory = (
-  product: Product | SimpleProduct,
-  allowed: { ids: Set<number>; keys: Set<string> }
-) => {
-  if ((!allowed.ids || allowed.ids.size === 0) && (!allowed.keys || allowed.keys.size === 0)) return true;
+const collectCategoryScope = (selectedId: string, flatCategories: FlatCategory[]) => {
+  const id = Number(selectedId);
+  if (!id) {
+    return {
+      ids: new Set<number>(),
+      names: new Set<string>(),
+      slugs: new Set<string>(),
+    };
+  }
 
-  const cat: any = (product as any)?.category;
-  const catId = Number(cat?.id || 0);
-  if (catId > 0 && allowed.ids.has(catId)) return true;
+  const ids = new Set<number>();
+  const names = new Set<string>();
+  const slugs = new Set<string>();
+  const queue = [id];
 
-  const candidateKeys = [
-    cat?.slug,
-    cat?.name,
-    (product as any)?.category_slug,
-    (product as any)?.category_name,
-  ]
-    .map((v) => normalizeKey(String(v || '')))
-    .filter(Boolean);
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (ids.has(current)) continue;
+    ids.add(current);
 
-  return candidateKeys.some((k) => allowed.keys.has(k));
-};
-
-const buildCardProductsFromFlatCatalog = (rawProducts: (Product | SimpleProduct)[]): SimpleProduct[] => {
-  const grouped = groupProductsByMother(rawProducts as any[], {
-    useCategoryInKey: true,
-    preferSkuGrouping: true,
-  });
-
-  return grouped.map((group) => {
-    const rawVariants = (group.variants || [])
-      .map((variant) => variant.raw)
-      .filter(Boolean) as SimpleProduct[];
-
-    const uniqueVariants = new Map<number, SimpleProduct>();
-    rawVariants.forEach((variant) => {
-      const id = Number((variant as any)?.id) || 0;
-      if (!id) return;
-      if (!uniqueVariants.has(id)) uniqueVariants.set(id, variant);
-    });
-
-    const all = Array.from(uniqueVariants.values());
-
-    const fallbackImages =
-      all.find((v) => (v as any).images?.some((img: any) => img?.is_primary))?.images ||
-      all.find((v) => Array.isArray((v as any).images) && (v as any).images.length > 0)?.images ||
-      [];
-
-    const allWithImages = fallbackImages.length
-      ? all.map((v) =>
-          Array.isArray((v as any).images) && (v as any).images.length > 0
-            ? v
-            : { ...(v as any), images: fallbackImages }
-        )
-      : all;
-
-    const representative =
-      (allWithImages.find((v) => Number(v.id) === Number((group.representative as any)?.id)) as SimpleProduct) ||
-      (group.representative as SimpleProduct) ||
-      allWithImages.find((variant) => Number(variant.stock_quantity || 0) > 0) ||
-      allWithImages[0];
-
-    if (!representative) {
-      return {
-        id: Number(group.representativeId || 0),
-        name: group.baseName || 'Product',
-        display_name: group.baseName || 'Product',
-        base_name: group.baseName || 'Product',
-        sku: '',
-        selling_price: 0,
-        stock_quantity: 0,
-        images: [],
-        in_stock: false,
-        has_variants: false,
-        total_variants: 0,
-        variants: [],
-      } as SimpleProduct;
+    const currentNode = flatCategories.find((category) => Number(category.id) === current);
+    if (currentNode) {
+      if (currentNode.name) names.add(normalize(currentNode.name));
+      if (currentNode.slug) slugs.add(normalize(currentNode.slug));
     }
 
-    const variantsWithoutRepresentative = allWithImages.filter(
-      (variant) => Number(variant.id) !== Number(representative.id)
-    );
+    flatCategories
+      .filter((category) => Number(category.parent_id) === current)
+      .forEach((child) => {
+        if (!ids.has(Number(child.id))) {
+          queue.push(Number(child.id));
+        }
+      });
+  }
 
-    return {
-      ...representative,
-      name: group.baseName || (representative as any).base_name || representative.name,
-      display_name:
-        group.baseName ||
-        (representative as any).display_name ||
-        (representative as any).base_name ||
-        representative.name,
-      base_name: group.baseName || (representative as any).base_name || representative.name,
-      has_variants: all.length > 1,
-      total_variants: all.length,
-      variants: variantsWithoutRepresentative,
-    } as SimpleProduct;
-  });
+  return { ids, names, slugs };
 };
 
-const getProductsSilent = (params: GetProductsParams) =>
-  catalogService.getProducts({ ...(params as any), _suppressErrorLog: true } as GetProductsParams);
+const getProductCategoryMeta = (product: SimpleProduct) => {
+  const category = (product as any)?.category;
+  if (!category) {
+    return { id: 0, name: '', slug: '' };
+  }
 
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+  if (typeof category === 'string') {
+    return { id: 0, name: category, slug: '' };
+  }
 
-const getCacheKey = (input: {
-  categoryId: string;
-  searchTerm: string;
-  sortBy: ProductSort;
-}) => {
-  return [
-    'products',
-    input.categoryId || 'all',
-    normalizeKey(input.searchTerm || ''),
-    input.sortBy,
-  ].join('::');
+  return {
+    id: Number(category.id) || 0,
+    name: String(category.name || ''),
+    slug: String(category.slug || ''),
+  };
+};
+
+const matchesSelectedCategory = (
+  product: SimpleProduct,
+  selectedCategory: string,
+  flatCategories: FlatCategory[]
+) => {
+  if (selectedCategory === 'all') return true;
+
+  const scope = collectCategoryScope(selectedCategory, flatCategories);
+  const productCategory = getProductCategoryMeta(product);
+
+  if (productCategory.id && scope.ids.has(productCategory.id)) return true;
+  if (productCategory.name && scope.names.has(normalize(productCategory.name))) return true;
+  if (productCategory.slug && scope.slugs.has(normalize(productCategory.slug))) return true;
+
+  return false;
+};
+
+const matchesSearchTerm = (product: SimpleProduct, rawQuery: string) => {
+  const query = normalize(rawQuery);
+  if (!query) return true;
+
+  const category = getProductCategoryMeta(product);
+  const variants = Array.isArray((product as any)?.variants) ? (product as any).variants : [];
+  const variantBits = variants.flatMap((variant: any) => [
+    variant?.display_name,
+    variant?.base_name,
+    variant?.name,
+    variant?.sku,
+    variant?.variation_suffix,
+    variant?.option_label,
+  ]);
+
+  const haystack = [
+    (product as any)?.display_name,
+    (product as any)?.base_name,
+    product?.name,
+    product?.sku,
+    category.name,
+    category.slug,
+    ...variantBits,
+  ]
+    .map((item) => normalize(item))
+    .filter(Boolean)
+    .join(' ');
+
+  const tokens = query.split(/\s+/).filter(Boolean);
+  return tokens.every((token) => haystack.includes(token));
+};
+
+const sortProducts = (items: SimpleProduct[], sortBy: ProductSort) => {
+  const out = [...items];
+
+  out.sort((a, b) => {
+    if (sortBy === 'newest') {
+      return getCardNewestSortKey(b) - getCardNewestSortKey(a);
+    }
+
+    if (sortBy === 'name') {
+      const aName = normalize((a as any)?.display_name || (a as any)?.base_name || a?.name);
+      const bName = normalize((b as any)?.display_name || (b as any)?.base_name || b?.name);
+      return aName.localeCompare(bName);
+    }
+
+    if (sortBy === 'price_asc' || sortBy === 'price_desc') {
+      const getComparablePrice = (product: SimpleProduct) => {
+        const variants = Array.isArray((product as any)?.variants) ? (product as any).variants : [];
+        const prices = [product, ...variants]
+          .map((item: any) => Number(item?.selling_price) || 0)
+          .filter((price: number) => price > 0);
+
+        if (prices.length === 0) return 0;
+        return Math.min(...prices);
+      };
+
+      const aPrice = getComparablePrice(a);
+      const bPrice = getComparablePrice(b);
+      return sortBy === 'price_asc' ? aPrice - bPrice : bPrice - aPrice;
+    }
+
+    return 0;
+  });
+
+  return out;
+};
+
+const buildLocalPagination = (totalItems: number, currentPage: number): PaginationMeta => ({
+  current_page: currentPage,
+  per_page: PRODUCTS_PER_PAGE,
+  total: totalItems,
+  last_page: Math.max(1, Math.ceil(totalItems / PRODUCTS_PER_PAGE)),
+  has_more_pages: currentPage < Math.max(1, Math.ceil(totalItems / PRODUCTS_PER_PAGE)),
+});
+
+const dedupeById = (products: SimpleProduct[]) => {
+  const seen = new Set<number>();
+  const out: SimpleProduct[] = [];
+
+  for (const product of products) {
+    const id = Number((product as any)?.id) || 0;
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(product);
+  }
+
+  return out;
 };
 
 export default function ProductsPage() {
@@ -200,37 +207,34 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<ProductSort>('newest');
   const [isLoading, setIsLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [isHydratingMatches, setIsHydratingMatches] = useState(false);
 
   const [products, setProducts] = useState<SimpleProduct[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<SimpleProduct[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
-  const { addToCart } = useCart();
+
+  const directRequestRef = useRef(0);
+  const filteredRequestRef = useRef(0);
 
   const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
-  const activeCategory = useMemo(() => {
-    if (selectedCategory === 'all') return null;
-    return flatCategories.find((c) => String(c.id) === String(selectedCategory)) || null;
-  }, [flatCategories, selectedCategory]);
+  const hasActiveFilters = selectedCategory !== 'all' || Boolean(debouncedSearchTerm.trim());
+  const filterSignature = `${selectedCategory}|${normalize(debouncedSearchTerm)}|${sortBy}`;
 
-  type CacheEntry = {
-    key: string;
-    attemptParams: Record<string, any>;
-    fetchedApiPages: number;
-    apiLastPage: number | null;
-    hasMore: boolean;
-    rawById: Map<number, Product | SimpleProduct>;
-    rawOrdered: Array<Product | SimpleProduct>;
-    cards: SimpleProduct[];
-  };
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
 
-  const cacheRef = useRef<Record<string, CacheEntry>>({});
+    return () => window.clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchCategories();
@@ -238,158 +242,185 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-    setImageErrors(new Set());
-    cacheRef.current = {};
-  }, [selectedCategory, searchTerm, sortBy]);
+  }, [selectedCategory, debouncedSearchTerm, sortBy]);
 
   useEffect(() => {
-    if (categoriesLoading) return;
-    fetchProducts(currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesLoading, selectedCategory, searchTerm, sortBy, currentPage]);
+    if (!hasActiveFilters) {
+      setFilteredProducts([]);
+      setIsHydratingMatches(false);
+      return;
+    }
+
+    let isAlive = true;
+    const requestId = ++filteredRequestRef.current;
+
+    const loadFilteredProducts = async () => {
+      setIsLoading(true);
+      setIsHydratingMatches(false);
+      setProducts([]);
+      setFilteredProducts([]);
+      setPagination(null);
+
+      const matchedProducts: SimpleProduct[] = [];
+      const matchedIds = new Set<number>();
+
+      const pushMatches = (incoming: SimpleProduct[]) => {
+        let didAdd = false;
+
+        for (const product of incoming) {
+          const productId = Number((product as any)?.id) || 0;
+          if (!productId || matchedIds.has(productId)) continue;
+          if (!matchesSelectedCategory(product, selectedCategory, flatCategories)) continue;
+          if (!matchesSearchTerm(product, debouncedSearchTerm)) continue;
+
+          matchedIds.add(productId);
+          matchedProducts.push(product);
+          didAdd = true;
+        }
+
+        if (!didAdd) return;
+
+        const sorted = sortProducts(dedupeById(matchedProducts), sortBy);
+        if (!isAlive || filteredRequestRef.current !== requestId) return;
+
+        setFilteredProducts(sorted);
+        setPagination(buildLocalPagination(sorted.length, 1));
+
+        if (currentPage === 1) {
+          setProducts(sorted.slice(0, PRODUCTS_PER_PAGE));
+        }
+
+        setIsLoading(false);
+      };
+
+      const quickParams: GetProductsParams = {
+        page: 1,
+        per_page: Math.max(PRODUCTS_PER_PAGE, 40),
+        sort_by: sortBy,
+        _suppressErrorLog: true,
+      };
+
+      if (selectedCategory !== 'all') {
+        const selected = flatCategories.find((category) => String(category.id) === String(selectedCategory));
+        quickParams.category_id = Number(selectedCategory);
+        if (selected?.name) quickParams.category = selected.name;
+        if (selected?.slug) quickParams.category_slug = selected.slug;
+      }
+
+      if (debouncedSearchTerm) {
+        quickParams.search = debouncedSearchTerm;
+      }
+
+      try {
+        const quickResponse = await catalogService.getProducts(quickParams);
+        pushMatches(buildCardProductsFromResponse(quickResponse));
+      } catch {
+        // Silent on purpose — full backend scan below guarantees coverage.
+      }
+
+      if (!isAlive || filteredRequestRef.current !== requestId) return;
+      setIsHydratingMatches(true);
+
+      try {
+        let backendPage = 1;
+        let backendLastPage = 1;
+
+        do {
+          const response = await catalogService.getProducts({
+            page: backendPage,
+            per_page: BACKEND_BATCH_SIZE,
+            sort_by: sortBy === 'newest' ? 'newest' : undefined,
+            _suppressErrorLog: backendPage > 1,
+          });
+
+          if (!isAlive || filteredRequestRef.current !== requestId) return;
+
+          backendLastPage = Math.max(backendLastPage, Number(response.pagination?.last_page) || 1);
+          pushMatches(buildCardProductsFromResponse(response));
+          backendPage += 1;
+        } while (backendPage <= backendLastPage);
+
+        if (!isAlive || filteredRequestRef.current !== requestId) return;
+
+        const finalSorted = sortProducts(dedupeById(matchedProducts), sortBy);
+        setFilteredProducts(finalSorted);
+        setPagination(buildLocalPagination(finalSorted.length, 1));
+        setIsLoading(false);
+        setIsHydratingMatches(false);
+      } catch (error) {
+        console.error('Error scanning filtered products:', error);
+        if (!isAlive || filteredRequestRef.current !== requestId) return;
+        setFilteredProducts([]);
+        setProducts([]);
+        setPagination(buildLocalPagination(0, 1));
+        setIsLoading(false);
+        setIsHydratingMatches(false);
+      }
+    };
+
+    loadFilteredProducts();
+
+    return () => {
+      isAlive = false;
+    };
+  }, [filterSignature, hasActiveFilters, flatCategories, selectedCategory, debouncedSearchTerm, sortBy]);
+
+  useEffect(() => {
+    if (!hasActiveFilters) return;
+
+    const sorted = sortProducts(filteredProducts, sortBy);
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const end = start + PRODUCTS_PER_PAGE;
+
+    setProducts(sorted.slice(start, end));
+    setPagination(buildLocalPagination(sorted.length, currentPage));
+  }, [filteredProducts, currentPage, hasActiveFilters, sortBy]);
+
+  useEffect(() => {
+    if (hasActiveFilters) return;
+
+    let isAlive = true;
+    const requestId = ++directRequestRef.current;
+
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      setIsHydratingMatches(false);
+      try {
+        const response = await catalogService.getProducts({
+          page: currentPage,
+          per_page: PRODUCTS_PER_PAGE,
+          sort_by: sortBy,
+        });
+
+        if (!isAlive || directRequestRef.current !== requestId) return;
+
+        const cards = sortProducts(buildCardProductsFromResponse(response), sortBy);
+        setProducts(cards);
+        setPagination(response.pagination);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        if (!isAlive || directRequestRef.current !== requestId) return;
+        setProducts([]);
+        setPagination(buildLocalPagination(0, 1));
+      } finally {
+        if (!isAlive || directRequestRef.current !== requestId) return;
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+
+    return () => {
+      isAlive = false;
+    };
+  }, [currentPage, sortBy, hasActiveFilters]);
 
   const fetchCategories = async () => {
     try {
-      setCategoriesLoading(true);
       const categoryData = await catalogService.getCategories();
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
+      setCategories(categoryData);
     } catch (error) {
       console.error('Error fetching categories:', error);
-      setCategories([]);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  const ensureCardsForUiPage = async (entry: CacheEntry, uiPage: number) => {
-    const targetCards = uiPage * UI_CARDS_PER_PAGE;
-    const allowedCategory = buildAllowedCategoryKeys(activeCategory || null);
-    const serverSideCategoryFiltered = Boolean(
-      (entry.attemptParams as any)?.category_slug || (entry.attemptParams as any)?.category_id
-    );
-
-    const appendFilteredUniqueProducts = (items: (Product | SimpleProduct)[] | undefined | null) => {
-      if (!Array.isArray(items) || items.length === 0) return 0;
-      let added = 0;
-
-      for (const rawItem of items) {
-        if (!rawItem) continue;
-
-        if (activeCategory && !serverSideCategoryFiltered) {
-          if (!productMatchesAllowedCategory(rawItem, allowedCategory)) continue;
-        }
-
-        const itemId = Number((rawItem as any).id || 0);
-        if (itemId > 0) {
-          if (entry.rawById.has(itemId)) continue;
-          entry.rawById.set(itemId, rawItem);
-        }
-
-        entry.rawOrdered.push(rawItem);
-        added += 1;
-      }
-
-      return added;
-    };
-
-    while (entry.cards.length < targetCards && entry.hasMore && entry.fetchedApiPages < MAX_API_PAGES) {
-      const nextApiPage = entry.fetchedApiPages + 1;
-
-      try {
-        const res = await getProductsSilent({ ...(entry.attemptParams as any), page: nextApiPage } as GetProductsParams);
-        entry.fetchedApiPages = nextApiPage;
-
-        const nextProducts = Array.isArray(res?.products) ? (res.products as any[]) : [];
-        const lastPage = Number(res?.pagination?.last_page || 0);
-        if (Number.isFinite(lastPage) && lastPage > 0) entry.apiLastPage = lastPage;
-
-        appendFilteredUniqueProducts(nextProducts);
-
-        if (nextProducts.length === 0) {
-          entry.hasMore = false;
-        } else if (res?.pagination?.has_more_pages === false) {
-          entry.hasMore = false;
-        } else if (entry.apiLastPage && entry.fetchedApiPages >= entry.apiLastPage) {
-          entry.hasMore = false;
-        }
-
-        entry.cards = buildCardProductsFromFlatCatalog(entry.rawOrdered);
-      } catch (error) {
-        console.warn(`Error fetching products api page ${nextApiPage}`, error);
-        entry.hasMore = false;
-        break;
-      }
-    }
-  };
-
-  const fetchProducts = async (uiPage = 1) => {
-    setIsLoading(true);
-    try {
-      const params: GetProductsParams & Record<string, any> = {
-        page: 1,
-        per_page: API_PER_PAGE,
-        sort_by: sortBy,
-      };
-
-      if (activeCategory) {
-        params.category_id = activeCategory.id;
-        params.category_slug = activeCategory.slug;
-        params.category = activeCategory.slug || activeCategory.name;
-      }
-
-      if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
-      }
-
-      const cacheKey = getCacheKey({
-        categoryId: selectedCategory,
-        searchTerm,
-        sortBy,
-      });
-
-      let entry = cacheRef.current[cacheKey];
-      if (!entry) {
-        entry = {
-          key: cacheKey,
-          attemptParams: params,
-          fetchedApiPages: 0,
-          apiLastPage: null,
-          hasMore: true,
-          rawById: new Map(),
-          rawOrdered: [],
-          cards: [],
-        };
-        cacheRef.current[cacheKey] = entry;
-      }
-
-      await ensureCardsForUiPage(entry, uiPage);
-
-      const computedTotalPages = Math.max(1, Math.ceil(entry.cards.length / UI_CARDS_PER_PAGE));
-      const safeUiPage = clamp(uiPage, 1, Math.max(computedTotalPages, entry.hasMore ? uiPage : computedTotalPages));
-      const startIndex = (safeUiPage - 1) * UI_CARDS_PER_PAGE;
-      const pageCards = entry.cards.slice(startIndex, startIndex + UI_CARDS_PER_PAGE);
-
-      setProducts(pageCards);
-      setCurrentPage(safeUiPage);
-      setPagination({
-        current_page: safeUiPage,
-        per_page: UI_CARDS_PER_PAGE,
-        total: entry.cards.length,
-        last_page: entry.hasMore ? Math.max(computedTotalPages, safeUiPage + 1) : computedTotalPages,
-        has_more_pages: entry.hasMore || safeUiPage < computedTotalPages,
-      });
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      setProducts([]);
-      setPagination({
-        current_page: 1,
-        per_page: UI_CARDS_PER_PAGE,
-        total: 0,
-        last_page: 1,
-        has_more_pages: false,
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -400,7 +431,7 @@ export default function ProductsPage() {
       return pages;
     }
 
-    const push = (v: number | '…') => pages.push(v);
+    const push = (value: number | '…') => pages.push(value);
     push(1);
 
     const left = Math.max(2, current - 1);
@@ -415,26 +446,14 @@ export default function ProductsPage() {
   };
 
   const markImageError = (id: number) => {
-    setImageErrors(prev => {
+    setImageErrors((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
     });
   };
 
-  const handleAddToCart = async (product: SimpleProduct) => {
-    if (product.has_variants) {
-      router.push(`/e-commerce/product/${product.id}`);
-      return;
-    }
 
-    try {
-      await addToCart(product.id, 1);
-      setIsCartOpen(true);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-    }
-  };
 
   const navigateToProduct = (identifier: number | string) => {
     router.push(`/e-commerce/product/${identifier}`);
@@ -491,9 +510,9 @@ export default function ProductsPage() {
                     className="ecom-select w-full pl-10 pr-9 py-2 rounded-lg border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-white/15 appearance-none"
                   >
                     <option value="all">All Categories</option>
-                    {categories.map((category) => (
+                    {flatCategories.map((category) => (
                       <option key={category.id} value={category.id.toString()}>
-                        {category.name}
+                        {`${'— '.repeat(category.depth)}${category.name}`}
                       </option>
                     ))}
                   </select>
@@ -545,9 +564,9 @@ export default function ProductsPage() {
                         className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-white/15"
                       >
                         <option value="all">All Categories</option>
-                        {categories.map((category) => (
+                        {flatCategories.map((category) => (
                           <option key={category.id} value={category.id.toString()}>
-                            {category.name}
+                            {`${'— '.repeat(category.depth)}${category.name}`}
                           </option>
                         ))}
                       </select>
@@ -590,7 +609,14 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {isLoading ? (
+          {isHydratingMatches && products.length > 0 && (
+            <div className="mb-4 flex items-center justify-center gap-2 text-sm text-white/65">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading more matching products from the catalogue…
+            </div>
+          )}
+
+          {isLoading && products.length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900" />
               <p className="mt-4 text-white/70">Loading products...</p>
@@ -609,7 +635,7 @@ export default function ProductsPage() {
                   product={product}
                   imageErrored={imageErrors.has(Number(product.id))}
                   onImageError={(id) => markImageError(Number(id))}
-                  onViewProduct={(id) => router.push(`/e-commerce/product/${id}`)}
+                  onViewProduct={(id) => navigateToProduct(id)}
                 />
               ))}
             </div>
@@ -631,24 +657,24 @@ export default function ProductsPage() {
                   Prev
                 </button>
 
-                {getPageWindow(pagination.current_page, pagination.last_page).map((p, idx) =>
-                  p === '…' ? (
+                {getPageWindow(pagination.current_page, pagination.last_page).map((pageNumber, idx) =>
+                  pageNumber === '…' ? (
                     <span key={`dots-${idx}`} className="px-2 text-white/50">
                       …
                     </span>
                   ) : (
                     <button
-                      key={p}
+                      key={pageNumber}
                       type="button"
-                      onClick={() => setCurrentPage(p)}
+                      onClick={() => setCurrentPage(pageNumber)}
                       className={[
                         'min-w-10 px-3 py-2 rounded-lg border text-sm',
-                        p === pagination.current_page
+                        pageNumber === pagination.current_page
                           ? 'border-white/30 bg-white/10 text-white'
                           : 'border-white/10 bg-white/5 text-white/85 hover:bg-white/10',
                       ].join(' ')}
                     >
-                      {p}
+                      {pageNumber}
                     </button>
                   )
                 )}
@@ -664,7 +690,8 @@ export default function ProductsPage() {
               </div>
             </div>
           )}
-        </div></div>
+        </div>
+      </div>
 
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>

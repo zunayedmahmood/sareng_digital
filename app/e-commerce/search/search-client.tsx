@@ -14,7 +14,8 @@ import type { SimpleProduct } from '@/services/catalogService';
 
 // Use the same placeholder used across the e-commerce UI.
 const getPrimaryImageUrl = (p: SimpleProduct) =>
-  (Array.isArray(p.images) && p.images[0]?.url) || '/images/placeholder-product.jpg';
+  (Array.isArray(p.images) && (p.images.find((img) => Boolean((img as any)?.is_primary))?.url || p.images[0]?.url)) ||
+  '/images/placeholder-product.jpg';
 
 const getCategoryName = (p: SimpleProduct) =>
   typeof p.category === 'object' && p.category ? p.category.name : typeof p.category === 'string' ? p.category : '';

@@ -12,6 +12,7 @@ export interface ProductImage {
   url: string;
   is_primary: boolean;
   alt_text?: string;
+  display_order?: number;
 }
 
 export interface ProductCategory {
@@ -242,6 +243,19 @@ const normalizeString = (value: any, fallback = ''): string => {
   return String(value).trim();
 };
 
+const normalizeBoolean = (value: any, fallback = false): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'n', 'off', ''].includes(normalized)) return false;
+  }
+
+  return fallback;
+};
+
 
 const toAbsoluteAssetUrl = (value: any): string => {
   const raw = normalizeString(value || '');
@@ -298,15 +312,25 @@ const normalizeImage = (image: any, index = 0): ProductImage | null => {
 
   if (!url || typeof url !== 'string') return null;
 
+  const displayOrder = toNumber(
+    image.display_order ??
+      image.sort_order ??
+      image.order ??
+      image.position ??
+      image.sequence ??
+      index,
+    index
+  );
+
   return {
     id: toNumber(image.id, index + 1),
     url,
-    is_primary: Boolean(
-      image.is_primary ??
-      image.primary ??
-      (index === 0)
+    is_primary: normalizeBoolean(
+      image.is_primary ?? image.primary ?? image.isPrimary,
+      index === 0
     ),
     alt_text: image.alt_text || image.alt || undefined,
+    display_order: displayOrder,
   };
 };
 
@@ -316,11 +340,14 @@ const normalizeImages = (images: any): ProductImage[] => {
     .map((img, idx) => normalizeImage(img, idx))
     .filter((img): img is ProductImage => Boolean(img));
 
-  // Sort: primary image first, then by display_order/id
   normalized.sort((a, b) => {
     if (a.is_primary && !b.is_primary) return -1;
     if (!a.is_primary && b.is_primary) return 1;
-    return 0;
+
+    const orderDiff = toNumber(a.display_order, 0) - toNumber(b.display_order, 0);
+    if (orderDiff !== 0) return orderDiff;
+
+    return toNumber(a.id, 0) - toNumber(b.id, 0);
   });
 
   return normalized;

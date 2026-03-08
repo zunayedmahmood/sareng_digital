@@ -27,8 +27,10 @@ export default function SlugStyleProductCard({
     (product as any)?.name ||
     'Product';
 
-  const images = Array.isArray((product as any)?.images) ? (product as any).images : [];
-  const primaryImage = images.find((img: any) => !!img?.is_primary)?.url || images[0]?.url || '';
+  const primaryImage =
+    (Array.isArray((product as any)?.images)
+      ? (product as any).images.find((img: any) => Boolean(img?.is_primary))?.url || (product as any).images[0]?.url
+      : '') || '';
   const shouldUseFallback = Boolean(imageErrored) || !primaryImage;
   const imageUrl = shouldUseFallback ? '/images/placeholder-product.jpg' : primaryImage;
 
