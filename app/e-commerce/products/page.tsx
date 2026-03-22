@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
@@ -33,6 +33,18 @@ const PRODUCTS_PER_PAGE = 15;
  * SKU grouping and filtering for a seamless shopping experience.
  */
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="ec-root ec-bg-texture min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+      </div>
+    }>
+      <ProductsPageContent />
+    </Suspense>
+  );
+}
+
+function ProductsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToCart } = useCart();
@@ -43,6 +55,7 @@ export default function ProductsPage() {
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const fetchIdRef = useRef(0);
 
   // --- Filter State (Synced with URL) ---
   const query = searchParams.get('search') || '';
@@ -112,6 +125,7 @@ export default function ProductsPage() {
   };
 
   const fetchProducts = async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setIsLoading(true);
     try {
       const params: any = {
@@ -133,6 +147,9 @@ export default function ProductsPage() {
 
       const response = await catalogService.getProducts(params);
 
+      // Check if this is still the most recent request
+      if (currentFetchId !== fetchIdRef.current) return;
+
       // We use grouped_products if the backend grouping logic is active
       const displayProducts = response.grouped_products?.length
         ? response.grouped_products.map(gp => gp.main_variant)
@@ -141,11 +158,15 @@ export default function ProductsPage() {
       setProducts(displayProducts as SimpleProduct[]);
       setPagination(response.pagination);
     } catch (error) {
-      console.error('Failed to load products:', error);
-      fireToast('Error loading products. Please try again.', 'error');
+      if (currentFetchId === fetchIdRef.current) {
+        console.error('Failed to load products:', error);
+        fireToast('Error loading products. Please try again.', 'error');
+      }
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 

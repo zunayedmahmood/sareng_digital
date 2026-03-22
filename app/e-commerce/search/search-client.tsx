@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Search,
@@ -48,6 +48,7 @@ export default function SearchClient({ initialQuery = '' }: { initialQuery?: str
   const [isClosingFilters, setIsClosingFilters] = useState(false);
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [categories, setCategories] = useState<any[]>([]);
+  const fetchIdRef = useRef(0);
   const [openCategoryId, setOpenCategoryId] = useState<number | string | null>(null);
 
   // Filter state from URL
@@ -136,6 +137,7 @@ export default function SearchClient({ initialQuery = '' }: { initialQuery?: str
   }, [query, sortBy, priceRange, currentPage, selectedCategoryId]);
 
   const fetchResults = async () => {
+    const currentFetchId = ++fetchIdRef.current;
     setIsLoading(true);
     try {
       const params = {
@@ -156,6 +158,9 @@ export default function SearchClient({ initialQuery = '' }: { initialQuery?: str
 
       const response = await catalogService.searchProducts(params);
 
+      // Check if this is still the most recent request
+      if (currentFetchId !== fetchIdRef.current) return;
+
       // Use grouped products if available from the backend response
       const displayProducts = response.grouped_products?.length
         ? response.grouped_products.map(gp => gp.main_variant as unknown as SimpleProduct)
@@ -164,10 +169,14 @@ export default function SearchClient({ initialQuery = '' }: { initialQuery?: str
       setProducts(displayProducts);
       setPagination(response.pagination);
     } catch (error) {
-      console.error('Search failed:', error);
-      fireToast('Error loading search results.', 'error');
+      if (currentFetchId === fetchIdRef.current) {
+        console.error('Search failed:', error);
+        fireToast('Error loading search results.', 'error');
+      }
     } finally {
-      setIsLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 

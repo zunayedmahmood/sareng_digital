@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Edit, Trash2, Archive, Package, Tag, Calendar, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import Header from '@/components/Header';
@@ -15,7 +15,22 @@ interface ProductDetailPageProps {
   params: { id: string };
 }
 
-export default function ProductDetailPage({ params }: ProductDetailPageProps) {
+export default function ProductDetailPage(props: ProductDetailPageProps) {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-gray-900 dark:border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading product view...</p>
+        </div>
+      </div>
+    }>
+      <ProductDetailPageContent {...props} />
+    </Suspense>
+  );
+}
+
+function ProductDetailPageContent({ params }: ProductDetailPageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = parseInt(params.id);

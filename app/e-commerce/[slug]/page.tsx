@@ -226,6 +226,7 @@ export default function CategoryPage() {
 
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const fetchProductsIdRef = useRef(0);
 
   type CacheEntry = {
     key: string;
@@ -388,6 +389,7 @@ export default function CategoryPage() {
   const fetchProducts = async (uiPage = 1) => {
     if (categoriesLoading) return;
 
+    const currentFetchId = ++fetchProductsIdRef.current;
     setLoading(true);
     setPartialLoadWarning(null);
     try {
@@ -410,6 +412,9 @@ export default function CategoryPage() {
 
       await ensureCardsForUiPage(entry, uiPage);
 
+      // Check if this is still the latest request before state updates
+      if (currentFetchId !== fetchProductsIdRef.current) return;
+
       const computedTotalPages = Math.max(1, Math.ceil(entry.cards.length / UI_CARDS_PER_PAGE));
       const safeUiPage = clamp(uiPage, 1, Math.max(computedTotalPages, entry.hasMore ? uiPage : computedTotalPages));
       const startIndex = (safeUiPage - 1) * UI_CARDS_PER_PAGE;
@@ -422,13 +427,17 @@ export default function CategoryPage() {
       setError(null);
       setPartialLoadWarning(entry.partialWarning);
     } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to load products');
-      setPartialLoadWarning(null);
-      setProducts([]);
-      setTotalResults(0);
+      if (currentFetchId === fetchProductsIdRef.current) {
+        console.error('Error fetching products:', err);
+        setError('Failed to load products');
+        setPartialLoadWarning(null);
+        setProducts([]);
+        setTotalResults(0);
+      }
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchProductsIdRef.current) {
+        setLoading(false);
+      }
     }
   };
 
