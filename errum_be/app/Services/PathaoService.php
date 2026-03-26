@@ -120,11 +120,17 @@ class PathaoService
                 ];
             }
 
-            return [
-                'success' => false,
-                'error' => $response->json()['error'] ?? 'Unknown error',
-                'response' => $response->json()
-            ];
+             Log::error('Pathao Create Order FULL RESPONSE', [
+            'status'       => $response->status(),
+            'body'         => $response->body(),
+            'payload_sent' => $orderData,
+        ]);
+
+        return [
+            'success' => false,
+            'error' => $response->json()['error'] ?? $response->body() ?? 'Unknown error',
+            'response' => $response->json()
+        ];
 
         } catch (\Exception $e) {
             Log::error('Pathao Create Order Exception', [
@@ -340,32 +346,42 @@ class PathaoService
      * Prepare order data for Pathao API
      */
     public function prepareOrderData($shipment, $overrideStoreId = null)
-    {
-        $store = $shipment->store;
-        $customer = $shipment->customer;
-        $order = $shipment->order;
+{
+    $store = $shipment->store;
+    $customer = $shipment->customer;
+    $order = $shipment->order;
 
-        // Use store's pathao_store_id if available, otherwise use configured/override
-        $pathaoStoreId = $overrideStoreId ?? ($store->pathao_store_id ?? $this->storeId);
+    $pathaoStoreId = $overrideStoreId ?? ($store->pathao_store_id ?? $this->storeId);
 
-        return [
-            'store_id' => (int) $pathaoStoreId,
-            'merchant_order_id' => $shipment->shipment_number,
-            'recipient_name' => $shipment->recipient_name ?? $customer->name,
-            'recipient_phone' => $shipment->recipient_phone ?? $customer->phone,
-            'recipient_address' => $shipment->getDeliveryAddressFormatted(),
-            'recipient_city' => $shipment->delivery_address['city'] ?? null,
-            'recipient_zone' => $shipment->delivery_address['zone'] ?? null,
-            'recipient_area' => $shipment->delivery_address['area'] ?? null,
-            'delivery_type' => $shipment->delivery_type === 'express' ? 12 : 48, // 12 for On Demand, 48 for Normal (Aligned with Manual)
-            'item_type' => 2, // 2 for parcel
-            'special_instruction' => $shipment->special_instructions,
-            'item_quantity' => $order->items->sum('quantity'),
-            'item_weight' => $shipment->package_weight ?? 0.5,
-            'amount_to_collect' => $shipment->cod_amount ?? 0,
-            'item_description' => $shipment->getPackageDescription(),
-        ];
-    }
+    // Force to plain PHP int BEFORE building the array — decimal:2 cast fights inline casting
+    $amountToCollect = (int) round((float) str_replace(',', '', (string) ($shipment->cod_amount ?? 0)));
+    $itemQuantity = (int) $order->items->sum('quantity');
+
+    Log::info('Pathao amount_to_collect debug', [
+        'raw_cod_amount'    => $shipment->cod_amount,
+        'cast_type'         => gettype($shipment->cod_amount),
+        'final_amount'      => $amountToCollect,
+        'final_type'        => gettype($amountToCollect),
+    ]);
+
+    return [
+        'store_id'            => (int) $pathaoStoreId,
+        'merchant_order_id'   => $shipment->shipment_number,
+        'recipient_name'      => $shipment->recipient_name ?? $customer->name,
+        'recipient_phone'     => $shipment->recipient_phone ?? $customer->phone,
+        'recipient_address'   => $shipment->getDeliveryAddressFormatted(),
+        'recipient_city'      => $shipment->delivery_address['city'] ?? null,
+        'recipient_zone'      => $shipment->delivery_address['zone'] ?? null,
+        'recipient_area'      => $shipment->delivery_address['area'] ?? null,
+        'delivery_type'       => $shipment->delivery_type === 'express' ? 48 : 12,
+        'item_type'           => 2,
+        'special_instruction' => $shipment->special_instructions,
+        'item_quantity'       => $itemQuantity,
+        'item_weight'         => $shipment->package_weight ?? 0.5,
+        'amount_to_collect'   => $amountToCollect,
+        'item_description'    => $shipment->getPackageDescription(),
+    ];
+}
 
     /**
      * Map Pathao status to local status

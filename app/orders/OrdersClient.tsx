@@ -296,16 +296,6 @@ const getTodayFilterValue = () => {
   return `${y}-${m}-${day}`;
 };
 
-const toDateOnlyValue = (value?: string | null) => {
-  if (!value) return '';
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const y = parsed.getFullYear();
-  const m = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
-
 // Pathao lookup types (used for Social Commerce address editing)
 type PathaoCity = { city_id: number; city_name: string };
 type PathaoZone = { zone_id: number; zone_name: string };
@@ -325,9 +315,7 @@ export default function OrdersDashboard() {
   const pathaoInFlightRef = useRef<Set<string>>(new Set());
 
   const [search, setSearch] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(getTodayFilterValue());
 
   // ✅ NEW: Order type filter (All / Social / E-Com)
   const [orderTypeFilter, setOrderTypeFilter] = useState('All Types');
@@ -358,6 +346,21 @@ export default function OrdersDashboard() {
     setViewMode(initialViewMode);
   }, [initialViewMode]);
 
+  // Default to Pending in Online Orders (as requested) for faster workflow.
+  // Keeps Installments on "All" because installment statuses vary.
+  const didInitQuickDefaultsRef = useRef(false);
+  useEffect(() => {
+    if (didInitQuickDefaultsRef.current) return;
+    didInitQuickDefaultsRef.current = true;
+
+    if (initialViewMode === 'online') {
+      setOrderStatusFilter('pending');
+    } else {
+      setOrderStatusFilter('All Order Status');
+    }
+
+    setCourierFilter('pathao');
+  }, [initialViewMode]);
 
 
   // ♻️ Restore cached Pathao lookup results (10 min TTL)
@@ -960,15 +963,7 @@ export default function OrdersDashboard() {
 
       intendedCourier: order.intended_courier ?? order.intendedCourier ?? null,
 
-      isInstallment: (() => {
-        const info = order.installment_info ?? order.installment_plan ?? null;
-        const totalInstallments = Number(info?.total_installments ?? 0) || 0;
-        const hasInstallmentPayment = Array.isArray(order.payments)
-          ? order.payments.some((payment: any) => normalize(payment?.payment_type) === 'installment')
-          : false;
-
-        return Boolean(order.is_installment === true || totalInstallments > 0 || hasInstallmentPayment);
-      })(),
+      isInstallment: Boolean(order.is_installment || order.is_installment_payment || order.installment_info || order.installment_plan),
       installmentInfo: (order.installment_info ?? order.installment_plan ?? null),
 
       salesBy: order.salesman?.name || userName || 'N/A',
@@ -1236,16 +1231,14 @@ export default function OrdersDashboard() {
     }
 
     if (dateFilter.trim()) {
-      filtered = filtered.filter((o) => toDateOnlyValue(o.orderDateRaw || o.createdAt) === dateFilter.trim());
-    }
-
-    if (dateFromFilter.trim() || dateToFilter.trim()) {
       filtered = filtered.filter((o) => {
-        const orderDateValue = toDateOnlyValue(o.orderDateRaw || o.createdAt);
-        if (!orderDateValue) return false;
-        if (dateFromFilter.trim() && orderDateValue < dateFromFilter.trim()) return false;
-        if (dateToFilter.trim() && orderDateValue > dateToFilter.trim()) return false;
-        return true;
+        const orderDate = o.date;
+        let filterDateFormatted = dateFilter;
+        if (dateFilter.includes('-') && dateFilter.split('-')[0].length === 4) {
+          const [year, month, day] = dateFilter.split('-');
+          filterDateFormatted = `${day}/${month}/${year}`;
+        }
+        return orderDate === filterDateFormatted;
       });
     }
 
@@ -1272,7 +1265,7 @@ export default function OrdersDashboard() {
     }
 
     setFilteredOrders(filtered);
-  }, [search, dateFilter, dateFromFilter, dateToFilter, orderTypeFilter, orderStatusFilter, paymentStatusFilter, courierFilter, orders]);
+  }, [search, dateFilter, orderTypeFilter, orderStatusFilter, paymentStatusFilter, courierFilter, orders]);
 
   // 🧾 Bulk lookup Pathao status for displayed orders
   const filteredOrderNumbers = useMemo(() => {
@@ -3114,13 +3107,11 @@ export default function OrdersDashboard() {
                     onClick={() => {
                       setViewMode('online');
                       setOrderTypeFilter('All Types');
-                      setOrderStatusFilter('All Order Status');
+                      setOrderStatusFilter('pending');
                       setPaymentStatusFilter('All Payment Status');
                       setCourierFilter('All Couriers');
                       setSearch('');
                       setDateFilter('');
-                      setDateFromFilter('');
-                      setDateToFilter('');
                       setSelectedOrders(new Set());
                     }}
                     className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${viewMode === 'online'
@@ -3140,8 +3131,6 @@ export default function OrdersDashboard() {
                       setCourierFilter('All Couriers');
                       setSearch('');
                       setDateFilter('');
-                      setDateFromFilter('');
-                      setDateToFilter('');
                       setSelectedOrders(new Set());
                     }}
                     className={`px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${viewMode === 'installments'
@@ -3206,33 +3195,13 @@ export default function OrdersDashboard() {
 
                 {/* Expanded Filters */}
                 {showMoreFilters && (
-                  <div className="mt-3 p-4 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 rounded-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="mt-3 p-4 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div>
-                      <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1.5 ml-1">Specific Date</label>
+                      <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1.5 ml-1">Date</label>
                       <input
                         type="date"
                         value={dateFilter}
                         onChange={(e) => setDateFilter(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1.5 ml-1">Date From</label>
-                      <input
-                        type="date"
-                        value={dateFromFilter}
-                        onChange={(e) => setDateFromFilter(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1.5 ml-1">Date To</label>
-                      <input
-                        type="date"
-                        value={dateToFilter}
-                        onChange={(e) => setDateToFilter(e.target.value)}
                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
                       />
                     </div>
@@ -3255,11 +3224,27 @@ export default function OrdersDashboard() {
                         )}
                       </select>
                     </div>
+
+                    {viewMode === 'online' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase mb-1.5 ml-1">Order Marker</label>
+                        <select
+                          value={courierFilter}
+                          onChange={(e) => setCourierFilter(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
+                        >
+                          <option value="All Couriers">All Markers</option>
+                          {quickCourierTabs.filter(c => c !== 'All Couriers').map((c) => (
+                            <option key={c} value={c}>{courierLabel(c)}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Active Filter Pills */}
-                {(search || dateFilter || dateFromFilter || dateToFilter || orderTypeFilter !== 'All Types' || orderStatusFilter !== 'All Order Status' || paymentStatusFilter !== 'All Payment Status') && (
+                {(search || dateFilter || orderTypeFilter !== 'All Types' || orderStatusFilter !== (viewMode === 'online' ? 'pending' : 'All Order Status') || paymentStatusFilter !== 'All Payment Status' || courierFilter !== 'All Couriers') && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-600 uppercase mr-1">Active:</span>
 
@@ -3275,20 +3260,8 @@ export default function OrdersDashboard() {
                       </button>
                     )}
 
-                    {dateFromFilter && (
-                      <button onClick={() => setDateFromFilter('')} className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-[10px] font-medium transition-colors">
-                        From: {dateFromFilter} <X className="w-2.5 h-2.5" />
-                      </button>
-                    )}
-
-                    {dateToFilter && (
-                      <button onClick={() => setDateToFilter('')} className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-[10px] font-medium transition-colors">
-                        To: {dateToFilter} <X className="w-2.5 h-2.5" />
-                      </button>
-                    )}
-
-                    {orderStatusFilter !== 'All Order Status' && (
-                      <button onClick={() => setOrderStatusFilter('All Order Status')} className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-[10px] font-medium transition-colors">
+                    {orderStatusFilter !== (viewMode === 'online' ? 'pending' : 'All Order Status') && (
+                      <button onClick={() => setOrderStatusFilter(viewMode === 'online' ? 'pending' : 'All Order Status')} className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-[10px] font-medium transition-colors">
                         Status: {statusLabel(orderStatusFilter)} <X className="w-2.5 h-2.5" />
                       </button>
                     )}
@@ -3305,16 +3278,21 @@ export default function OrdersDashboard() {
                       </button>
                     )}
 
-                    {(search || dateFilter || dateFromFilter || dateToFilter || orderTypeFilter !== 'All Types' || orderStatusFilter !== 'All Order Status' || paymentStatusFilter !== 'All Payment Status') && (
+                    {courierFilter !== 'All Couriers' && (
+                      <button onClick={() => setCourierFilter('All Couriers')} className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md text-[10px] font-medium transition-colors">
+                        Marker: {courierLabel(courierFilter)} <X className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+
+                    {(search || dateFilter || orderTypeFilter !== 'All Types' || orderStatusFilter !== (viewMode === 'online' ? 'pending' : 'All Order Status') || paymentStatusFilter !== 'All Payment Status' || courierFilter !== 'All Couriers') && (
                       <button
                         onClick={() => {
                           setSearch('');
                           setDateFilter('');
-                          setDateFromFilter('');
-                          setDateToFilter('');
                           setOrderTypeFilter('All Types');
-                          setOrderStatusFilter('All Order Status');
+                          setOrderStatusFilter(viewMode === 'online' ? 'pending' : 'All Order Status');
                           setPaymentStatusFilter('All Payment Status');
+                          setCourierFilter('All Couriers');
                         }}
                         className="text-[10px] font-bold text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 ml-1"
                       >

@@ -569,23 +569,23 @@ class Shipment extends Model
     }
 
     public function getPackageDescription()
-    {
-        $order = $this->order;
-        if (!$order || $order->items->isEmpty()) {
-            return 'Package containing ordered items';
-        }
-
-        $itemsDescription = $order->items->map(function ($item) {
-            $name = $item->product_name ?: ($item->product->name ?? 'Unknown Item');
-            return "{$name} qty:{$item->quantity}";
-        })->join("\n");
-
-        if (mb_strlen($itemsDescription) > 250) {
-            return mb_substr($itemsDescription, 0, 247) . '...';
-        }
-
-        return $itemsDescription;
+{
+    $order = $this->order;
+    if (!$order || $order->items->isEmpty()) {
+        return 'Package containing ordered items';
     }
+
+    $itemsDescription = $order->items->map(function ($item) {
+        $name = $item->product->name ?? $item->name ?? 'Unknown Item';
+        return "{$name} qty:{$item->quantity}";
+    })->join(', ');
+
+    if (mb_strlen($itemsDescription) > 250) {
+        return mb_substr($itemsDescription, 0, 247) . '...';
+    }
+
+    return $itemsDescription;
+}
 
     public function getStatusColorAttribute()
     {
