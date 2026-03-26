@@ -70,6 +70,7 @@ export default function AmountDetailsPage() {
   const [stores, setStores] = useState<any[]>([]);
   const [storeAssignmentType, setStoreAssignmentType] = useState<'auto' | 'specific'>('auto');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [address, setAddress] = useState('');
 
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
@@ -105,6 +106,7 @@ export default function AmountDetailsPage() {
       }
       
       setOrderData(parsedOrder);
+      setAddress(parsedOrder.customer?.address || formatShippingAddressText(parsedOrder.shipping_address) || '');
     } else {
       window.location.href = '/social-commerce';
     }
@@ -293,7 +295,7 @@ export default function AmountDetailsPage() {
         order_type: 'social_commerce',
         customer: {
           ...orderData.customer,
-          address: orderData.customer?.address || formatShippingAddressText(orderData.shipping_address),
+          address: address.trim(),
         },
         shipping_address: orderData.shipping_address || null,
         store_id: orderStoreId, // ✅ NULL for auto-assign, or specific store ID
@@ -545,7 +547,15 @@ export default function AmountDetailsPage() {
             {/* Delivery Address */}
             <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
               <p className="text-xs text-green-800 dark:text-green-300 font-medium mb-2">Delivery Address</p>
-              <p className="text-sm text-gray-900 dark:text-white">{orderData.customer.address}</p>
+              <textarea
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="minimum 10 characters"
+                rows={3}
+                minLength={0}
+                required
+                className="w-full px-3 py-2 text-sm border border-green-200 dark:border-green-800 rounded bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
               {orderData.isInternational && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-blue-700 dark:text-blue-400">
                   <Globe className="w-3 h-3" />
@@ -972,7 +982,8 @@ export default function AmountDetailsPage() {
                     isProcessing || 
                     (paymentOption === 'full' && !selectedPaymentMethod) ||
                     (paymentOption === 'partial' && (!advanceAmount || !selectedPaymentMethod || !codPaymentMethod)) ||
-                    (paymentOption === 'none' && !codPaymentMethod)
+                    (paymentOption === 'none' && !codPaymentMethod) ||
+                    address.trim().length < 10
                   }
                   className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >

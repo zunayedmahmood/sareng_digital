@@ -1,22 +1,45 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Header from '@/components/Header';
+import Sidebar from '@/components/Sidebar';
 import AccessDenied from '@/components/AccessDenied';
 import Toast from '@/components/Toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { productService, Product } from '@/services/productService';
 import productImageService, { ProductImage } from '@/services/productImageService';
 import { toAbsoluteAssetUrl } from '@/lib/urlUtils';
-import { ArrowLeft, CheckCircle2, Loader2, RefreshCw, Save, Search } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  CheckCircle2, 
+  Loader2, 
+  RefreshCw, 
+  Save, 
+  Search, 
+  ImageIcon, 
+  ExternalLink,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Filter
+} from 'lucide-react';
 import Link from 'next/link';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
 function imageUrlFor(image: Partial<ProductImage> | null | undefined): string {
+  if (!image) return '/placeholder-product.svg';
+  
   const raw = image?.image_url || image?.image_path || '';
-  if (!raw) return '/placeholder-image.jpg';
+  if (!raw) return '/placeholder-product.svg';
+  
   if (raw.startsWith('/storage/')) return toAbsoluteAssetUrl(raw);
   if (/^(https?:)?\/\//i.test(raw)) return raw;
+  
+  // Try to determine if it's a raw filename or a path
+  if (raw.includes('/')) return toAbsoluteAssetUrl(`/storage/${raw}`);
   return toAbsoluteAssetUrl(`/storage/product-images/${raw}`);
 }
 
@@ -40,8 +63,12 @@ type ProductRow = {
 
 export default function PrimaryImageFixPage() {
   const { hasAnyPermission, permissionsResolved } = useAuth();
+  const { darkMode, setDarkMode } = useTheme();
+  const router = useRouter();
+  
   const canAccess = hasAnyPermission(['products.view', 'products.edit', 'products.manage_images']);
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,12 +78,20 @@ export default function PrimaryImageFixPage() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [lastPage, setLastPage] = useState(1);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Focus ref for search
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setCurrentPage(1);
       setSearchTerm(searchInput.trim());
-    }, 350);
+    }, 500);
 
     return () => window.clearTimeout(timer);
   }, [searchInput]);
@@ -73,14 +108,17 @@ export default function PrimaryImageFixPage() {
       });
 
       const baseRows: ProductRow[] = (response.data || []).map((product) => {
-        const merged = sortImages((product.display_images as ProductImage[]) || (product.images as ProductImage[]) || []);
+        // Prepare initial state from display_images or images returned in list
+        const initialImages = (product.display_images as ProductImage[]) || (product.images as ProductImage[]) || [];
+        const merged = sortImages(initialImages);
         const currentPrimary = merged.find((img) => img.is_primary) || merged[0] || null;
+        
         return {
           product,
           images: merged,
           selectedImageId: currentPrimary?.id ?? null,
           originalPrimaryId: currentPrimary?.id ?? null,
-          loadingImages: merged.length === 0,
+          loadingImages: true, // We will refresh them immediately for fresh status
           saving: false,
         };
       });
@@ -89,42 +127,40 @@ export default function PrimaryImageFixPage() {
       setTotalProducts(response.total || 0);
       setLastPage(response.last_page || 1);
 
-      await Promise.all(
-        baseRows.map(async (row) => {
-          try {
-            const fetchedImages = sortImages(await productImageService.getProductImages(row.product.id));
-            const currentPrimary = fetchedImages.find((img) => img.is_primary) || fetchedImages[0] || null;
-            setRows((prev) =>
-              prev.map((item) =>
-                item.product.id === row.product.id
-                  ? {
-                      ...item,
-                      images: fetchedImages,
-                      selectedImageId: currentPrimary?.id ?? null,
-                      originalPrimaryId: currentPrimary?.id ?? null,
-                      loadingImages: false,
-                    }
-                  : item
-              )
-            );
-          } catch {
-            setRows((prev) =>
-              prev.map((item) =>
-                item.product.id === row.product.id
-                  ? {
-                      ...item,
-                      loadingImages: false,
-                    }
-                  : item
-              )
-            );
-          }
-        })
-      );
+      // Fetch fresh image data for each product to ensure we have all available images
+      baseRows.forEach(async (row) => {
+        try {
+          const fetchedImages = sortImages(await productImageService.getProductImages(row.product.id));
+          const currentPrimary = fetchedImages.find((img) => img.is_primary) || null;
+          
+          setRows((prev) =>
+            prev.map((item) =>
+              item.product.id === row.product.id
+                ? {
+                    ...item,
+                    images: fetchedImages,
+                    selectedImageId: currentPrimary?.id ?? (fetchedImages.length > 0 ? fetchedImages[0].id : null),
+                    originalPrimaryId: currentPrimary?.id ?? null,
+                    loadingImages: false,
+                  }
+                : item
+            )
+          );
+        } catch (error) {
+          console.error(`Failed to fetch images for product ${row.product.id}:`, error);
+          setRows((prev) =>
+            prev.map((item) =>
+              item.product.id === row.product.id
+                ? { ...item, loadingImages: false }
+                : item
+            )
+          );
+        }
+      });
     } catch (error) {
       console.error('Failed to load products for primary image fix:', error);
       setRows([]);
-      setToast({ message: 'Failed to load products.', type: 'error' });
+      setToast({ message: 'Failed to load products list.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -148,14 +184,15 @@ export default function PrimaryImageFixPage() {
     setRows((prev) => prev.map((row) => (row.product.id === productId ? { ...row, loadingImages: true } : row)));
     try {
       const fetchedImages = sortImages(await productImageService.getProductImages(productId));
-      const currentPrimary = fetchedImages.find((img) => img.is_primary) || fetchedImages[0] || null;
+      const currentPrimary = fetchedImages.find((img) => img.is_primary) || null;
+      
       setRows((prev) =>
         prev.map((row) =>
           row.product.id === productId
             ? {
                 ...row,
                 images: fetchedImages,
-                selectedImageId: currentPrimary?.id ?? null,
+                selectedImageId: currentPrimary?.id ?? (fetchedImages.length > 0 ? fetchedImages[0].id : null),
                 originalPrimaryId: currentPrimary?.id ?? null,
                 loadingImages: false,
                 saving: false,
@@ -166,7 +203,7 @@ export default function PrimaryImageFixPage() {
     } catch (error) {
       console.error('Failed to refresh product images:', error);
       setRows((prev) => prev.map((row) => (row.product.id === productId ? { ...row, loadingImages: false, saving: false } : row)));
-      setToast({ message: 'Could not refresh product images.', type: 'error' });
+      setToast({ message: 'Could not refresh images.', type: 'error' });
     }
   };
 
@@ -178,11 +215,11 @@ export default function PrimaryImageFixPage() {
     try {
       await productImageService.makePrimary(row.selectedImageId);
       await refreshOne(productId);
-      setToast({ message: `${row.product.name}: primary image updated.`, type: 'success' });
+      setToast({ message: `Updated primary image for ${row.product.name}`, type: 'success' });
     } catch (error: any) {
       console.error('Failed to save primary image:', error);
       setRows((prev) => prev.map((item) => (item.product.id === productId ? { ...item, saving: false } : item)));
-      setToast({ message: error?.message || 'Failed to save primary image.', type: 'error' });
+      setToast({ message: error?.message || 'Failed to update primary image.', type: 'error' });
     }
   };
 
@@ -190,227 +227,297 @@ export default function PrimaryImageFixPage() {
     const changedRows = rows.filter((row) => row.selectedImageId && row.selectedImageId !== row.originalPrimaryId);
     if (!changedRows.length) return;
 
+    setToast({ message: `Saving ${changedRows.length} updates...`, type: 'warning' });
+    
     for (const row of changedRows) {
-      await saveOne(row.product.id);
+      try {
+        await productImageService.makePrimary(row.selectedImageId!);
+        // We delay refresh until end or do it per row
+      } catch (err) {
+        console.error(`Failed to save ${row.product.id}`, err);
+      }
     }
+    
+    setRefreshTick(v => v + 1);
+    setToast({ message: 'All changes processed.', type: 'success' });
   };
+
+  if (!isMounted) return null;
 
   if (permissionsResolved && !canAccess) {
     return <AccessDenied />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    <div className={`flex h-screen ${darkMode ? 'dark' : ''} bg-gray-50 dark:bg-gray-900 overflow-hidden`}>
+      <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header 
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        />
 
-      <main className="mx-auto max-w-[1800px] p-4 md:p-6 space-y-6">
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 md:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <Link
-                  href="/product"
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </Link>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-6 scrollbar-hide">
+          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+          {/* Intro Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm transition-all animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-primary">
+                  <ImageIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Primary Image Fixer</h2>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-2xl">
+                  Quickly correct primary product images across your catalog. Use the search below to find specific products or SKUs requiring fixes.
+                </p>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Primary Image Fixer</h1>
-              <p className="mt-1 text-sm text-gray-600">
-                Hidden utility page for fixing wrongly selected primary product images.
-              </p>
-              <p className="mt-2 text-xs text-gray-500">
-                Open directly by URL only. Suggested route: <span className="font-mono">/product/primary-image-fix</span>
-              </p>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setRefreshTick(v => v + 1)}
+                  disabled={loading}
+                  className="p-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm disabled:opacity-50"
+                  title="Refresh products"
+                >
+                  <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <button
+                  onClick={saveAllChanged}
+                  disabled={dirtyCount === 0 || loading}
+                  className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+                >
+                  <Save className="w-5 h-5" />
+                  <span>Save All Changes ({dirtyCount})</span>
+                </button>
+              </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-              <div className="relative min-w-[280px]">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <div className="mt-6 flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
+                  ref={searchRef}
+                  type="text"
+                  placeholder="Seach by name, SKU or ID..."
+                  className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder="Search by product name or SKU"
-                  className="w-full rounded-xl border border-gray-300 bg-white pl-10 pr-3 py-2.5 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-black/10"
                 />
               </div>
-
-              <button
-                onClick={() => setRefreshTick((v) => v + 1)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Refresh
-              </button>
-
-              <button
-                onClick={saveAllChanged}
-                disabled={dirtyCount === 0}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-black text-white px-4 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Save className="w-4 h-4" />
-                Save changed ({dirtyCount})
-              </button>
+              
+              <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-700 dark:text-amber-400 text-xs">
+                <Info className="w-4 h-4 flex-shrink-0" />
+                <span>Primary images are used as thumbnails in catalogs and orders.</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between text-sm text-gray-600 px-1">
-          <div>
-            Showing page <span className="font-semibold text-gray-900">{currentPage}</span> of{' '}
-            <span className="font-semibold text-gray-900">{Math.max(lastPage, 1)}</span>
-          </div>
-          <div>
-            Total products: <span className="font-semibold text-gray-900">{totalProducts}</span>
-          </div>
-        </div>
+          {/* Product Grid */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32 space-y-4">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-full border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-blue-600/10 dark:bg-blue-400/10"></div>
+                </div>
+              </div>
+              <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">Syncing product catalog...</p>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-20 text-center space-y-4">
+              <div className="inline-flex p-4 rounded-full bg-gray-50 dark:bg-gray-900 text-gray-400">
+                <Search className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No products found</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Try adjusting your search terms or filters.</p>
+              </div>
+              <button 
+                onClick={() => setSearchInput('')}
+                className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline"
+              >
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {rows.map((row, index) => {
+                const isDirty = !!row.selectedImageId && row.selectedImageId !== row.originalPrimaryId;
+                
+                return (
+                  <div 
+                    key={row.product.id}
+                    className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Item Header */}
+                    <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700/50">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400 dark:text-gray-600 font-mono text-xs font-bold border border-gray-100 dark:border-gray-800">
+                          #{row.product.id}
+                        </div>
+                        <div className="space-y-0.5">
+                          <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {row.product.name}
+                          </h3>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-mono">SKU: {row.product.sku || 'N/A'}</span>
+                            <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600"></span>
+                            <span>{row.images.length} Active Images</span>
+                          </div>
+                        </div>
+                      </div>
 
-        {loading ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-12 flex items-center justify-center gap-3 text-gray-600">
-            <Loader2 className="w-5 h-5 animate-spin" /> Loading products…
-          </div>
-        ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-500">
-            No products found for this search.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rows.map((row) => {
-              const isDirty = !!row.selectedImageId && row.selectedImageId !== row.originalPrimaryId;
-
-              return (
-                <section
-                  key={row.product.id}
-                  className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
-                >
-                  <div className="px-4 md:px-5 py-4 border-b border-gray-100 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h2 className="text-base md:text-lg font-semibold text-gray-900">{row.product.name}</h2>
-                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                        <span>SKU: {row.product.sku || '—'}</span>
-                        <span>ID: {row.product.id}</span>
-                        {row.originalPrimaryId ? <span>Current primary image ID: {row.originalPrimaryId}</span> : <span>No primary image set</span>}
+                      <div className="flex items-center gap-3">
+                        {isDirty ? (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs font-bold ring-1 ring-amber-200/50 dark:ring-amber-800/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                            Unsaved Changes
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            Primary Sync Correct
+                          </div>
+                        )}
+                        
+                        <div className="h-4 w-[1px] bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                        
+                        <button
+                          onClick={() => saveOne(row.product.id)}
+                          disabled={!isDirty || row.saving || row.loadingImages}
+                          className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg text-xs font-bold disabled:opacity-30 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/5"
+                        >
+                          {row.saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                          Update Row
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {isDirty ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-3 py-1 text-xs font-medium">
-                          Changed
-                        </span>
+                    {/* Image Scroller/Grid */}
+                    <div className="p-6 bg-gray-50/30 dark:bg-gray-900/10">
+                      {row.loadingImages ? (
+                        <div className="flex items-center justify-center py-12 gap-3 text-gray-400 dark:text-gray-600">
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                          <span className="text-sm font-medium">Fetching fresh asset status...</span>
+                        </div>
+                      ) : row.images.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 space-y-3 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
+                          <ImageIcon className="w-8 h-8 text-gray-300 dark:text-gray-700" />
+                          <p className="text-sm text-gray-500 dark:text-gray-500">No active assets found for this product.</p>
+                          <Link 
+                            href={`/product/add?id=${row.product.id}`}
+                            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            Upload Images
+                          </Link>
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-700 px-3 py-1 text-xs font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Saved
-                        </span>
-                      )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {row.images.map((image) => {
+                            const isSelected = row.selectedImageId === image.id;
+                            const isOriginal = row.originalPrimaryId === image.id;
+                            const isJustChanged = isSelected && !isOriginal;
 
-                      <button
-                        onClick={() => saveOne(row.product.id)}
-                        disabled={!isDirty || row.saving || row.loadingImages}
-                        className="inline-flex items-center gap-2 rounded-xl bg-black text-white px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {row.saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-4 md:p-5">
-                    {row.loadingImages ? (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Loading images…
-                      </div>
-                    ) : row.images.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-gray-300 p-6 text-sm text-gray-500">
-                        No active images found for this product.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-4">
-                        {row.images.map((image) => {
-                          const selected = row.selectedImageId === image.id;
-                          const currentPrimary = row.originalPrimaryId === image.id;
-
-                          return (
-                            <label
-                              key={image.id}
-                              className={`group cursor-pointer rounded-2xl border p-3 transition ${
-                                selected
-                                  ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/70'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <input
-                                type="radio"
-                                name={`primary-image-${row.product.id}`}
-                                checked={selected}
-                                onChange={() => handlePick(row.product.id, image.id)}
-                                className="sr-only"
-                              />
-
-                              <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
-                                <img
-                                  src={imageUrlFor(image)}
-                                  alt={row.product.name}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLImageElement).src = '/placeholder-image.jpg';
-                                  }}
-                                />
-                              </div>
-
-                              <div className="mt-3 space-y-1.5">
-                                <div className="flex items-center justify-between gap-2 text-xs">
-                                  <span className="font-medium text-gray-700">Image #{image.id}</span>
-                                  {currentPrimary && (
-                                    <span className="rounded-full bg-gray-900 text-white px-2 py-0.5 text-[10px] font-semibold">
-                                      Current
-                                    </span>
+                            return (
+                              <button
+                                key={image.id}
+                                onClick={() => handlePick(row.product.id, image.id)}
+                                className={`relative group/img flex flex-col p-2.5 rounded-2xl border-2 text-left transition-all duration-300 ${
+                                  isSelected 
+                                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10 ring-4 ring-blue-500/10 shadow-md' 
+                                    : 'border-white dark:border-gray-800 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm'
+                                }`}
+                              >
+                                <div className="aspect-square rounded-xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 relative">
+                                  <img 
+                                    src={imageUrlFor(image)} 
+                                    alt="Product asset" 
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-110"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLImageElement).src = '/placeholder-product.svg';
+                                    }}
+                                  />
+                                  
+                                  {isOriginal && (
+                                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-gray-900/90 text-[9px] font-bold text-white shadow-xl backdrop-blur-sm">
+                                      Primary
+                                    </div>
+                                  )}
+                                  
+                                  {isJustChanged && (
+                                    <div className="absolute top-2 right-2 p-1 rounded-full bg-blue-600 text-white shadow-lg animate-bounce">
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
+                                    </div>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-gray-500">
-                                  Sort: {image.sort_order ?? 0}
+
+                                <div className="mt-3 px-1 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">ID: #{image.id}</span>
+                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">Pos: {image.sort_order}</span>
+                                  </div>
+                                  <div className={`text-[11px] font-bold truncate transition-colors ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                                    {isSelected ? (isOriginal ? 'Active Primary' : 'New Selection') : 'Inactive Primary'}
+                                  </div>
                                 </div>
-                                <div className={`text-xs font-medium ${selected ? 'text-blue-700' : 'text-gray-500'}`}>
-                                  {selected ? 'Selected as primary' : 'Click to choose'}
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </section>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+
+          {/* Footer Pagination */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm flex items-center justify-between transition-all">
+            <button
+              onClick={() => {
+                const nextP = Math.max(1, currentPage - 1);
+                setCurrentPage(nextP);
+              }}
+              disabled={currentPage === 1 || loading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl disabled:opacity-30 transition-all font-mono"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              BACK
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase">Page</span>
+              <div className="px-4 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 font-mono text-sm font-bold text-gray-900 dark:text-white">
+                {currentPage} <span className="text-gray-400">/</span> {Math.max(lastPage, 1)}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                const nextP = Math.min(lastPage, currentPage + 1);
+                setCurrentPage(nextP);
+              }}
+              disabled={currentPage === lastPage || loading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl disabled:opacity-30 transition-all font-mono"
+            >
+              NEXT
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between rounded-2xl border border-gray-200 bg-white p-4">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage <= 1 || loading}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous page
-          </button>
-
-          <div className="text-sm text-gray-600 text-center">
-            Page <span className="font-semibold text-gray-900">{currentPage}</span> /{' '}
-            <span className="font-semibold text-gray-900">{Math.max(lastPage, 1)}</span>
+          
+          <div className="text-center py-4">
+             <p className="text-[10px] text-gray-400 dark:text-gray-600 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+               <Info className="w-3 h-3" />
+               SYSTEM UTILITY - USE WITH CAUTION
+             </p>
           </div>
-
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(Math.max(lastPage, 1), p + 1))}
-            disabled={currentPage >= lastPage || loading}
-            className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next page
-          </button>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
