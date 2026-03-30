@@ -16,13 +16,11 @@ class Role extends Model
         'slug',
         'description',
         'guard_name',
-        'level',
         'is_active',
         'is_default',
     ];
 
     protected $casts = [
-        'level' => 'integer',
         'is_active' => 'boolean',
         'is_default' => 'boolean',
     ];
@@ -44,66 +42,22 @@ class Role extends Model
 
     public function scopeOrdered($query)
     {
-        return $query->orderBy('level')->orderBy('title');
+        return $query->orderBy('title');
     }
 
+    // -------------------------------------------------------------------------
+    // Permissions relation is kept for backwards-compatibility with any existing
+    // pivot data, but access control is now enforced entirely on the frontend
+    // via role slugs. Do not rely on this relation for authorization logic.
+    // -------------------------------------------------------------------------
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class, 'role_permissions');
     }
 
-    public function hasPermission($permission): bool
-    {
-        if (is_string($permission)) {
-            return $this->permissions()->where('slug', $permission)->exists();
-        }
-
-        return $this->permissions()->where('id', $permission)->exists();
-    }
-
-    public function givePermissionTo($permission)
-    {
-        if (is_string($permission)) {
-            $permission = Permission::where('slug', $permission)->first();
-        }
-
-        if ($permission && !$this->hasPermission($permission)) {
-            $this->permissions()->attach($permission);
-        }
-
-        return $this;
-    }
-
-    public function revokePermissionFrom($permission)
-    {
-        if (is_string($permission)) {
-            $permission = Permission::where('slug', $permission)->first();
-        }
-
-        if ($permission) {
-            $this->permissions()->detach($permission);
-        }
-
-        return $this;
-    }
-
-    public function syncPermissions($permissions)
-    {
-        $permissionIds = collect($permissions)->map(function ($permission) {
-            if (is_string($permission)) {
-                return Permission::where('slug', $permission)->first()?->id;
-            }
-            return $permission;
-        })->filter()->toArray();
-
-        $this->permissions()->sync($permissionIds);
-
-        return $this;
-    }
-
     public function getDisplayNameAttribute()
     {
-        return $this->title . ' (Level ' . $this->level . ')';
+        return $this->title;
     }
 
     public function employees()

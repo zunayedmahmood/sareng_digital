@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Package,
   Scan,
@@ -89,6 +90,7 @@ const normalize = (v: any) => String(v ?? '').trim().toLowerCase();
 
 export default function WarehouseFulfillmentPage() {
   const { darkMode, setDarkMode } = useTheme();
+  const { isRole } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
@@ -284,13 +286,23 @@ export default function WarehouseFulfillmentPage() {
   const fetchPendingOrders = async () => {
     setIsLoadingOrders(true);
     try {
-      // Fetch both social_commerce and ecommerce orders
-      const [socialCommerceResponse, ecommerceResponse] = await Promise.all([
-        orderService.getPendingFulfillment({ per_page: 100, order_type: 'social_commerce' }),
-        orderService.getPendingFulfillment({ per_page: 100, order_type: 'ecommerce' }),
-      ]);
+      let allOrders: any[] = [];
 
-      const allOrders = [...(socialCommerceResponse.data || []), ...(ecommerceResponse.data || [])];
+      if (isRole('pos-salesman')) {
+        // POS Salesman sees local/walking/video orders
+        const response = await orderService.getPendingFulfillment({ 
+          per_page: 100, 
+          order_types: ['pos', 'video-shopping', 'walking-customer'] 
+        });
+        allOrders = response.data || [];
+      } else {
+        // Admins/Moderators see standard social/ecommerce delivery orders
+        const [socialCommerceResponse, ecommerceResponse] = await Promise.all([
+          orderService.getPendingFulfillment({ per_page: 100, order_type: 'social_commerce' }),
+          orderService.getPendingFulfillment({ per_page: 100, order_type: 'ecommerce' }),
+        ]);
+        allOrders = [...(socialCommerceResponse.data || []), ...(ecommerceResponse.data || [])];
+      }
 
       // Sort by date, newest first
       allOrders.sort((a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime());
@@ -310,8 +322,6 @@ export default function WarehouseFulfillmentPage() {
       // Run in background (no need to block UI render)
       loadOrderCardMeta(filtered);
       console.log('📦 Loaded pending orders:', {
-        social_commerce: socialCommerceResponse.data?.length || 0,
-        ecommerce: ecommerceResponse.data?.length || 0,
         total: filtered.length,
       });
     } catch (error: any) {

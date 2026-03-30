@@ -350,7 +350,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Employee management routes
-    Route::prefix('employees')->middleware('permission:employees.view,employees.create,employees.edit,employees.delete')->group(function () {
+    Route::prefix('employees')->group(function () {
         Route::get('/', [EmployeeController::class, 'getEmployees']);
         Route::post('/', [EmployeeController::class, 'createEmployee']);
         Route::get('/stats', [EmployeeController::class, 'getEmployeeStats']);
@@ -398,7 +398,7 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/employees/bulk/status', [EmployeeController::class, 'bulkUpdateStatus']);
 
     // Vendor management routes
-    Route::prefix('vendors')->middleware('permission:vendors.view,vendors.create,vendors.edit,vendors.delete')->group(function () {
+    Route::prefix('vendors')->group(function () {
         Route::get('/', [VendorController::class, 'getVendors']);
         Route::post('/', [VendorController::class, 'createVendor']);
         Route::get('/stats', [VendorController::class, 'getVendorStats']);
@@ -465,7 +465,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Store management routes
-    Route::prefix('stores')->middleware('permission:stores.view,stores.create,stores.edit,stores.delete')->group(function () {
+    Route::prefix('stores')->group(function () {
         Route::get('/', [StoreController::class, 'getStores']);
         Route::post('/', [StoreController::class, 'createStore']);
         Route::get('/stats', [StoreController::class, 'getStoreStats']);
@@ -485,7 +485,7 @@ Route::middleware('auth:api')->group(function () {
     Route::patch('/stores/bulk/status', [StoreController::class, 'bulkUpdateStatus']);
 
     // Category management routes
-    Route::prefix('categories')->middleware('permission:categories.view,categories.create,categories.edit,categories.delete')->group(function () {
+    Route::prefix('categories')->group(function () {
         Route::get('/', [CategoriesController::class, 'getCategories']);
         Route::post('/', [CategoriesController::class, 'createCategory']);
         Route::get('/stats', [CategoriesController::class, 'getCategoryStats']);
@@ -519,7 +519,7 @@ Route::middleware('auth:api')->group(function () {
     // Customer profiles, orders, analytics, segmentation
     // ============================================
     
-    Route::prefix('customers')->middleware('permission:customers.view,customers.create,customers.edit,customers.delete')->group(function () {
+    Route::prefix('customers')->group(function () {
         // List and statistics
         Route::get('/', [CustomerController::class, 'index']);
         Route::get('/statistics', [CustomerController::class, 'getStatistics']);
@@ -568,7 +568,7 @@ Route::middleware('auth:api')->group(function () {
     // Tailoring, alterations, and custom services
     // ============================================
     
-    Route::prefix('services')->middleware('permission:services.view,services.create,services.edit,services.delete')->group(function () {
+    Route::prefix('services')->group(function () {
         // List and statistics
         Route::get('/', [ServiceController::class, 'index']);
         Route::get('/active', [ServiceController::class, 'getActiveServices']);
@@ -599,7 +599,7 @@ Route::middleware('auth:api')->group(function () {
     // Customer service bookings and order management
     // ============================================
     
-    Route::prefix('service-orders')->middleware('permission:service_orders.view,service_orders.create,service_orders.edit')->group(function () {
+    Route::prefix('service-orders')->group(function () {
         // List and statistics
         Route::get('/', [ServiceOrderController::class, 'index']);
         Route::get('/statistics', [ServiceOrderController::class, 'getStatistics']);
@@ -631,7 +631,7 @@ Route::middleware('auth:api')->group(function () {
     // Track business expenses, payments, budgets
     // ============================================
     
-    Route::prefix('expenses')->middleware('permission:expenses.view,expenses.create,expenses.edit,expenses.delete,expenses.approve')->group(function () {
+    Route::prefix('expenses')->group(function () {
         // List and statistics
         Route::get('/', [ExpenseController::class, 'index']);
         Route::get('/statistics', [ExpenseController::class, 'getStatistics']);
@@ -659,7 +659,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Expense Category Management Routes
-    Route::prefix('expense-categories')->middleware('permission:expense_categories.view,expense_categories.create,expense_categories.edit,expense_categories.delete')->group(function () {
+    Route::prefix('expense-categories')->group(function () {
         Route::get('/', [ExpenseCategoryController::class, 'index']);
         Route::post('/', [ExpenseCategoryController::class, 'store']);
         Route::get('/tree', [ExpenseCategoryController::class, 'getTree']);
@@ -677,7 +677,7 @@ Route::middleware('auth:api')->group(function () {
     // RBAC system for access control
     // ============================================
     
-    Route::prefix('roles')->middleware('permission:roles.view,roles.create,roles.edit,roles.delete')->group(function () {
+    Route::prefix('roles')->group(function () {
         Route::get('/', [RoleController::class, 'index']);
         Route::post('/', [RoleController::class, 'store']);
         Route::get('/statistics', [RoleController::class, 'getStatistics']);
@@ -686,12 +686,12 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/', [RoleController::class, 'show']);
             Route::put('/', [RoleController::class, 'update']);
             Route::delete('/', [RoleController::class, 'destroy']);
-            Route::post('/permissions', [RoleController::class, 'assignPermissions']);
-            Route::delete('/permissions', [RoleController::class, 'removePermissions']);
+            // NOTE: Permission assignment/removal routes have been removed.
+            // Access control is now enforced on the frontend via role slugs.
         });
     });
 
-    Route::prefix('permissions')->middleware('permission:permissions.manage')->group(function () {
+    Route::prefix('permissions')->group(function () {
         Route::get('/', [PermissionController::class, 'index']);
         Route::post('/', [PermissionController::class, 'store']);
         Route::get('/by-module', [PermissionController::class, 'getByModule']);
@@ -709,7 +709,7 @@ Route::middleware('auth:api')->group(function () {
     // Today's metrics, sales trends, operations overview
     // ============================================
     
-    Route::prefix('dashboard')->middleware('permission:dashboard.view,dashboard.analytics')->group(function () {
+    Route::prefix('dashboard')->group(function () {
         // Comprehensive stores summary
         Route::get('/stores-summary', [DashboardController::class, 'allStoresSummary']);
         
@@ -738,7 +738,7 @@ Route::middleware('auth:api')->group(function () {
     // Business intelligence and dashboard metrics
     // ============================================
     
-    Route::prefix('reports')->middleware('permission:reports.view,reports.sales,reports.inventory,reports.financial')->group(function () {
+    Route::prefix('reports')->group(function () {
         // Dashboard
         Route::get('/dashboard', [ReportController::class, 'dashboard']);
         
@@ -767,7 +767,7 @@ Route::middleware('auth:api')->group(function () {
     // T-Account, Trial Balance, Income Statement, Balance Sheet, etc.
     // ============================================
     
-    Route::prefix('accounting')->middleware('permission:accounting.view,accounting.manage')->group(function () {
+    Route::prefix('accounting')->group(function () {
         // Textbook-style T-Account (Debit/Credit Ledger)
         Route::get('/t-account/{accountId}', [\App\Http\Controllers\AccountingReportController::class, 'getTAccount']);
         
@@ -795,7 +795,7 @@ Route::middleware('auth:api')->group(function () {
     // Chart of accounts and financial transactions
     // ============================================
     
-    Route::prefix('accounts')->middleware('permission:accounts.view,accounts.create,accounts.edit,accounts.delete')->group(function () {
+    Route::prefix('accounts')->group(function () {
         // List and statistics
         Route::get('/', [AccountController::class, 'index']);
         Route::get('/statistics', [AccountController::class, 'getStatistics']);
@@ -818,7 +818,7 @@ Route::middleware('auth:api')->group(function () {
         });
     });
     
-    Route::prefix('transactions')->middleware('permission:transactions.view,transactions.create,transactions.edit')->group(function () {
+    Route::prefix('transactions')->group(function () {
         // List and statistics
         Route::get('/', [TransactionController::class, 'index']);
         Route::get('/statistics', [TransactionController::class, 'getStatistics']);
@@ -845,7 +845,7 @@ Route::middleware('auth:api')->group(function () {
     // Coupon codes, discount rules, validation
     // ============================================
     
-    Route::prefix('promotions')->middleware('permission:promotions.view,promotions.create,promotions.edit,promotions.delete')->group(function () {
+    Route::prefix('promotions')->group(function () {
         // List and statistics
         Route::get('/', [PromotionController::class, 'index']);
         Route::get('/statistics', [PromotionController::class, 'getStatistics']);
@@ -899,7 +899,7 @@ Route::middleware('auth:api')->group(function () {
     // Fashion collections and seasonal catalogs
     // ============================================
     
-    Route::prefix('collections')->middleware('permission:collections.view,collections.create,collections.edit,collections.delete')->group(function () {
+    Route::prefix('collections')->group(function () {
         // List and statistics
         Route::get('/', [CollectionController::class, 'index']);
         Route::get('/statistics', [CollectionController::class, 'getStatistics']);
@@ -927,7 +927,7 @@ Route::middleware('auth:api')->group(function () {
     // Price overrides, history, bulk updates
     // ============================================
     
-    Route::prefix('price-overrides')->middleware('permission:price_overrides.view,price_overrides.create,price_overrides.edit,price_overrides.approve')->group(function () {
+    Route::prefix('price-overrides')->group(function () {
         // List and statistics
         Route::get('/', [PriceController::class, 'index']);
         Route::get('/statistics', [PriceController::class, 'getStatistics']);
@@ -956,7 +956,7 @@ Route::middleware('auth:api')->group(function () {
 
 
     
-    Route::prefix('fields')->middleware('permission:fields.view,fields.create,fields.edit,fields.delete')->group(function () {
+    Route::prefix('fields')->group(function () {
         // List and statistics
         Route::get('/', [FieldController::class, 'index']);
         Route::get('/active', [FieldController::class, 'getActiveFields']);
@@ -987,7 +987,7 @@ Route::middleware('auth:api')->group(function () {
     // 3 Channels: Counter, Social Commerce, E-commerce
     // ============================================
     
-    Route::prefix('orders')->middleware('permission:orders.view,orders.create,orders.edit,orders.delete,orders.fulfill')->group(function () {
+    Route::prefix('orders')->group(function () {
         // List and statistics
         Route::get('/', [OrderController::class, 'index']);
         Route::get('/statistics', [OrderController::class, 'getStatistics']);
@@ -1027,7 +1027,7 @@ Route::middleware('auth:api')->group(function () {
     // Pathao Integration for Delivery
     // ============================================
     
-    Route::prefix('shipments')->middleware('permission:shipments.view,shipments.create,shipments.manage')->group(function () {
+    Route::prefix('shipments')->group(function () {
         // List and statistics
         Route::get('/', [ShipmentController::class, 'index']);
         Route::get('/statistics', [ShipmentController::class, 'getStatistics']);
@@ -1140,7 +1140,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Product Management Routes (with custom fields support)
-    Route::prefix('products')->middleware('permission:products.view,products.create,products.edit,products.delete')->group(function () {
+    Route::prefix('products')->group(function () {
         Route::get('/', [ProductController::class, 'index']);
         Route::post('/', [ProductController::class, 'create']);
         Route::get('/stats', [ProductController::class, 'getStatistics']);
@@ -1164,7 +1164,7 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/sku-group', [ProductController::class, 'getSkuGroup']);
             
             Route::delete('/force-delete', [ProductController::class, 'forceDelete'])
-                ->middleware('permission:system.settings.edit'); // Admin-level permission
+                ; // Admin-level permission (checked in controller)
         });
     });
 
@@ -1215,7 +1215,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Purchase Order Management Routes
-    Route::prefix('purchase-orders')->middleware('permission:purchase_orders.view,purchase_orders.create,purchase_orders.edit,purchase_orders.delete,purchase_orders.approve,purchase_orders.receive')->group(function () {
+    Route::prefix('purchase-orders')->group(function () {
         Route::get('/', [PurchaseOrderController::class, 'index']);
         Route::post('/', [PurchaseOrderController::class, 'create']);
         Route::get('/stats', [PurchaseOrderController::class, 'statistics']);
@@ -1237,7 +1237,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Vendor Payment Management Routes
-    Route::prefix('vendor-payments')->middleware('permission:vendor_payments.view,vendor_payments.create,vendor_payments.manage')->group(function () {
+    Route::prefix('vendor-payments')->group(function () {
         Route::get('/', [VendorPaymentController::class, 'index']);
         Route::post('/', [VendorPaymentController::class, 'create']);
         Route::get('/stats', [VendorPaymentController::class, 'statistics']);
@@ -1259,7 +1259,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/vendors/{id}/payment-history', [VendorController::class, 'getPaymentHistory']);
 
     // Product Batch Management Routes
-    Route::prefix('batches')->middleware('permission:product_batches.view,product_batches.create,product_batches.edit,product_batches.delete')->group(function () {
+    Route::prefix('batches')->group(function () {
         Route::get('/', [ProductBatchController::class, 'index']);
         Route::post('/', [ProductBatchController::class, 'create']);
         Route::get('/statistics', [ProductBatchController::class, 'getStatistics']);
@@ -1279,7 +1279,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/products/{product_id}/batches/update-price', [ProductBatchController::class, 'updateAllBatchPrices']);
 
     // Product Barcode Management Routes
-    Route::prefix('barcodes')->middleware('permission:products.view,products.manage_barcodes')->group(function () {
+    Route::prefix('barcodes')->group(function () {
         Route::get('/', [ProductBarcodeController::class, 'index']);
         Route::post('/generate', [ProductBarcodeController::class, 'generate']);
         Route::post('/scan', [ProductBarcodeController::class, 'scan']);
@@ -1297,7 +1297,7 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/products/{productId}/barcodes', [ProductBarcodeController::class, 'getProductBarcodes']);
 
     // Product Dispatch Management Routes
-    Route::prefix('dispatches')->middleware('permission:product_dispatches.view,product_dispatches.create,product_dispatches.edit,product_dispatches.approve')->group(function () {
+    Route::prefix('dispatches')->group(function () {
         Route::get('/', [ProductDispatchController::class, 'index']);
         Route::post('/', [ProductDispatchController::class, 'create']);
         Route::get('/statistics', [ProductDispatchController::class, 'getStatistics']);
@@ -1330,7 +1330,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Product Return Management Routes
-    Route::prefix('returns')->middleware('permission:returns.view,returns.create,returns.approve,returns.process')->group(function () {
+    Route::prefix('returns')->group(function () {
         Route::get('/', [ProductReturnController::class, 'index']);
         Route::post('/', [ProductReturnController::class, 'store']);
         Route::get('/statistics', [ProductReturnController::class, 'statistics']);
@@ -1348,7 +1348,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Refund Management Routes
-    Route::prefix('refunds')->middleware('permission:refunds.view,refunds.create,refunds.approve')->group(function () {
+    Route::prefix('refunds')->group(function () {
         Route::get('/', [RefundController::class, 'index']);
         Route::post('/', [RefundController::class, 'store']);
         Route::get('/statistics', [RefundController::class, 'statistics']);
@@ -1363,7 +1363,7 @@ Route::middleware('auth:api')->group(function () {
     });
 
     // Defective Product Management Routes
-    Route::prefix('defective-products')->middleware('permission:inventory.view,inventory.adjust')->group(function () {
+    Route::prefix('defective-products')->group(function () {
         // List and statistics
         Route::get('/', [\App\Http\Controllers\DefectiveProductController::class, 'index']);
         Route::get('/available-for-sale', [\App\Http\Controllers\DefectiveProductController::class, 'getAvailableForSale']);
@@ -1389,14 +1389,12 @@ Route::middleware('auth:api')->group(function () {
         });
     });
 
-
-
     // ============================================
     // INVENTORY REBALANCING ROUTES
     // Automated suggestions and manual rebalancing between stores
     // ============================================
     
-    Route::prefix('inventory-rebalancing')->middleware('permission:inventory_rebalancing.view,inventory_rebalancing.create,inventory_rebalancing.approve')->group(function () {
+    Route::prefix('inventory-rebalancing')->group(function () {
         // List and statistics
         Route::get('/', [InventoryRebalancingController::class, 'index']);
         Route::get('/statistics', [InventoryRebalancingController::class, 'getStatistics']);
@@ -1419,7 +1417,7 @@ Route::middleware('auth:api')->group(function () {
     // Track exact location and complete history of every physical unit
     // ============================================
     
-    Route::prefix('barcode-tracking')->middleware('permission:inventory.view,inventory.view_movements')->group(function () {
+    Route::prefix('barcode-tracking')->group(function () {
         // Individual barcode tracking
         Route::get('/{barcode}/location', [BarcodeLocationController::class, 'getBarcodeLocation']);
         Route::get('/{barcode}/history', [BarcodeLocationController::class, 'getBarcodeHistory']);
@@ -1456,7 +1454,7 @@ Route::middleware('auth:api')->group(function () {
     // Manage deleted items with 7-day recovery period
     // ============================================
     
-    Route::prefix('recycle-bin')->middleware('permission:recycle_bin.view,recycle_bin.restore,recycle_bin.delete')->group(function () {
+    Route::prefix('recycle-bin')->group(function () {
         // List and statistics
         Route::get('/', [RecycleBinController::class, 'index']);
         Route::get('/statistics', [RecycleBinController::class, 'getStatistics']);
@@ -1481,7 +1479,7 @@ Route::middleware('auth:api')->group(function () {
     // Admin routes for managing contact form submissions
     // ============================================
     
-    Route::prefix('contact-messages')->middleware('permission:contact_messages.view,contact_messages.manage')->group(function () {
+    Route::prefix('contact-messages')->group(function () {
         Route::get('/', [\App\Http\Controllers\ContactMessageController::class, 'index']);
         Route::get('/statistics', [\App\Http\Controllers\ContactMessageController::class, 'getStatistics']);
         Route::get('/by-phone', [\App\Http\Controllers\ContactMessageController::class, 'getByPhone']);
@@ -1496,7 +1494,7 @@ Route::middleware('auth:api')->group(function () {
     // System-wide activity logging with WHO, WHEN, WHAT tracking
     // ============================================
     
-    Route::prefix('activity-logs')->middleware('permission:activity_logs.view')->group(function () {
+    Route::prefix('activity-logs')->group(function () {
         // List with filtering
         Route::get('/', [ActivityLogController::class, 'index']);
         
@@ -1524,7 +1522,7 @@ Route::middleware('auth:api')->group(function () {
     // Shows WHO, WHEN, WHAT with before/after data
     // ============================================
     
-    Route::prefix('business-history')->middleware('permission:activity_logs.view')->group(function () {
+    Route::prefix('business-history')->group(function () {
         // Product Dispatch History
         Route::get('/product-dispatches', [\App\Http\Controllers\BusinessHistoryController::class, 'getProductDispatchHistory']);
         
@@ -1550,7 +1548,7 @@ Route::middleware('auth:api')->group(function () {
     // Comprehensive lookup for product lifecycle, order details, and batch tracking
     // ============================================
     
-    Route::prefix('lookup')->middleware('permission:inventory.view,orders.view')->group(function () {
+    Route::prefix('lookup')->group(function () {
         // Product Lookup - Complete lifecycle by barcode
         Route::get('/product', [\App\Http\Controllers\LookupController::class, 'productLookup']);
         
@@ -1566,7 +1564,7 @@ Route::middleware('auth:api')->group(function () {
     // CSV/Excel exports for sales analysis and reporting
     // ============================================
     
-    Route::prefix('reporting')->middleware('permission:reports.view,reports.export')->group(function () {
+    Route::prefix('reporting')->group(function () {
         // Category Sales Report
         Route::get('/csv/category-sales', [\App\Http\Controllers\ReportingController::class, 'exportCategorySalesCsv']);
         // Sales Report
@@ -1584,7 +1582,7 @@ Route::middleware('auth:api')->group(function () {
     // Manage advertising campaigns and product attribution
     // ============================================
     
-    Route::prefix('ad-campaigns')->middleware('permission:ad_campaigns.view,ad_campaigns.create,ad_campaigns.edit,ad_campaigns.delete')->group(function () {
+    Route::prefix('ad-campaigns')->group(function () {
         // Campaign CRUD
         Route::get('/', [\App\Http\Controllers\AdCampaignController::class, 'index']);
         Route::post('/', [\App\Http\Controllers\AdCampaignController::class, 'store']);

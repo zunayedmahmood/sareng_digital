@@ -195,13 +195,26 @@ class EmployeeController extends Controller
 
     public function getEmployees(Request $request)
     {
+        $authUser = auth()->user();
         $query = Employee::with(['store', 'role', 'manager']);
 
-        // Filters
-        if ($request->has('store_id') && $request->store_id) {
+        // ---------------------------------------------------------------
+        // Store-based visibility enforcement
+        // Global roles (super-admin, admin): see all employees.
+        // All other roles: only see employees in their assigned store.
+        // This mirrors the frontend FEATURE_ROLES logic where branch roles
+        // are "scoped" to a single store.
+        // ---------------------------------------------------------------
+        $isGlobal = $authUser && $authUser->isGlobal();
+        if (!$isGlobal && $authUser) {
+            // Force-scope to the authenticated user's own store.
+            $query->where('store_id', $authUser->store_id);
+        } elseif ($request->has('store_id') && $request->store_id) {
+            // Global users can optionally filter by store.
             $query->where('store_id', $request->store_id);
         }
 
+        // Filters
         if ($request->has('role_id') && $request->role_id) {
             $query->where('role_id', $request->role_id);
         }
@@ -236,7 +249,10 @@ class EmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $employees
+            'data' => $employees,
+            // Let the frontend know whether this result is store-scoped
+            'is_scoped' => !$isGlobal,
+            'scoped_store_id' => !$isGlobal && $authUser ? $authUser->store_id : null,
         ]);
     }
 
@@ -294,17 +310,25 @@ class EmployeeController extends Controller
 
     public function getEmployeeStats()
     {
+        $authUser = auth()->user();
+        $isGlobal = $authUser && $authUser->isGlobal();
+        
+        $query = Employee::query();
+        if (!$isGlobal && $authUser) {
+            $query->where('store_id', $authUser->store_id);
+        }
+
         $stats = [
-            'total_employees' => Employee::count(),
-            'active_employees' => Employee::where('is_active', true)->count(),
-            'inactive_employees' => Employee::where('is_active', false)->count(),
-            'in_service' => Employee::where('is_in_service', true)->count(),
-            'by_department' => Employee::where('is_active', true)
+            'total_employees' => (clone $query)->count(),
+            'active_employees' => (clone $query)->where('is_active', true)->count(),
+            'inactive_employees' => (clone $query)->where('is_active', false)->count(),
+            'in_service' => (clone $query)->where('is_in_service', true)->count(),
+            'by_department' => (clone $query)->where('is_active', true)
                 ->whereNotNull('department')
                 ->selectRaw('department, COUNT(*) as count')
                 ->groupBy('department')
                 ->get(),
-            'by_role' => Employee::with('role')
+            'by_role' => (clone $query)->with('role')
                 ->where('is_active', true)
                 ->selectRaw('role_id, COUNT(*) as count')
                 ->groupBy('role_id')
@@ -315,7 +339,7 @@ class EmployeeController extends Controller
                         'count' => $item->count
                     ];
                 }),
-            'recent_hires' => Employee::where('is_active', true)
+            'recent_hires' => (clone $query)->where('is_active', true)
                 ->orderBy('hire_date', 'desc')
                 ->limit(5)
                 ->get(['name', 'hire_date', 'department'])

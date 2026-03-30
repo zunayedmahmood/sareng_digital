@@ -233,7 +233,6 @@ class TestSocialCommerceFlow extends Command
             [
                 'description' => 'Warehouse employee role for testing',
                 'guard_name' => 'api',
-                'level' => 1,
                 'is_active' => true,
             ]
         );

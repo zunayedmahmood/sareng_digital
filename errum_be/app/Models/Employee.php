@@ -182,9 +182,25 @@ class Employee extends Authenticatable implements JWTSubject
         return $query->where('role_id', $roleId);
     }
 
+    /**
+     * Check if this employee has global visibility (not scoped to a single store).
+     * Global roles: super-admin, admin.
+     * All other roles are store-scoped (branch-manager, pos-salesman, etc.).
+     */
+    public function isGlobal(): bool
+    {
+        $globalSlugs = ['super-admin', 'admin'];
+        return $this->role && in_array($this->role->slug, $globalSlugs);
+    }
+
+    /**
+     * @deprecated Permission-based checks are no longer used.
+     *             Access control is enforced on the frontend via role slugs.
+     *             This method always returns false to avoid any accidental usage.
+     */
     public function hasPermission($permission): bool
     {
-        return $this->role && $this->role->hasPermission($permission);
+        return false;
     }
 
     public function getFullNameAttribute()

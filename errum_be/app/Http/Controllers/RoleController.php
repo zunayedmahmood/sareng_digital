@@ -3,23 +3,30 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
-use App\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
+/**
+ * RoleController — Errum V2 RBAC Refactor (2026-03-30)
+ *
+ * Manages the simplified 7-role set. Permission management endpoints have been
+ * removed because access control is now handled entirely on the frontend via
+ * role slugs. The `role_permissions` table is kept in the database for backwards
+ * compatibility but is no longer populated or queried for authorization logic.
+ */
 class RoleController extends Controller
 {
+    /**
+     * List all roles.
+     * Supports optional ?is_active=1|0 filter.
+     */
     public function index(Request $request)
     {
-        $query = Role::with('permissions');
+        $query = Role::query();
 
         if ($request->has('is_active')) {
-            $query->where('is_active', $request->is_active);
-        }
-
-        if ($request->has('guard_name')) {
-            $query->byGuard($request->guard_name);
+            $query->where('is_active', $request->boolean('is_active'));
         }
 
         $roles = $query->ordered()->get();
@@ -27,65 +34,81 @@ class RoleController extends Controller
         return response()->json(['success' => true, 'data' => $roles]);
     }
 
+    /**
+     * Create a new role.
+     */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'title' => 'required|string|max:255',
+            'title'       => 'required|string|max:255|unique:roles,title',
             'description' => 'nullable|string',
-            'guard_name' => 'required|in:api,web',
-            'level' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|boolean',
-            'is_default' => 'nullable|boolean',
-            'permission_ids' => 'nullable|array',
-            'permission_ids.*' => 'exists:permissions,id',
+            'is_active'   => 'nullable|boolean',
+            'is_default'  => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $data = $request->except('permission_ids');
-        $data['slug'] = Str::slug($request->title);
+        $data           = $validator->validated();
+        $data['slug']   = Str::slug($request->title);
+        $data['guard_name'] = 'api';
+
+        // Prevent duplicate slugs
+        if (Role::where('slug', $data['slug'])->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A role with a similar name (slug) already exists.',
+            ], 422);
+        }
 
         $role = Role::create($data);
-
-        if ($request->has('permission_ids')) {
-            $role->permissions()->sync($request->permission_ids);
-        }
 
         return response()->json([
             'success' => true,
             'message' => 'Role created successfully',
-            'data' => $role->load('permissions')
+            'data'    => $role,
         ], 201);
     }
 
+    /**
+     * Get a single role.
+     */
     public function show($id)
     {
-        $role = Role::with('permissions')->findOrFail($id);
+        $role = Role::findOrFail($id);
 
         return response()->json(['success' => true, 'data' => $role]);
     }
 
+    /**
+     * Update a role's title, description, or status flags.
+     * The `slug` and `guard_name` are never updated to avoid breaking references.
+     */
     public function update(Request $request, $id)
     {
         $role = Role::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'title' => 'sometimes|string|max:255',
+            'title'       => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'level' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|boolean',
-            'is_default' => 'nullable|boolean',
+            'is_active'   => 'nullable|boolean',
+            'is_default'  => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $data = $request->except(['slug', 'guard_name']);
-        if ($request->has('title')) {
-            $data['slug'] = Str::slug($request->title);
+        $data = $validator->validated();
+
+        // Regenerate slug if title changes, but only for custom roles (allow
+        // system roles to retain their canonical slugs).
+        if (isset($data['title']) && $data['title'] !== $role->title) {
+            $systemSlugs = ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman', 'employee'];
+            if (!in_array($role->slug, $systemSlugs)) {
+                $data['slug'] = Str::slug($data['title']);
+            }
         }
 
         $role->update($data);
@@ -93,20 +116,31 @@ class RoleController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Role updated successfully',
-            'data' => $role
+            'data'    => $role,
         ]);
     }
 
+    /**
+     * Delete a role — only allowed if no employees are assigned to it.
+     */
     public function destroy($id)
     {
         $role = Role::findOrFail($id);
 
-        // Check if role is assigned to employees
+        // Prevent deleting system roles
+        $systemSlugs = ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman', 'employee'];
+        if (in_array($role->slug, $systemSlugs)) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cannot delete the system role \"{$role->title}\". Deactivate it instead.",
+            ], 400);
+        }
+
         $employeeCount = $role->employees()->count();
         if ($employeeCount > 0) {
             return response()->json([
                 'success' => false,
-                'message' => "Cannot delete role assigned to {$employeeCount} employees"
+                'message' => "Cannot delete role assigned to {$employeeCount} employee(s). Re-assign them first.",
             ], 400);
         }
 
@@ -114,64 +148,31 @@ class RoleController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Role deleted successfully'
+            'message' => 'Role deleted successfully',
         ]);
     }
 
-    public function assignPermissions(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'permission_ids' => 'required|array',
-            'permission_ids.*' => 'exists:permissions,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        $role = Role::findOrFail($id);
-        $role->permissions()->sync($request->permission_ids);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Permissions assigned successfully',
-            'data' => $role->load('permissions')
-        ]);
-    }
-
-    public function removePermissions(Request $request, $id)
-    {
-        $validator = Validator::make($request->all(), [
-            'permission_ids' => 'required|array',
-            'permission_ids.*' => 'exists:permissions,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        $role = Role::findOrFail($id);
-        $role->permissions()->detach($request->permission_ids);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Permissions removed successfully',
-            'data' => $role->load('permissions')
-        ]);
-    }
-
+    /**
+     * Basic role statistics.
+     */
     public function getStatistics()
     {
         $stats = [
-            'total_roles' => Role::count(),
-            'active_roles' => Role::active()->count(),
+            'total_roles'    => Role::count(),
+            'active_roles'   => Role::where('is_active', true)->count(),
             'inactive_roles' => Role::where('is_active', false)->count(),
-            'by_guard' => Role::selectRaw('guard_name, COUNT(*) as count')
-                ->groupBy('guard_name')
-                ->pluck('count', 'guard_name'),
+            'by_role'        => Role::withCount('employees')
+                ->orderBy('title')
+                ->get(['id', 'title', 'slug', 'is_active'])
+                ->map(fn ($r) => [
+                    'id'             => $r->id,
+                    'title'          => $r->title,
+                    'slug'           => $r->slug,
+                    'is_active'      => $r->is_active,
+                    'employee_count' => $r->employees_count,
+                ]),
         ];
 
         return response()->json(['success' => true, 'data' => $stats]);
     }
 }
-

@@ -178,9 +178,9 @@ export const productService = {
     /** Proposal 2: server-side price filter (BDT) */
     min_price?: number;
     max_price?: number;
-    /** NEW: stock status filter */
     stock_status?: 'all' | 'in_stock' | 'not_in_stock';
     in_stock?: string;
+    is_archived?: boolean;
   }): Promise<{ data: Product[]; total: number; current_page: number; last_page: number }> {
     try {
       // Prefer employee-scoped endpoints when available; fallback keeps backward compatibility.

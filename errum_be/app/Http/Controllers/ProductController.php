@@ -837,6 +837,14 @@ class ProductController extends Controller
      */
     public function forceDelete($id)
     {
+        $user = request()->user();
+        if (!$user || ($user->role && $user->role->slug !== 'super-admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Super Admin access required.'
+            ], 403);
+        }
+
         $product = Product::withTrashed()->find($id);
 
         if (!$product) {

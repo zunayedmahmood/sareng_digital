@@ -69,12 +69,15 @@ class Note extends Model
 
     public function scopeVisibleTo($query, Employee $viewer)
     {
-        // HR and managers can see private notes
-        if ($viewer->hasPermission('view-private-notes') || $viewer->is_manager) {
+        // Global admins and administrative managers see all notes
+        // (No hardcoded store-scoping, visibility is determined by role)
+        $managerRoles = ['super-admin', 'admin'];
+        
+        if ($viewer->role && in_array($viewer->role->slug, $managerRoles)) {
             return $query;
         }
 
-        // Others can only see public notes about themselves
+        // Others can only see public notes OR notes about themselves
         return $query->where(function ($q) use ($viewer) {
             $q->where('is_private', false)
               ->orWhere('employee_id', $viewer->id);
@@ -87,9 +90,13 @@ class Note extends Model
             return true;
         }
 
-        return $viewer->hasPermission('view-private-notes') ||
-               $viewer->is_manager ||
-               $this->employee_id === $viewer->id;
+        // Global admins and administrative managers see all notes
+        $managerRoles = ['super-admin', 'admin', 'branch-manager', 'online-moderator'];
+        if ($viewer->role && in_array($viewer->role->slug, $managerRoles)) {
+            return true;
+        }
+
+        return $this->employee_id === $viewer->id;
     }
 
     public function getTypeColorAttribute()

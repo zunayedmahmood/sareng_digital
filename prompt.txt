@@ -89,64 +89,79 @@ generate and save a detailed md file /storage/Fullstack-Laravel-Next/errum_v2/Do
 I'll use this md file to tell Gemini in antigravity.
 
 
+### Stock deduction issue solve:
 
-### social-commerce
+read Documentation/26_Mar_26 reserve stock plan.md and understand the entire plan. I've also pasted it below:
 
-currently:
-->this page has a search product part that displays images in cards in a grid with name, stock, branch wise stock.
+Read the entire backend controller, model related to order, product, product_batch and anything relevant.
 
-What i want you to change:
-->check the backenc code it calls and now product should also return available_inventory from reserved_products table alongside other datas.
-->then in product card we need these updates:
-->the product name is truncated. instead it should be broken 2,3 or 4 lines (or whatever many it takes. whole name should be visible)
-->instead of stock, it should show "Available: available_inventory" from available_inventory (if 0, show "All stock reserved" in red)
-->branch wise inventory should still be there unchanged 
-->if All stock is reserved, clicking on that product should do nothing, basically, that card will be non-functional.
+Implement the changes mentioned in the md file.
+DO NOT make any additional changes. ONLY change the stricly necessary part.
+then, make an absolutely detailed, very descriptive, lengthy md file titled "26_Mar_26 reserve stock.md". It should discuss and explain in detail how the new functionalities behave, examples and edge cases.
 
-check for any edge case.
-make a detailed md file titled "28_Mar_26 social-commerce page prevent reserved selling.md"
-
-
-
-### check if POS can sell irrespective of available_inventory
-
-go through entire backend and frontend.
-currently, online sale (social-commerce and e-commerce) prevents selling if available_inventory is 0.
-but POS (counter sale) sells looking at batch stock in that store.
-
-This, when sold, should update available_inventory to negative if needed. 
-basically, we'll prioritize selling in POS (counter sale) over online sale (social-commerce and e-commerce).
-
-make a full integrity check and give me an 400 line audit report md file in Documentation/ on how the backend handles this case with details, diagrams, examples and edge cases.
-If you find issues, list them and suggest fixes that i can give to gemini in antigravity.
+What you need to know:
+->the files in errum_be is the backend code. 
+->DO NOT run "php artisan make:something name" and instead directly create the file
+->DO NOT run th migrations. 
+->Just create the additional files and write the code.
+->If the observers or anything similar need to be registered, register them (see the other observers to decide if that's necessary).                                                                             
 
 
+### roles:
+I've removed most of the middleware with permissions and removed middleware from kenrl.php. Howver, we still have customer auth left.
+We want to move from permissions based middleware in backend to no middleware in backend and role based page responsiveness in frontend (certain features will be enabled/disabled in frontend).
+
+What this will look like:
+Users already have roles: Super Admin, Admin, branch manager, POS salesman etc. (check if they do) and also the branch they work in.
+
+What i want you to do right now:
+->check api.php and kernel.php and look for compatibility issue. identify them and fix them.
+->and update frontend to allow the following roles to work like this:
+
+"Online Moderator":
+-> place order in social-commerce
+-> access inventory pages (except reports) of all branches
+-> view orders in assign stores
+-> Can add Purchase Order with quantity and Selling Price. Purchase Order should be creatable without Cost price (probably it's already implemented). They can't view Purchase Order cost price or approve them. 
+-> view, edit, update all orders in order page 
+POS Salesman 
+->has access to POS page. his branch's inventory, 
+->also has access to social-commerce/package page but, only for online (e-commerce and social-commerce) orders in their branch.
 
 
-### batch id and deduction from store in scanning.
+go through th entire backend. We already have a roles for users.
+But, we want to completely remake the roles of the users. 
+these ar th roles already present:
+   1. Super Admin (super-admin): Full system access with all permissions (Level 100).
+   2. Admin (admin): Administrative access to most system functions (Level 90).
+   3. Manager (manager): Management level access for overseeing operations (Level 80).
+   4. Accountant (accountant): Financial and accounting access (Level 70).
+   5. Sales Representative (sales-rep): Access for sales and customer management (Level 60).
+   6. Warehouse Staff (warehouse-staff): Inventory and warehouse management access (Level 50).
+   7. Customer Service (customer-service): Customer support and order management access (Level 40).
+   8. Viewer (viewer): Read-only access to system data (Level 10, Default role).
 
-currently, scanning for packaging online orders matches batch_id in that store. this is throwing 422 since batch_id is now mostly null. 
-we want this change: ignore that and just ensure th barcode scanned belongs to a batch_id that's in the store assigned. then, carry out the pre-existing logic.
+and they had permissions with them.
 
+These also have levels and stuff.
+we've removed permissions, but, we want to recreate the roles to the backend.
 
-###
-add a new button in the POS page in the top right corner.
-it says "Daily Cash Report". When pressed it opens a modal with two buttons (only one can be selected at a time) "CSV" and "PDF"
+We just want the roles to look like this:
+Super Admin 
+Admin
+Branch Manager
+Accountant
+POS salesman
+Employee 
+(And option to add, remove or edit existing ones)
 
-after selecting one, the user can press a final button generate.
+And update the Employees page to be up to date about the changes.
+We'll remove levels from roles as well. We'll change and take all the permissions and access controll stricitly to frontend later.
 
-When pressed, it should generate a report of all POS sales in that store for the current day (00:00 to 23:59).
-The sales report will look like this:
-Date:
-branch:
-Total Sales: (total amount of money from order in that store that day)
-Cash: (cash amount from order in that store that day)
-Card: (card amount from order in that store that day)
-Bkash: (bkash amount from order in that store that day)
-Nagad: (nagad amount from order in that store that day)
+I've explained our goals to you. go through the backend and read all the codes.
+Then make a detailed proposal explaining all the issues identified and proposal for changes to be made for efficiency.
 
-get store information from the page's outlet dropdown.
-make a new controller method for this information.
-use the appropriate middleware for that in api.php
-update the relevant srvic file in frontend.
-After generating the report, it will be saved by opening the file explorer.
+What we want to do:
+add centralised role and store based responsiveness to frontend pages. For example, a POS salesman will have access to social-commerce/package page but, only for online (e-commerce and social-commerce) orders in their branch but an Employee will not have access to this page.
+
+DO NOT change any code now. 
