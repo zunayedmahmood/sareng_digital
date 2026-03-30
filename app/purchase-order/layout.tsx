@@ -9,7 +9,7 @@ export default function PurchaseOrderLayout({
   children: React.ReactNode;
 }) {
   return (
-    <RouteGuard allowedRoles={PAGE_ACCESS['/purchase-orders']}>
+    <RouteGuard allowedRoles={PAGE_ACCESS['/purchase-order']}>
       {children}
     </RouteGuard>
   );

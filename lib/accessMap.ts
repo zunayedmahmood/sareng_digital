@@ -32,6 +32,7 @@ export const PAGE_ACCESS: Record<string, RoleSlug[]> = {
   '/product/batch': ['super-admin', 'admin', 'branch-manager'],
 
   // Inventory
+  '/inventory': ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman', 'employee'],
   '/inventory/manage_stock': ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman'],
   '/inventory/view': ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman'],
   '/inventory/batch-price-update': ['super-admin', 'admin', 'branch-manager'],
