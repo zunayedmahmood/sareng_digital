@@ -56,7 +56,7 @@ export const PAGE_ACCESS: Record<string, RoleSlug[]> = {
   '/campaigns': ['super-admin', 'admin'],
 
   // System & Utilities
-  '/extra': ['super-admin', 'admin'],
+  '/extra': ['super-admin', 'admin', 'branch-manager', 'online-moderator', 'pos-salesman'],
   '/lookup': ['super-admin', 'admin', 'branch-manager', 'pos-salesman', 'employee'],
   '/activity-logs': ['super-admin', 'admin'],
   '/transaction': ['super-admin', 'admin', 'branch-manager'],
@@ -68,3 +68,13 @@ export const PAGE_ACCESS: Record<string, RoleSlug[]> = {
   '/roles': ['super-admin', 'admin'],
   '/permissions': ['super-admin', 'admin'],
 };
+
+/**
+ * Roles that bypass automated store scoping (skipStoreScope: true).
+ * These roles have a global view across all locations.
+ */
+export const ROLES_SKIPPING_STORE_SCOPE: RoleSlug[] = [
+  'super-admin',
+  'admin',
+  'online-moderator',
+];

@@ -107,61 +107,13 @@ What you need to know:
 ->If the observers or anything similar need to be registered, register them (see the other observers to decide if that's necessary).                                                                             
 
 
-### roles:
-I've removed most of the middleware with permissions and removed middleware from kenrl.php. Howver, we still have customer auth left.
-We want to move from permissions based middleware in backend to no middleware in backend and role based page responsiveness in frontend (certain features will be enabled/disabled in frontend).
+### page responsiveness and new pages 
 
-What this will look like:
-Users already have roles: Super Admin, Admin, branch manager, POS salesman etc. (check if they do) and also the branch they work in.
+Updates related to Online Moderators:
+update the purchase-order page: currently, when we add new product to an existing PO inside edit modal, we need to add cost price (while Actions coloumn is blocked). This should be stopped so that online Moderators don't have to add cost price for updating (change backend accordingly)
+perhaps there's some service file that's preventing purchase order creation and purchase order edit from not having cost price. 
+check the purchase-order page and all Unit Costs should be hidden from online Moderators. For product list in edit/view PO, the unit cost should be hidden for online moderators. instead show Selling price.
+edit the purchase order page, view/edit modal. products should show the product image .
 
-What i want you to do right now:
-->check api.php and kernel.php and look for compatibility issue. identify them and fix them.
-->and update frontend to allow the following roles to work like this:
-
-"Online Moderator":
--> place order in social-commerce
--> access inventory pages (except reports) of all branches
--> view orders in assign stores
--> Can add Purchase Order with quantity and Selling Price. Purchase Order should be creatable without Cost price (probably it's already implemented). They can't view Purchase Order cost price or approve them. 
--> view, edit, update all orders in order page 
-POS Salesman 
-->has access to POS page. his branch's inventory, 
-->also has access to social-commerce/package page but, only for online (e-commerce and social-commerce) orders in their branch.
-
-
-go through th entire backend. We already have a roles for users.
-But, we want to completely remake the roles of the users. 
-these ar th roles already present:
-   1. Super Admin (super-admin): Full system access with all permissions (Level 100).
-   2. Admin (admin): Administrative access to most system functions (Level 90).
-   3. Manager (manager): Management level access for overseeing operations (Level 80).
-   4. Accountant (accountant): Financial and accounting access (Level 70).
-   5. Sales Representative (sales-rep): Access for sales and customer management (Level 60).
-   6. Warehouse Staff (warehouse-staff): Inventory and warehouse management access (Level 50).
-   7. Customer Service (customer-service): Customer support and order management access (Level 40).
-   8. Viewer (viewer): Read-only access to system data (Level 10, Default role).
-
-and they had permissions with them.
-
-These also have levels and stuff.
-we've removed permissions, but, we want to recreate the roles to the backend.
-
-We just want the roles to look like this:
-Super Admin 
-Admin
-Branch Manager
-Accountant
-POS salesman
-Employee 
-(And option to add, remove or edit existing ones)
-
-And update the Employees page to be up to date about the changes.
-We'll remove levels from roles as well. We'll change and take all the permissions and access controll stricitly to frontend later.
-
-I've explained our goals to you. go through the backend and read all the codes.
-Then make a detailed proposal explaining all the issues identified and proposal for changes to be made for efficiency.
-
-What we want to do:
-add centralised role and store based responsiveness to frontend pages. For example, a POS salesman will have access to social-commerce/package page but, only for online (e-commerce and social-commerce) orders in their branch but an Employee will not have access to this page.
-
-DO NOT change any code now. 
+recheck to ensure product cost price, approve for PO in purchase-order, vendor is only vissible to super-admin and admin.
+DO NOT make any other changes.

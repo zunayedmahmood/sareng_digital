@@ -1310,15 +1310,24 @@ export default function PurchaseOrdersPage() {
 
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 dark:text-gray-100 truncate">{item.product_name}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity_ordered} × ৳{formatCurrency(item.unit_cost)}
-                          </p>
+                          <AccessControl roles={['super-admin', 'admin']}>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Qty: {item.quantity_ordered} × ৳{formatCurrency(item.unit_cost)}
+                            </p>
+                          </AccessControl>
+                          <AccessControl roles={['branch-manager', 'online-moderator', 'pos-salesman']}>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Qty: {item.quantity_ordered} × ৳{formatCurrency(item.unit_sell_price)} (Selling Price)
+                            </p>
+                          </AccessControl>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="font-semibold text-gray-900 dark:text-gray-100">
-                          ৳{formatCurrency((item.quantity_ordered || 0) * (item.unit_cost || 0))}
-                        </p>
+                        <AccessControl roles={['super-admin', 'admin']}>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">
+                            ৳{formatCurrency((item.quantity_ordered || 0) * (item.unit_cost || 0))}
+                          </p>
+                        </AccessControl>
                       </div>
                     </div>
                   );
@@ -1326,40 +1335,42 @@ export default function PurchaseOrdersPage() {
               </div>
             </div>
 
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    ৳{formatCurrency(selectedPO.subtotal_amount)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Tax</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    ৳{formatCurrency(selectedPO.tax_amount)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Discount</span>
-                  <span className="font-medium text-red-600 dark:text-red-400">
-                    -৳{formatCurrency(selectedPO.discount_amount)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Shipping</span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    ৳{formatCurrency(selectedPO.shipping_cost)}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">Total</span>
-                  <span className="font-bold text-lg text-gray-900 dark:text-gray-100">
-                    ৳{formatCurrency(selectedPO.total_amount)}
-                  </span>
+            <AccessControl roles={['super-admin', 'admin']}>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      ৳{formatCurrency(selectedPO.subtotal_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      ৳{formatCurrency(selectedPO.tax_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Discount</span>
+                    <span className="font-medium text-red-600 dark:text-red-400">
+                      -৳{formatCurrency(selectedPO.discount_amount)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      ৳{formatCurrency(selectedPO.shipping_cost)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-lg font-bold text-gray-800 dark:text-gray-200">Total</span>
+                    <span className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                      ৳{formatCurrency(selectedPO.total_amount)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </AccessControl>
           </div>
         )}
       </Modal>
@@ -1386,38 +1397,40 @@ export default function PurchaseOrdersPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tax Amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.tax_amount}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, tax_amount: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
+              <AccessControl roles={['super-admin', 'admin']}>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tax Amount</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.tax_amount}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, tax_amount: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discount Amount</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.discount_amount}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, discount_amount: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shipping Cost</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editForm.shipping_cost}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, shipping_cost: e.target.value }))}
+                      className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discount Amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.discount_amount}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, discount_amount: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Shipping Cost</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.shipping_cost}
-                    onChange={(e) => setEditForm((prev) => ({ ...prev, shipping_cost: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-              </div>
+              </AccessControl>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
@@ -1606,7 +1619,20 @@ export default function PurchaseOrdersPage() {
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {editForm.items.map((it, idx) => (
                         <tr key={it.id} className="bg-white dark:bg-gray-800">
-                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">{it.product_label}</td>
+                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                            <div className="flex items-center gap-3">
+                              {pickPOItemImage(it) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setImagePreview({ url: pickPOItemImage(it)!, name: it.product_label || 'Product' })}
+                                  className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0 hover:opacity-80 transition-opacity"
+                                >
+                                  <img src={pickPOItemImage(it)!} alt={it.product_label} className="w-full h-full object-cover" />
+                                </button>
+                              )}
+                              <span className="truncate">{it.product_label}</span>
+                            </div>
+                          </td>
                           <td className="px-4 py-2">
                             <input
                               type="number"
@@ -1662,7 +1688,16 @@ export default function PurchaseOrdersPage() {
                           <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
                             <div className="flex items-center gap-2">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-600 text-white">NEW</span>
-                              <span>{it.product_label}</span>
+                              {pickPOItemImage(it) && (
+                                <button
+                                  type="button"
+                                  onClick={() => setImagePreview({ url: pickPOItemImage(it)!, name: it.product_label || 'Product' })}
+                                  className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0 hover:opacity-80 transition-opacity"
+                                >
+                                  <img src={pickPOItemImage(it)!} alt={it.product_label} className="w-full h-full object-cover" />
+                                </button>
+                              )}
+                              <span className="truncate">{it.product_label}</span>
                             </div>
                           </td>
                           <td className="px-4 py-2">
@@ -1679,21 +1714,23 @@ export default function PurchaseOrdersPage() {
                               className="w-28 px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             />
                           </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={it.unit_cost}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setEditForm((prev) => ({
-                                  ...prev,
-                                  new_items: prev.new_items.map((x, i) => (i === idx ? { ...x, unit_cost: v } : x)),
-                                }));
-                              }}
-                              className="w-32 px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                            />
-                          </td>
+                          <AccessControl roles={['super-admin', 'admin']}>
+                            <td className="px-4 py-2">
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={it.unit_cost}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setEditForm((prev) => ({
+                                    ...prev,
+                                    new_items: prev.new_items.map((x, i) => (i === idx ? { ...x, unit_cost: v } : x)),
+                                  }));
+                                }}
+                                className="w-32 px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                              />
+                            </td>
+                          </AccessControl>
                           <td className="px-4 py-2">
                             <input
                               type="number"

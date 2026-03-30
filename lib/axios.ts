@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { ROLES_SKIPPING_STORE_SCOPE } from './accessMap';
+import { RoleSlug } from '@/types/roles';
 
 // NOTE:
 // In local dev, NEXT_PUBLIC_API_URL is sometimes missing.
@@ -93,9 +95,8 @@ axiosInstance.interceptors.request.use(
           const storeIdRaw = localStorage.getItem('storeId');
           const storeId = storeIdRaw ? Number(storeIdRaw) : undefined;
 
-          // Canonical Global Roles (Super Admin + Admin)
-          const GLOBAL_ROLES = ['super-admin', 'super_admin', 'superadmin', 'admin', 'administrator'];
-          const isGlobalRole = GLOBAL_ROLES.includes(roleSlug);
+          // Canonical Global Roles (Super Admin + Admin + Online Moderator)
+          const isGlobalRole = ROLES_SKIPPING_STORE_SCOPE.includes(roleSlug as RoleSlug);
 
           // Scoping logic: 
           // If NOT a global role AND a storeId exists, inject it into all requests.
