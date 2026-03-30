@@ -25,6 +25,7 @@ import { vendorPaymentService, CreatePaymentRequest, PaymentMethod } from '@/ser
 import storeService, { Store } from '@/services/storeService';
 import productService, { Product } from '@/services/productService';
 import categoryService, { Category, CategoryTree } from '@/services/categoryService';
+import { useAuth } from '@/contexts/AuthContext';
 import CategoryTreeSelector from '@/components/product/CategoryTreeSelector';
 
 /**
@@ -97,9 +98,8 @@ const Modal = ({
 
 const Alert = ({ type, message }: { type: 'success' | 'error'; message: string }) => (
   <div
-    className={`fixed top-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${
-      type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
-    }`}
+    className={`fixed top-4 right-4 z-[9999] flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+      }`}
   >
     <AlertCircle className="w-5 h-5" />
     <span>{message}</span>
@@ -107,6 +107,7 @@ const Alert = ({ type, message }: { type: 'success' | 'error'; message: string }
 );
 
 export default function VendorPaymentPage() {
+  const { isRole } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { darkMode, setDarkMode } = useTheme();
   const [loading, setLoading] = useState(false);
@@ -810,10 +811,19 @@ export default function VendorPaymentPage() {
     }
 
     // basic validation to avoid NaN
-    const bad = validItems.find((it) => !it.quantity_ordered || !it.unit_cost);
+    const bad = validItems.find((it) => !it.quantity_ordered || (!isRole(['online-moderator']) && !it.unit_cost));
     if (bad) {
-      showAlert('error', 'Please fill Quantity & Unit Cost for selected items');
+      showAlert('error', 'Please fill Quantity & Unit Cost for all items');
       return;
+    }
+
+    // Secondary validation: if moderator, they MUST fill Unit Sell Price if Cost is hidden
+    if (isRole(['online-moderator'])) {
+      const missingSell = validItems.find((it) => !it.unit_sell_price);
+      if (missingSell) {
+        showAlert('error', 'Please fill Quantity & Selling Price for all items');
+        return;
+      }
     }
 
     try {
@@ -831,7 +841,7 @@ export default function VendorPaymentPage() {
         items: validItems.map((item) => ({
           product_id: parseInt(item.product_id, 10),
           quantity_ordered: parseInt(item.quantity_ordered, 10),
-          unit_cost: parseFloat(item.unit_cost),
+          unit_cost: parseFloat(item.unit_cost || '0'),
           unit_sell_price: item.unit_sell_price ? parseFloat(item.unit_sell_price) : undefined,
           tax_amount: item.tax_amount ? parseFloat(item.tax_amount) : undefined,
           discount_amount: item.discount_amount ? parseFloat(item.discount_amount) : undefined,
@@ -896,11 +906,11 @@ export default function VendorPaymentPage() {
 
       const pos: OutstandingPurchaseOrder[] = Array.isArray((outstanding as any)?.purchase_orders)
         ? (outstanding as any).purchase_orders
-            .filter((po: any) => typeof po?.id === 'number')
-            .map((po: any) => ({
-              ...po,
-              status: po?.status,
-            }))
+          .filter((po: any) => typeof po?.id === 'number')
+          .map((po: any) => ({
+            ...po,
+            status: po?.status,
+          }))
         : [];
 
       setPurchaseOrders(pos);
@@ -1162,18 +1172,18 @@ export default function VendorPaymentPage() {
 
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm text-left text-gray-700 dark:text-gray-300">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3">Vendor</th>
-                    <th className="px-6 py-3">Type</th>
-                    <th className="px-6 py-3">Contact</th>
-                    <th className="px-6 py-3">Credit Limit</th>
-                    <th className="px-6 py-3">Status</th>
-                    <th className="px-6 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredVendors.map((vendor) => (
+                  <thead className="bg-gray-100 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3">Vendor</th>
+                      <th className="px-6 py-3">Type</th>
+                      <th className="px-6 py-3">Contact</th>
+                      <th className="px-6 py-3">Credit Limit</th>
+                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredVendors.map((vendor) => (
                       <tr
                         key={vendor.id}
                         className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30"
@@ -1193,11 +1203,10 @@ export default function VendorPaymentPage() {
                         <td className="px-6 py-3">৳{formatCurrency((vendor as any).credit_limit)}</td>
                         <td className="px-6 py-3">
                           <span
-                            className={`text-xs px-2 py-1 rounded ${
-                              (vendor as any).is_active
+                            className={`text-xs px-2 py-1 rounded ${(vendor as any).is_active
                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
                                 : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                            }`}
+                              }`}
                           >
                             {(vendor as any).is_active ? 'Active' : 'Inactive'}
                           </span>
@@ -1281,9 +1290,9 @@ export default function VendorPaymentPage() {
                           </div>
                         </td>
                       </tr>
-                  ))}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {filteredVendors.length === 0 && !loading && (

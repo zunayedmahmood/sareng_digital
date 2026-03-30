@@ -1317,7 +1317,7 @@ export default function PurchaseOrdersPage() {
                               Qty: {item.quantity_ordered} × ৳{formatCurrency(item.unit_cost)}
                             </p>
                           </AccessControl>
-                          <AccessControl roles={['branch-manager', 'online-moderator', 'pos-salesman']}>
+                          <AccessControl roles={['online-moderator']}>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               Qty: {item.quantity_ordered} × ৳{formatCurrency(item.unit_sell_price)} (Selling Price)
                             </p>
