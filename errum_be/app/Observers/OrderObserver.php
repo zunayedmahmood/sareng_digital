@@ -31,13 +31,15 @@ class OrderObserver
             // Handle inventory reservation release for online orders (ecommerce/social_commerce)
             // if order is cancelled or refunded while items are still reserved (not yet scanned/fulfilled)
             if (in_array($newStatus, $reversalStatuses) && !in_array($oldStatus, $reversalStatuses)) {
-                if (in_array($order->order_type, ['ecommerce', 'social_commerce'])) {
+                if (in_array($order->order_type, ['ecommerce', 'social_commerce', 'counter'])) {
                     foreach ($order->items as $item) {
-                        // Only release if not already physically deducted (barcode not scanned)
-                        if ($item->product_barcode_id === null && $item->scan_status !== 'scanned') {
+                        // Only release if not already physically deducted (barcode not scanned/assigned)
+                        if ($item->product_barcode_id === null) {
                             if ($reservedRecord = ReservedProduct::where('product_id', $item->product_id)->first()) {
                                 $reservedRecord->decrement('reserved_inventory', $item->quantity);
-                                $reservedRecord->increment('available_inventory', $item->quantity);
+                                $reservedRecord->refresh();
+                                $reservedRecord->available_inventory = $reservedRecord->total_inventory - $reservedRecord->reserved_inventory;
+                                $reservedRecord->save();
                                 Log::info("Released reservation for unscanned item in cancelled order {$order->order_number}: Product {$item->product_id}");
                             }
                         }
@@ -91,12 +93,14 @@ class OrderObserver
     public function deleted(Order $order): void
     {
         // If an order is deleted (e.g., hard deleted), release any trapped reservations
-        if (in_array($order->order_type, ['ecommerce', 'social_commerce'])) {
+        if (in_array($order->order_type, ['ecommerce', 'social_commerce', 'counter'])) {
             foreach ($order->items as $item) {
                 if ($item->product_barcode_id === null) {
                     if ($reservedRecord = ReservedProduct::where('product_id', $item->product_id)->first()) {
                         $reservedRecord->decrement('reserved_inventory', $item->quantity);
-                        $reservedRecord->increment('available_inventory', $item->quantity);
+                        $reservedRecord->refresh();
+                        $reservedRecord->available_inventory = $reservedRecord->total_inventory - $reservedRecord->reserved_inventory;
+                        $reservedRecord->save();
                     }
                 }
             }

@@ -107,16 +107,27 @@ What you need to know:
 ->If the observers or anything similar need to be registered, register them (see the other observers to decide if that's necessary).                                                                             
 
 
-### access control 
+### return and exchange issue: 
 
-Remove branch manager from these pages 
+see full frontend and backend code to understand the process related to return and exchange.
+firstly, change this: /lookup page will be available to everybody (all roles) and any call from here will not have store_id injected to them. We will skipStoreScope.
 
-/purchase-order, /vendor, all pages in /social-order except /social-order/package,
-/store-assignment, /category, /gallery, /campaigns /transaction, /accounting, /employees, /roles, /permissions
+currently, we can initiate return and exchange from /purchase-history, /orders page, /lookup. see the logic in /purchase-history for return and exchange.
+then, we want that same logic and UI in /lookup page. but, return-exchange can only be initiated by (admins) branch-manager and POS.
+returns and exchanges initiated from here should be auto-approved like purchase-history page. 
+the store selection in this page "/lookup" should also not force store selection in any dropdown.
 
-grant cross store access to /returns page for branch manager.
+we want the stock-increase logic for returns the same as dispatch (lookup dispatch logic in the codebase).
+It should be that, the product (identified by its barcode) we will increase the stock of that product in the store where it was returned and copy the batch details from the store it was sold from.
 
-make /campaigns, /transaction, /category, /gallery, /accounting, /employees admin and super admin only 
+the exchange logic should be like this:
+->the product (identified by its barcode) we will increase the stock of that product in the store where it was returned and copy the batch details from the store it was sold from.
+->then the customer needs to be refunded. and, refund can be none (for exact same price) or refund or pay more (for more payment take to POS page)
 
-remove the /roles /permissions pages for all (including admins and super admins)
-Update this file accordingly: Documentation/31_Mar_26 Branch_Manager_Role_Updates_and_Global_Inventory.md
+some or all of these features may have already been Implemented. but, it had issues like, when we returned a product, the stock was reduced (instead of increase) and two (the old one and a new item) became unvailable
+also, exchange was working fine but created some availability issues here and there.
+
+Since the system is in production, we can not afford to break anything. so, please be very careful. 
+Since, testing confirmed that return and exchange was mostly working except few availability issues, avoid doing any drastic changes to the already partially working process.
+identify the issues and only make strictly necessary changes.
+make sure the reserved_product system is aware of the changes.

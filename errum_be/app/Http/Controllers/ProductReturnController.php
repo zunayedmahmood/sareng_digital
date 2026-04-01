@@ -682,7 +682,8 @@ class ProductReturnController extends Controller
                 $isNewBatch = $targetBatch->wasRecentlyCreated;
             }
 
-            $targetBatch->increment('quantity', (int) $item['quantity']);
+            $targetBatch->quantity += (int) $item['quantity'];
+            $targetBatch->save();
 
             $barcodeIds = collect($item['returned_barcode_ids'] ?? [])->filter()->values();
             if ($barcodeIds->isEmpty()) {

@@ -14,11 +14,9 @@ class OrderItemObserver
     public function created(OrderItem $orderItem): void
     {
         $order = $orderItem->order;
-        if ($order && in_array($order->status, ['pending_assignment', 'pending'])) {
-            // SKIP reservation for:
-            // 1. Counter/POS orders (stock already deducted)
-            // 2. Social Commerce orders with store_id (stock already deducted)
-            if ($order->order_type === 'counter' || ($order->order_type === 'social_commerce' && $order->store_id !== null)) {
+        $reservationStatuses = ['pending_assignment', 'pending', 'assigned_to_store', 'picking', 'processing', 'ready_for_pickup'];
+        if ($order && in_array($order->status, $reservationStatuses)) {
+            if ($order->order_type === 'preorder') { // Preorders might not have batch/stock yet
                 return;
             }
             $this->incrementReservation($orderItem->product_id, $orderItem->quantity);
@@ -31,13 +29,12 @@ class OrderItemObserver
     public function updated(OrderItem $orderItem): void
     {
         $order = $orderItem->order;
-        if ($order && in_array($order->status, ['pending_assignment', 'pending'])) {
-            // SKIP reservation for:
-            // 1. Counter/POS orders
-            // 2. Social Commerce orders with store_id
-            if ($order->order_type === 'counter' || ($order->order_type === 'social_commerce' && $order->store_id !== null)) {
+        $reservationStatuses = ['pending_assignment', 'pending', 'assigned_to_store', 'picking', 'processing', 'ready_for_pickup'];
+        if ($order && in_array($order->status, $reservationStatuses)) {
+            if ($order->order_type === 'preorder') {
                 return;
             }
+
 
             if ($orderItem->isDirty('quantity')) {
                 $oldQty = $orderItem->getOriginal('quantity');
@@ -59,12 +56,10 @@ class OrderItemObserver
     public function deleted(OrderItem $orderItem): void
     {
         $order = $orderItem->order;
+        $reservationStatuses = ['pending_assignment', 'pending', 'assigned_to_store', 'picking', 'processing', 'ready_for_pickup'];
         // Check if the order still exists (it might have been deleted too)
-        if ($order && in_array($order->status, ['pending_assignment', 'pending'])) {
-            // SKIP reservation for:
-            // 1. Counter/POS orders
-            // 2. Social Commerce orders with store_id
-            if ($order->order_type === 'counter' || ($order->order_type === 'social_commerce' && $order->store_id !== null)) {
+        if ($order && in_array($order->status, $reservationStatuses)) {
+            if ($order->order_type === 'preorder') {
                 return;
             }
             $this->decrementReservation($orderItem->product_id, $orderItem->quantity);

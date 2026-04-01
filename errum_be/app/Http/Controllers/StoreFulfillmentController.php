@@ -251,31 +251,14 @@ class StoreFulfillmentController extends Controller
             DB::beginTransaction();
 
             try {
-                // 3. PHYSICAL STOCK DEDUCTION (NOW PERFORMED AT SCANNING PHASE)
-                if ($batch = $barcode->batch) {
-                    $batch->decrement('quantity', 1); // Triggers ProductBatchObserver to sync total_inventory
-                    
-                    Log::info('Stock deducted at barcode scanning', [
-                        'order_id' => $order->id,
-                        'product_id' => $barcode->product_id,
-                        'batch_id' => $batch->id,
-                        'barcode' => $barcode->barcode,
-                    ]);
-                }
-
-                // 4. RELEASE RESERVATION
-                // Use lockForUpdate to prevent race conditions during calculation
-                if ($reservedRecord = ReservedProduct::where('product_id', $orderItem->product_id)->lockForUpdate()->first()) {
-                    // Sequence: release reservation -> recalculate available
-                    $reservedRecord->decrement('reserved_inventory', 1);
-                    
-                    // Re-sync available_inventory using the standard formula
-                    // availability = (total - reserved)
-                    // Note: total_inventory is updated via ProductBatchObserver triggered by $batch->decrement() above
-                    $reservedRecord->refresh(); 
-                    $reservedRecord->available_inventory = $reservedRecord->total_inventory - $reservedRecord->reserved_inventory;
-                    $reservedRecord->save();
-                }
+                // 3. PHYSICAL STOCK DEDUCTION REMOVED
+                // Stock will be deducted centralizing in OrderController@complete
+                // Reservations are also released in OrderController@complete to ensure available_stock sync
+                Log::info('Barcode scanned, stock deduction deferred to completion', [
+                    'order_id' => $order->id,
+                    'product_id' => $barcode->product_id,
+                    'barcode' => $barcode->barcode,
+                ]);
 
                 // 5. Update order item with scanned barcode and its batch
                 $orderItem->update([
@@ -356,41 +339,10 @@ class StoreFulfillmentController extends Controller
             try {
                 $unscannedItems = $order->items()->whereNull('product_barcode_id')->get();
 
-                foreach ($unscannedItems as $item) {
-                    $remainingToDeduct = $item->quantity;
-                    
-                    // Find available batches in this store (FIFO)
-                    $batches = ProductBatch::where('product_id', $item->product_id)
-                        ->where('store_id', $employee->store_id)
-                        ->where('availability', true)
-                        ->where('quantity', '>', 0)
-                        ->where(function($query) {
-                            $query->whereNull('expiry_date')
-                                ->orWhere('expiry_date', '>', now());
-                        })
-                        ->orderBy('expiry_date', 'asc')
-                        ->orderBy('created_at', 'asc')
-                        ->get();
-
-                    foreach ($batches as $batch) {
-                        if ($remainingToDeduct <= 0) break;
-                        
-                        $deductQty = min($batch->quantity, $remainingToDeduct);
-                        $batch->decrement('quantity', $deductQty);
-                        
-                        $remainingToDeduct -= $deductQty;
-                        
-                        Log::info("Automatic fail-safe stock deduction for unscanned item: Order {$order->order_number}, Product {$item->product_id}, Batch {$batch->id}, Qty {$deductQty}");
-                    }
-
-                    // Release remaining reservation for this item
-                    if ($reservedRecord = ReservedProduct::where('product_id', $item->product_id)->first()) {
-                        $reservedRecord->decrement('reserved_inventory', $item->quantity);
-                        $reservedRecord->refresh();
-                        $reservedRecord->available_inventory = max(0, $reservedRecord->total_inventory - $reservedRecord->reserved_inventory);
-                        $reservedRecord->save();
-                    }
-                }
+                // Stock deduction and reservation release moved to OrderController@complete
+                Log::info("Order status update to ready_for_shipment, deduction deferred to completion", [
+                    'order_number' => $order->order_number
+                ]);
 
                 $order->update([
                     'status' => 'ready_for_shipment',

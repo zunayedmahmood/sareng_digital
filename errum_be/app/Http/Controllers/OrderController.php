@@ -559,27 +559,13 @@ class OrderController extends Controller
                 $taxTotal += $tax;
                 $totalItemDiscount += $discount;
 
-                // IMPORTANT: Stock deduction logic based on order type
-                // Counter orders: Deduct immediately (POS requirement: "jokhon ee POS a entry hobe, stock minus hobe")
-                // Social commerce/Ecommerce: Deduct at barcode scanning (when physical item is picked)
-                // Only deduct if batch exists (not for pre-orders)
-                $shouldDeductNow = $batch && (
-                    $request->order_type === 'counter' || // Counter: immediate deduction (POS)
-                    ($request->order_type === 'social_commerce' && $request->filled('store_id')) // Social Commerce: deduct if store assigned at creation
-                );
-                
-                if ($shouldDeductNow) {
-                    $batch->quantity -= $quantity;
-                    $batch->save();
-                    
-                    Log::info('Stock deducted at order creation', [
-                        'order_type' => $request->order_type,
-                        'product_id' => $product->id,
-                        'batch_id' => $batch->id,
-                        'quantity' => $quantity,
-                    ]);
-
-                }
+                // Stock deduction is now centralizing in OrderController@complete
+                // Reservations are handled by OrderItemObserver
+                Log::info('Order item created, reservation handled by observer', [
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'quantity' => $quantity,
+                ]);
             }
 
             // Calculate order totals based on tax mode
@@ -1361,13 +1347,26 @@ class OrderController extends Controller
                 
                 $item->update(['cogs' => round($calculatedCogs, 2)]);
 
-                // Reduce batch quantity 
-                // Skip if stock was already deducted during creation (Counter or assigned Social Commerce)
-                $alreadyDeducted = ($order->order_type === 'counter') || 
-                                  ($order->order_type === 'social_commerce' && $order->store_id !== null);
+                // Stock deduction is now centralizing here in OrderController@complete
+                // We always deduct now because early deduction was removed from Create and Scan
+                $alreadyDeducted = false; 
                 
                 if (!$alreadyDeducted) {
                     $batch->removeStock($item->quantity);
+
+                    // RELEASE RESERVATION concurrently to keep available_stock (Total - Reserved) consistent
+                    if ($reservedRecord = ReservedProduct::where('product_id', $item->product_id)->first()) {
+                        $reservedRecord->decrement('reserved_inventory', $item->quantity);
+                        $reservedRecord->refresh();
+                        $reservedRecord->available_inventory = $reservedRecord->total_inventory - $reservedRecord->reserved_inventory;
+                        $reservedRecord->save();
+
+                        Log::info('Reservation released at order completion', [
+                            'order_id' => $order->id,
+                            'product_id' => $item->product_id,
+                            'quantity' => $item->quantity,
+                        ]);
+                    }
                 }
                 
                 $batch->update([

@@ -1059,7 +1059,7 @@ export default function LookupPage() {
       try {
         const hasStore = !!(orderData as any)?.store?.name || !!(orderData as any)?.store_name || !!(orderData as any)?.store_id;
         if (!hasStore) {
-          const full = await orderService.getById(orderId);
+          const full = await orderService.getById(orderId, true);
           (orderData as any).store = (full as any)?.store ?? (orderData as any).store;
           (orderData as any).store_id = (full as any)?.store?.id ?? (full as any)?.store_id ?? (orderData as any).store_id;
           (orderData as any).store_name = (full as any)?.store?.name ?? (full as any)?.store_name ?? (orderData as any).store_name;
@@ -1104,7 +1104,11 @@ export default function LookupPage() {
     setError('');
 
     try {
-      const res: any = await orderService.getAll({ search: clean.replace(/^#/, ''), per_page: 50 });
+      const res: any = await orderService.getAll({ 
+        search: clean.replace(/^#/, ''), 
+        per_page: 50,
+        skipStoreScope: true
+      });
       const list = res?.data || [];
       const exact = list.find((o: any) => String(o.order_number).toLowerCase() === clean.toLowerCase())
         || list.find((o: any) => String(o.order_number).toLowerCase().includes(clean.toLowerCase()))
@@ -1163,6 +1167,7 @@ export default function LookupPage() {
       const searchResults = await orderService.getAll({
         search: cleanSearch,
         per_page: 10,
+        skipStoreScope: true,
       });
 
       const matching: CustomerOrder[] = searchResults.data
@@ -1313,7 +1318,7 @@ export default function LookupPage() {
               currentLoc?.customer;
 
             try {
-              const o: any = await orderService.getById(id);
+              const o: any = await orderService.getById(id, true);
               return [
                 id,
                 {
@@ -1454,6 +1459,7 @@ export default function LookupPage() {
       const ordersResponse: any = await orderService.getAll({
         search: cleanOrderNumber,
         per_page: 50,
+        skipStoreScope: true,
       });
 
       if (!ordersResponse.data || ordersResponse.data.length === 0) {
@@ -1889,7 +1895,7 @@ export default function LookupPage() {
     // best effort fetch customer/order_number if orderId exists
     if (orderId) {
       try {
-        const o: any = await orderService.getById(orderId);
+        const o: any = await orderService.getById(orderId, true);
         return {
           orderId,
           orderNumber: orderNo || o?.order_number || `#${orderId}`,
@@ -2522,6 +2528,8 @@ export default function LookupPage() {
                         )}
 
                         <ReturnExchangeFromOrder
+                          autoApprove={true}
+                          stores={stores}
                           order={{
                             id: singleOrder.id,
                             order_number: singleOrder.order_number,
@@ -2540,7 +2548,6 @@ export default function LookupPage() {
                               barcodes: it.barcodes,
                             })),
                           }}
-                          stores={stores as any}
                         />
                       </div>
                     </div>

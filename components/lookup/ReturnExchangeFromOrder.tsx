@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { RotateCcw, ArrowRightLeft, X, Check, AlertTriangle, Building2, Package } from 'lucide-react';
 import productReturnService from '@/services/productReturnService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OrderItem {
   id: number;
@@ -28,6 +29,7 @@ interface Order {
 interface Props {
   order: Order;
   stores?: Array<{ id: number; name: string }>;
+  autoApprove?: boolean;
 }
 
 type Mode = 'return' | 'exchange' | null;
@@ -46,7 +48,8 @@ const RETURN_REASONS = [
   { value: 'other', label: 'Other' },
 ];
 
-export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
+export default function ReturnExchangeFromOrder({ order, stores = [], autoApprove = false }: Props) {
+  const { role, isSuperAdmin } = useAuth();
   const [mode, setMode] = useState<Mode>(null);
 
   const [selectedItems, setSelectedItems] = useState<Record<number, number>>({});
@@ -57,8 +60,13 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
   const [exchangeItems, setExchangeItems] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState('');
   const [err, setErr] = useState('');
   const [success, setSuccess] = useState<{ mode: Mode; returnNumber: string } | null>(null);
+
+  // Check roles: admin, branch-manager and POS (pos-salesman)
+  const allowedRoles = ['super-admin', 'admin', 'branch-manager', 'pos-salesman'];
+  const canInitiate = isSuperAdmin || (role && allowedRoles.includes(role));
 
   const safeItems: OrderItem[] = Array.isArray(order?.items) ? order.items : [];
 
@@ -72,6 +80,7 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
     setExchangeItems('');
     setErr('');
     setSuccess(null);
+    setLoadingStep('');
   };
 
   const toggleItem = (itemKey: number, maxQty: number) => {
@@ -119,6 +128,7 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
         ? `[EXCHANGE REQUEST] Wanted: ${exchangeItems}${customerNotes ? ` | Notes: ${customerNotes}` : ''}`
         : customerNotes || undefined;
 
+      setLoadingStep('Creating return...');
       const res = await productReturnService.create({
         order_id: order.id,
         received_at_store_id: receivedAtStore ? parseInt(receivedAtStore) : undefined,
@@ -128,17 +138,37 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
         customer_notes: notes,
       });
 
-      const returnNumber =
-        res?.data?.return_number ||
-        res?.data?.data?.return_number ||
-        String(res?.data?.id || res?.data?.data?.id || '');
+      const returnDetails = res?.data || res?.data?.data || res;
+      const returnId = returnDetails?.id;
+      const returnNumber = returnDetails?.return_number || String(returnId || '');
+
+      // AUTO-APPROVAL SEQUENCE
+      if (autoApprove && returnId) {
+        setLoadingStep('Passed Quality Check...');
+        await productReturnService.update(returnId, {
+          quality_check_passed: true,
+          quality_check_notes: 'Auto-approved from lookup page',
+          internal_notes: `Initiated by ${role || 'user'} from lookup.`
+        });
+
+        setLoadingStep('Approving return...');
+        await productReturnService.approve(returnId);
+
+        setLoadingStep('Processing inventory...');
+        await productReturnService.process(returnId, { restore_inventory: true });
+
+        setLoadingStep('Completing return...');
+        await productReturnService.complete(returnId);
+      }
 
       setSuccess({ mode, returnNumber });
       setMode(null);
     } catch (e: any) {
+      console.error('Submit error:', e);
       setErr(e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Failed to submit');
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   };
 
@@ -153,15 +183,15 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
           </div>
           <div className="flex-1">
             <p className="text-xs font-semibold text-green-800 dark:text-green-300">
-              {isExchange ? 'Exchange Request Submitted' : 'Return Request Created'}
+              {isExchange ? 'Exchange Request Processed' : 'Return Processed Successfully'}
             </p>
             <p className="text-[11px] text-green-700 dark:text-green-400 mt-0.5">
               {success.returnNumber ? `Ref #${success.returnNumber} · ` : ''}
-              Manage in the <a href="/returns" className="underline font-medium">Returns & Exchanges</a> section.
+              Inventory has been restored to {receivedAtStore ? stores.find(s => String(s.id) === receivedAtStore)?.name || 'the selected store' : 'the warehouse'}.
             </p>
             {isExchange && (
               <p className="text-[10px] text-green-600 dark:text-green-500 mt-1">
-                Staff will review and confirm replacement availability.
+                <strong>Next Step:</strong> Create a new order for the replacement item.
               </p>
             )}
           </div>
@@ -172,6 +202,8 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
       </div>
     );
   }
+
+  if (!canInitiate) return null;
 
   return (
     <div className="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
@@ -274,7 +306,7 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
               <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
                 <ArrowRightLeft className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                  Select items to return and describe what you'd like instead. Staff will confirm replacement availability.
+                  Select items to return and describe what you'd like instead. {autoApprove ? 'Return will be auto-completed.' : 'Staff will confirm replacement availability.'}
                 </p>
               </div>
             )}
@@ -469,9 +501,9 @@ export default function ReturnExchangeFromOrder({ order, stores = [] }: Props) {
                   mode === 'exchange' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700'
                 }`}>
                 {mode === 'exchange' ? <ArrowRightLeft className="w-3.5 h-3.5" /> : <RotateCcw className="w-3.5 h-3.5" />}
-                {loading ? 'Submitting...' : mode === 'exchange'
+                {loading ? (loadingStep || 'Submitting...') : mode === 'exchange'
                   ? `Submit Exchange (${selectedCount})`
-                  : `Create Return (${selectedCount})`
+                  : `Submit Return (${selectedCount})`
                 }
               </button>
             </div>
