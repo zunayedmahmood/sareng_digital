@@ -108,7 +108,7 @@ export default function SocialCommercePage() {
   // ✅ Logistics & Store Assignment (from amount-details)
   const [storeAssignmentType, setStoreAssignmentType] = useState<'auto' | 'specific'>('auto');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('');
-  
+
   // ✅ Payment States (from amount-details)
   const [transportCost, setTransportCost] = useState('0');
   const [paymentOption, setPaymentOption] = useState<'full' | 'partial' | 'none'>('full');
@@ -123,7 +123,7 @@ export default function SocialCommercePage() {
 
   const [quantity, setQuantity] = useState('');
   const [discountPercent, setDiscountPercent] = useState('');
-  const [discount৳ setDiscount৳ = useState('');
+  const [discountTk, setDiscountTk] = useState('');
   const [amount, setAmount] = useState('0.00');
 
   const [defectiveProduct, setDefectiveProduct] = useState<DefectItem | null>(null);
@@ -375,972 +375,972 @@ export default function SocialCommercePage() {
     const maxP = Number(product?.maxPrice ?? product?.attributes?.Price ?? minP);
 
     if (Number.isFinite(minP) && Number.isFinite(maxP) && minP > 0 && maxP > 0 && minP !== maxP) {
-      return `${minP} - ${maxP} ৳;
+      return `${minP} - ${maxP} ৳`;
     }
 
     const v = Number(product?.attributes?.Price ?? minP ?? 0);
-    return `${Number.isFinite(v) ? v : 0} ৳;
-  };
+    return `${ Number.isFinite(v) ? v : 0 } ৳`;
+    };
 
-  const performMultiStoreSearch = async (query: string): Promise<ProductSearchResult[]> => {
-    const queryLower = query.toLowerCase().trim();
-    console.log('🔍 Multi-store search for:', queryLower);
+    const performMultiStoreSearch = async (query: string): Promise<ProductSearchResult[]> => {
+      const queryLower = query.toLowerCase().trim();
+      console.log('🔍 Multi-store search for:', queryLower);
 
-    const matchedProducts = allProducts.filter((prod: any) => {
-      const productName = String(prod?.name || '').toLowerCase();
-      const productSku = String(prod?.sku || '').toLowerCase();
+      const matchedProducts = allProducts.filter((prod: any) => {
+        const productName = String(prod?.name || '').toLowerCase();
+        const productSku = String(prod?.sku || '').toLowerCase();
 
-      return (
-        productName === queryLower ||
-        productSku === queryLower ||
-        productName.startsWith(queryLower) ||
-        productSku.startsWith(queryLower) ||
-        productName.includes(queryLower) ||
-        productSku.includes(queryLower)
-      );
-    });
+        return (
+          productName === queryLower ||
+          productSku === queryLower ||
+          productName.startsWith(queryLower) ||
+          productSku.startsWith(queryLower) ||
+          productName.includes(queryLower) ||
+          productSku.includes(queryLower)
+        );
+      });
 
-    const results = buildAggregatedProductResults(matchedProducts, allBatches);
+      const results = buildAggregatedProductResults(matchedProducts, allBatches);
 
-    // Backfill images only when needed
-    const enrichedResults = await Promise.all(
-      results.map(async (product) => {
-        if (product.mainImage && product.mainImage !== '/placeholder-image.jpg') return product;
-        return {
-          ...product,
-          mainImage: await fetchPrimaryImage(product.id),
-          attributes: {
-            ...product.attributes,
+      // Backfill images only when needed
+      const enrichedResults = await Promise.all(
+        results.map(async (product) => {
+          if (product.mainImage && product.mainImage !== '/placeholder-image.jpg') return product;
+          return {
+            ...product,
             mainImage: await fetchPrimaryImage(product.id),
-          },
-        };
-      })
-    );
+            attributes: {
+              ...product.attributes,
+              mainImage: await fetchPrimaryImage(product.id),
+            },
+          };
+        })
+      );
 
-    return enrichedResults;
-  };
+      return enrichedResults;
+    };
 
-  const calculateAmount = (basePrice: number, qty: number, discPer: number, disc৳ number) => {
-    const baseAmount = basePrice * qty;
-    const percentDiscount = (baseAmount * discPer) / 100;
-    const totalDiscount = percentDiscount + disc৳
-    return Math.max(0, baseAmount - totalDiscount);
-  };
+    const calculateAmount = (basePrice: number, qty: number, discPer: number, discTk: number) => {
+      const baseAmount = basePrice * qty;
+      const percentDiscount = (baseAmount * discPer) / 100;
+      const totalDiscount = percentDiscount + discTk;
+      return Math.max(0, baseAmount - totalDiscount);
+    };
 
-  // 🔍 Helper: check if customer exists + get last order
-  const handlePhoneBlur = async () => {
-    const rawPhone = userPhone.trim();
-    const phone = rawPhone.replace(/\D/g, '');
-    if (!phone) {
-      setExistingCustomer(null);
-      setLastOrderInfo(null);
-      setCustomerCheckError(null);
-      return;
-    }
-
-    try {
-      setIsCheckingCustomer(true);
-      setCustomerCheckError(null);
-
-      // Prefer new endpoint (Customer Tags API): POST /customers/find-by-phone
-      let customer: any = null;
-      try {
-        const response = await axios.post('/customers/find-by-phone', { phone });
-        const payload = response.data?.data ?? response.data;
-        customer = payload?.customer ?? payload;
-      } catch (e: any) {
-        // Fallback for older builds: GET /customers/by-phone
-        try {
-          const response = await axios.get('/customers/by-phone', { params: { phone } });
-          const payload = response.data?.data ?? response.data;
-          customer = payload?.customer ?? payload;
-        } catch {
-          customer = null;
-        }
+    // 🔍 Helper: check if customer exists + get last order
+    const handlePhoneBlur = async () => {
+      const rawPhone = userPhone.trim();
+      const phone = rawPhone.replace(/\D/g, '');
+      if (!phone) {
+        setExistingCustomer(null);
+        setLastOrderInfo(null);
+        setCustomerCheckError(null);
+        return;
       }
 
-      if (customer?.id) {
-        setExistingCustomer(customer);
+      try {
+        setIsCheckingCustomer(true);
+        setCustomerCheckError(null);
 
-        if (!userName && customer.name) setUserName(customer.name);
-        if (!userEmail && customer.email) setUserEmail(customer.email);
-
-        // Best-effort: get last order from customer orders (if endpoint exists)
+        // Prefer new endpoint (Customer Tags API): POST /customers/find-by-phone
+        let customer: any = null;
         try {
-          const lastOrderRes = await axios.get(`/customers/${customer.id}/orders`, {
-            params: { per_page: 1, sort_by: 'order_date', sort_order: 'desc' },
-          });
-          const payload = lastOrderRes.data?.data ?? lastOrderRes.data;
-          const list = payload?.data ?? payload?.orders ?? payload ?? [];
-          const last = Array.isArray(list) ? list[0] : null;
-          if (last) {
-            setLastOrderInfo({
-              date: last?.order_date || last?.created_at || last?.date,
-              summary_text: last?.summary_text || last?.order_number || `Order #${last?.id ?? ''}`,
-              total_amount: last?.total_amount ?? last?.total,
-            });
-          } else {
-            setLastOrderInfo(null);
-          }
-        } catch (err) {
-          // Fallback to older summary endpoint if present
+          const response = await axios.post('/customers/find-by-phone', { phone });
+          const payload = response.data?.data ?? response.data;
+          customer = payload?.customer ?? payload;
+        } catch (e: any) {
+          // Fallback for older builds: GET /customers/by-phone
           try {
-            const lastOrderRes = await axios.get(`/customers/${customer.id}/last-order-summary`);
-            if (lastOrderRes.data?.success) {
-              setLastOrderInfo(lastOrderRes.data.data);
+            const response = await axios.get('/customers/by-phone', { params: { phone } });
+            const payload = response.data?.data ?? response.data;
+            customer = payload?.customer ?? payload;
+          } catch {
+            customer = null;
+          }
+        }
+
+        if (customer?.id) {
+          setExistingCustomer(customer);
+
+          if (!userName && customer.name) setUserName(customer.name);
+          if (!userEmail && customer.email) setUserEmail(customer.email);
+
+          // Best-effort: get last order from customer orders (if endpoint exists)
+          try {
+            const lastOrderRes = await axios.get(`/customers/${customer.id}/orders`, {
+              params: { per_page: 1, sort_by: 'order_date', sort_order: 'desc' },
+            });
+            const payload = lastOrderRes.data?.data ?? lastOrderRes.data;
+            const list = payload?.data ?? payload?.orders ?? payload ?? [];
+            const last = Array.isArray(list) ? list[0] : null;
+            if (last) {
+              setLastOrderInfo({
+                date: last?.order_date || last?.created_at || last?.date,
+                summary_text: last?.summary_text || last?.order_number || `Order #${last?.id ?? ''}`,
+                total_amount: last?.total_amount ?? last?.total,
+              });
             } else {
               setLastOrderInfo(null);
             }
-          } catch {
-            console.warn('Failed to load last order info', err);
-            setLastOrderInfo(null);
+          } catch (err) {
+            // Fallback to older summary endpoint if present
+            try {
+              const lastOrderRes = await axios.get(`/customers/${customer.id}/last-order-summary`);
+              if (lastOrderRes.data?.success) {
+                setLastOrderInfo(lastOrderRes.data.data);
+              } else {
+                setLastOrderInfo(null);
+              }
+            } catch {
+              console.warn('Failed to load last order info', err);
+              setLastOrderInfo(null);
+            }
           }
-        }
-      } else {
-        setExistingCustomer(null);
-        setLastOrderInfo(null);
-      }
-    } catch (err) {
-      console.error('Customer lookup failed', err);
-      setExistingCustomer(null);
-      setLastOrderInfo(null);
-      setCustomerCheckError('Could not check existing customer. Please try again.');
-    } finally {
-      setIsCheckingCustomer(false);
-    }
-  };
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const defectId = urlParams.get('defect');
-
-    if (defectId) {
-      console.log('🔍 DEFECT ID IN URL:', defectId);
-
-      const defectData = sessionStorage.getItem('defectItem');
-      console.log('📦 Checking sessionStorage:', defectData);
-
-      if (defectData) {
-        try {
-          const defect = JSON.parse(defectData);
-          console.log('✅ Loaded defect from sessionStorage:', defect);
-
-          if (!defect.batchId) {
-            console.error('❌ Missing batch_id in defect data');
-            showToast('Error: Defect item is missing batch information', 'error');
-            return;
-          }
-
-          setDefectiveProduct(defect);
-
-          const defectCartItem: CartProduct = {
-            id: Date.now(),
-            product_id: defect.productId,
-            batch_id: defect.batchId,
-            productName: `${defect.productName} [DEFECTIVE]`,
-            quantity: 1,
-            unit_price: defect.sellingPrice || 0,
-            discount_amount: 0,
-            amount: defect.sellingPrice || 0,
-            isDefective: true,
-            defectId: defect.id,
-            store_id: defect.store_id || 0,
-            store_name: defect.store || 'Unknown',
-          };
-
-          setCart([defectCartItem]);
-          showToast(`Defective item added to cart: ${defect.productName}`, 'success');
-          sessionStorage.removeItem('defectItem');
-        } catch (error) {
-          console.error('❌ Error parsing defect data:', error);
-          showToast('Error loading defect item', 'error');
-        }
-      } else {
-        console.warn('⚠️ No defect data in sessionStorage');
-        showToast('Defect item data not found. Please return to defects page.', 'error');
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const userName = localStorage.getItem('userName') || '';
-    setSalesBy(userName);
-
-    const loadInitialData = async () => {
-      try {
-        setIsLoadingData(true);
-        const [storesData, stats, payments] = await Promise.all([
-          fetchStores(),
-          inventoryService.getStatistics().catch(() => null),
-          fetchPaymentMethods().catch(() => null)
-        ]);
-
-        if (stats?.success) {
-          setInventoryStats({
-            total_stock: stats.data.overview.total_inventory_units,
-            active_batches: stats.data.overview.active_batches
-          });
+        } else {
+          setExistingCustomer(null);
+          setLastOrderInfo(null);
         }
       } catch (err) {
-        console.error('Failed to load initial data', err);
+        console.error('Customer lookup failed', err);
+        setExistingCustomer(null);
+        setLastOrderInfo(null);
+        setCustomerCheckError('Could not check existing customer. Please try again.');
       } finally {
-        setIsLoadingData(false);
+        setIsCheckingCustomer(false);
       }
     };
-    loadInitialData();
-  }, []);
 
-  // ✅ Search effect using e-commerce catalog search
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
+    useEffect(() => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const defectId = urlParams.get('defect');
 
-    let active = true;
-    const delayDebounce = setTimeout(async () => {
-      try {
-        setIsLoadingData(true);
-        console.log('🔍 Executing SKU-grouped search for:', searchQuery);
+      if (defectId) {
+        console.log('🔍 DEFECT ID IN URL:', defectId);
 
-        const response = await catalogService.searchProducts({
-          q: searchQuery,
-          per_page: 50,
-          group_by_sku: true,
-        });
+        const defectData = sessionStorage.getItem('defectItem');
+        console.log('📦 Checking sessionStorage:', defectData);
 
-        if (active && response && response.grouped_products) {
-          setSearchResults(response.grouped_products);
-          
-          if (response.grouped_products.length === 0) {
-            fireToast('No products found', 'error');
+        if (defectData) {
+          try {
+            const defect = JSON.parse(defectData);
+            console.log('✅ Loaded defect from sessionStorage:', defect);
+
+            if (!defect.batchId) {
+              console.error('❌ Missing batch_id in defect data');
+              showToast('Error: Defect item is missing batch information', 'error');
+              return;
+            }
+
+            setDefectiveProduct(defect);
+
+            const defectCartItem: CartProduct = {
+              id: Date.now(),
+              product_id: defect.productId,
+              batch_id: defect.batchId,
+              productName: `${defect.productName} [DEFECTIVE]`,
+              quantity: 1,
+              unit_price: defect.sellingPrice || 0,
+              discount_amount: 0,
+              amount: defect.sellingPrice || 0,
+              isDefective: true,
+              defectId: defect.id,
+              store_id: defect.store_id || 0,
+              store_name: defect.store || 'Unknown',
+            };
+
+            setCart([defectCartItem]);
+            showToast(`Defective item added to cart: ${defect.productName}`, 'success');
+            sessionStorage.removeItem('defectItem');
+          } catch (error) {
+            console.error('❌ Error parsing defect data:', error);
+            showToast('Error loading defect item', 'error');
           }
+        } else {
+          console.warn('⚠️ No defect data in sessionStorage');
+          showToast('Defect item data not found. Please return to defects page.', 'error');
         }
-      } catch (error: any) {
-        console.error('❌ Search failed:', error);
-        fireToast('Search failed. Please try again.', 'error');
-      } finally {
-        if (active) setIsLoadingData(false);
       }
-    }, 800);
+    }, []);
 
-    return () => {
-      active = false;
-      clearTimeout(delayDebounce);
+    useEffect(() => {
+      const userName = localStorage.getItem('userName') || '';
+      setSalesBy(userName);
+
+      const loadInitialData = async () => {
+        try {
+          setIsLoadingData(true);
+          const [storesData, stats, payments] = await Promise.all([
+            fetchStores(),
+            inventoryService.getStatistics().catch(() => null),
+            fetchPaymentMethods().catch(() => null)
+          ]);
+
+          if (stats?.success) {
+            setInventoryStats({
+              total_stock: stats.data.overview.total_inventory_units,
+              active_batches: stats.data.overview.active_batches
+            });
+          }
+        } catch (err) {
+          console.error('Failed to load initial data', err);
+        } finally {
+          setIsLoadingData(false);
+        }
+      };
+      loadInitialData();
+    }, []);
+
+    // ✅ Search effect using e-commerce catalog search
+    useEffect(() => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      let active = true;
+      const delayDebounce = setTimeout(async () => {
+        try {
+          setIsLoadingData(true);
+          console.log('🔍 Executing SKU-grouped search for:', searchQuery);
+
+          const response = await catalogService.searchProducts({
+            q: searchQuery,
+            per_page: 50,
+            group_by_sku: true,
+          });
+
+          if (active && response && response.grouped_products) {
+            setSearchResults(response.grouped_products);
+
+            if (response.grouped_products.length === 0) {
+              fireToast('No products found', 'error');
+            }
+          }
+        } catch (error: any) {
+          console.error('❌ Search failed:', error);
+          fireToast('Search failed. Please try again.', 'error');
+        } finally {
+          if (active) setIsLoadingData(false);
+        }
+      }, 800);
+
+      return () => {
+        active = false;
+        clearTimeout(delayDebounce);
+      };
+    }, [searchQuery, stores]);
+
+    useEffect(() => {
+      if (selectedProduct && quantity) {
+        const price = parseFloat(String(selectedProduct.attributes?.Price ?? selectedProduct.price ?? 0));
+        const qty = parseFloat(quantity) || 0;
+        const discPer = parseFloat(discountPercent) || 0;
+        const discTk = parseFloat(discountTk || '0');
+
+        const finalAmount = calculateAmount(price, qty, discPer, discTk);
+        setAmount(finalAmount.toFixed(2));
+      } else {
+        setAmount('0.00');
+      }
+    }, [selectedProduct, quantity, discountPercent, discountTk]);
+
+    const handleGroupClick = async (group: CatalogGroupedProduct) => {
+      if (expandedGroupId === group.base_name) {
+        setExpandedGroupId(null);
+        setSelectedProductInventory(null);
+      } else {
+        setExpandedGroupId(group.base_name);
+        // Fetch global inventory for the main variant's product ID as a representative
+        // The user wants a table showing stores. We can fetch for the base product or per variant.
+        // Usually, it's better to show it when a variant is selected or for the whole group.
+        // Let's fetch for the group's main variant first.
+        try {
+          const inv = await inventoryService.getGlobalInventory({ product_id: group.main_variant.id });
+          if (inv.success && inv.data.length > 0) {
+            setSelectedProductInventory(inv.data[0]);
+          }
+        } catch (err) {
+          console.error('Failed to fetch group inventory', err);
+        }
+      }
     };
-  }, [searchQuery, stores]);
 
-  useEffect(() => {
-    if (selectedProduct && quantity) {
-      const price = parseFloat(String(selectedProduct.attributes?.Price ?? selectedProduct.price ?? 0));
-      const qty = parseFloat(quantity) || 0;
-      const discPer = parseFloat(discountPercent) || 0;
-      const disc৳= parseFloat(discount৳ || 0;
+    const handleVariantSelect = async (variant: Product, group: CatalogGroupedProduct) => {
+      const price = variant.selling_price;
 
-      const finalAmount = calculateAmount(price, qty, discPer, disc৳;
-      setAmount(finalAmount.toFixed(2));
-    } else {
-      setAmount('0.00');
-    }
-  }, [selectedProduct, quantity, discountPercent, discount৳);
+      // Add to cart directly or set as "selected" for qty adjustment
+      // The user's current UI has a "Quantity" and "Add to Cart" button below.
+      // Let's keep that but auto-fill the selected variant.
 
-  const handleGroupClick = async (group: CatalogGroupedProduct) => {
-    if (expandedGroupId === group.base_name) {
-      setExpandedGroupId(null);
-      setSelectedProductInventory(null);
-    } else {
-      setExpandedGroupId(group.base_name);
-      // Fetch global inventory for the main variant's product ID as a representative
-      // The user wants a table showing stores. We can fetch for the base product or per variant.
-      // Usually, it's better to show it when a variant is selected or for the whole group.
-      // Let's fetch for the group's main variant first.
+      setSelectedProduct({
+        ...variant,
+        base_name: group.base_name,
+        mainImage: group.main_variant.images?.[0]?.url || '/placeholder-image.jpg',
+      });
+
+      setQuantity('1');
+      setDiscountPercent('');
+    setDiscountTk('');
+
+      // Fetch specific inventory for this variant
       try {
-        const inv = await inventoryService.getGlobalInventory({ product_id: group.main_variant.id });
+        const inv = await inventoryService.getGlobalInventory({ product_id: variant.id });
         if (inv.success && inv.data.length > 0) {
           setSelectedProductInventory(inv.data[0]);
         }
       } catch (err) {
-        console.error('Failed to fetch group inventory', err);
+        console.error('Failed to fetch variant inventory', err);
       }
-    }
-  };
-
-  const handleVariantSelect = async (variant: Product, group: CatalogGroupedProduct) => {
-    const price = variant.selling_price;
-    
-    // Add to cart directly or set as "selected" for qty adjustment
-    // The user's current UI has a "Quantity" and "Add to Cart" button below.
-    // Let's keep that but auto-fill the selected variant.
-    
-    setSelectedProduct({
-      ...variant,
-      base_name: group.base_name,
-      mainImage: group.main_variant.images?.[0]?.url || '/placeholder-image.jpg',
-    });
-
-    setQuantity('1');
-    setDiscountPercent('');
-    setDiscount৳'');
-
-    // Fetch specific inventory for this variant
-    try {
-      const inv = await inventoryService.getGlobalInventory({ product_id: variant.id });
-      if (inv.success && inv.data.length > 0) {
-        setSelectedProductInventory(inv.data[0]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch variant inventory', err);
-    }
-  };
-
-  const addToCart = () => {
-    if (!selectedProduct || !quantity || parseInt(quantity) <= 0) {
-      fireToast('Please select a product and enter quantity', 'error');
-      return;
-    }
-
-    const price = Number(selectedProduct.selling_price || selectedProduct.price || 0);
-    const qty = parseInt(quantity);
-    const discPer = parseFloat(discountPercent) || 0;
-    const disc৳= parseFloat(discount৳ || 0;
-
-    const avail = selectedProduct.available_inventory ?? selectedProduct.stock_quantity ?? 0;
-    if (qty > avail && !selectedProduct.isDefective) {
-      fireToast(`Only ${avail} units available`, 'error');
-      return;
-    }
-
-    const baseAmount = price * qty;
-    const discountValue = discPer > 0 ? (baseAmount * discPer) / 100 : disc৳
-    const finalAmount = baseAmount - discountValue;
-
-    const newItem: CartProduct = {
-      id: Date.now(),
-      product_id: selectedProduct.id,
-      batch_id: selectedProduct.isDefective ? selectedProduct.batchId : null,
-      productName: selectedProduct.isDefective 
-        ? `${selectedProduct.productName} [DEFECTIVE]` 
-        : `${selectedProduct.base_name}${selectedProduct.variation_suffix ? ` - ${selectedProduct.variation_suffix}` : ''}`,
-      sku: selectedProduct.sku,
-      quantity: qty,
-      unit_price: price,
-      discount_amount: discountValue,
-      amount: finalAmount,
-      isDefective: selectedProduct.isDefective,
-      defectId: selectedProduct.defectId,
-      store_id: selectedProduct.isDefective ? selectedProduct.store_id : null,
-      store_name: selectedProduct.isDefective ? selectedProduct.store_name : null,
     };
 
-    setCart([...cart, newItem]);
-    setSelectedProduct(null);
-    setQuantity('');
-    setDiscountPercent('');
-    setDiscount৳'');
-    setAmount('0.00');
-    // Keep expandedGroupId but clear inventory if we want
-  };
-
-  const removeFromCart = (id: number | string) => {
-    setCart(cart.filter((item) => item.id !== id));
-  };
-
-  const subtotal = cart.reduce((sum, item) => sum + item.amount, 0);
-
-  const handleConfirmOrder = async () => {
-    if (!userName || !userPhone) {
-      fireToast('Please fill in customer name and phone number', 'error');
-      return;
-    }
-    if (cart.length === 0) {
-      fireToast('Please add products to cart', 'error');
-      return;
-    }
-
-    // ✅ Validate delivery address
-    if (isInternational) {
-      if (!country || !internationalCity || (!deliveryAddress && !streetAddress)) {
-        fireToast('Please fill in international address', 'error');
+    const addToCart = () => {
+      if (!selectedProduct || !quantity || parseInt(quantity) <= 0) {
+        fireToast('Please select a product and enter quantity', 'error');
         return;
       }
-    } else {
-      if (!streetAddress) {
-        fireToast('Please enter full delivery address', 'error');
+
+      const price = Number(selectedProduct.selling_price || selectedProduct.price || 0);
+      const qty = parseInt(quantity);
+      const discPer = parseFloat(discountPercent) || 0;
+      const discTk = parseFloat(discountTk || '0');
+
+      const avail = selectedProduct.available_inventory ?? selectedProduct.stock_quantity ?? 0;
+      if (qty > avail && !selectedProduct.isDefective) {
+        fireToast(`Only ${avail} units available`, 'error');
         return;
       }
-    }
 
-    // Store assignment validation
-    if (storeAssignmentType === 'specific' && !selectedStoreId) {
-      fireToast('Please select a store or choose auto-assign', 'error');
-      return;
-    }
+      const baseAmount = price * qty;
+      const discountValue = discPer > 0 ? (baseAmount * discPer) / 100 : discTk;
+      const finalAmount = baseAmount - discountValue;
 
-    // Payment validation
-    if (paymentOption !== 'none') {
-      if (!selectedPaymentMethod) {
-        fireToast('Please select a payment method', 'error');
-        return;
-      }
-      const method = paymentMethods.find(m => String(m.id) === selectedPaymentMethod);
-      if (method?.requires_reference && !transactionReference.trim()) {
-        fireToast(`Please enter transaction reference for ${method.name}`, 'error');
-        return;
-      }
-    }
-
-    if (paymentOption === 'partial') {
-      const adv = parseFloat(advanceAmount) || 0;
-      if (adv <= 0 || adv >= subtotal + (parseFloat(transportCost) || 0)) {
-        fireToast('Please enter a valid advance amount', 'error');
-        return;
-      }
-      if (!codPaymentMethod) {
-        fireToast('Please select COD payment method', 'error');
-        return;
-      }
-    }
-
-    if (paymentOption === 'none' && !codPaymentMethod) {
-      fireToast('Please select COD payment method for full amount', 'error');
-      return;
-    }
-
-    try {
-      setIsProcessingOrder(true);
-      console.log('📦 CREATING SOCIAL COMMERCE ORDER');
-
-      const total = subtotal + (parseFloat(transportCost) || 0);
-
-      const shipping_address = isInternational
-        ? {
-          name: userName,
-          phone: userPhone,
-          street: deliveryAddress || streetAddress,
-          city: internationalCity,
-          state: state || undefined,
-          country,
-          postal_code: internationalPostalCode || undefined,
-        }
-        : {
-          name: userName,
-          phone: userPhone,
-          street: streetAddress,
-          postal_code: postalCode || undefined,
-        };
-
-      const orderData = {
-        order_type: 'social_commerce',
-        customer: {
-          name: userName,
-          email: userEmail || undefined,
-          phone: userPhone,
-        },
-        shipping_address,
-        store_id: storeAssignmentType === 'specific' ? parseInt(selectedStoreId) : null,
-        items: cart.map(item => ({
-          product_id: item.product_id,
-          batch_id: item.isDefective ? item.batch_id : null,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          discount_amount: item.discount_amount,
-        })),
-        shipping_amount: parseFloat(transportCost) || 0,
-        notes: `Social Commerce. ${socialId ? `ID: ${socialId}. ` : ''}${isInternational ? 'International' : 'Domestic'} delivery. ${paymentOption === 'full' ? 'Full payment' : paymentOption === 'partial' ? 'Partial (Advance+COD)' : 'Full COD'}`,
+      const newItem: CartProduct = {
+        id: Date.now(),
+        product_id: selectedProduct.id,
+        batch_id: selectedProduct.isDefective ? selectedProduct.batchId : null,
+        productName: selectedProduct.isDefective
+          ? `${selectedProduct.productName} [DEFECTIVE]`
+          : `${selectedProduct.base_name}${selectedProduct.variation_suffix ? ` - ${selectedProduct.variation_suffix}` : ''}`,
+        sku: selectedProduct.sku,
+        quantity: qty,
+        unit_price: price,
+        discount_amount: discountValue,
+        amount: finalAmount,
+        isDefective: selectedProduct.isDefective,
+        defectId: selectedProduct.defectId,
+        store_id: selectedProduct.isDefective ? selectedProduct.store_id : null,
+        store_name: selectedProduct.isDefective ? selectedProduct.store_name : null,
       };
 
-      const response = await axios.post('/orders', orderData);
-      
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to create order');
+      setCart([...cart, newItem]);
+      setSelectedProduct(null);
+      setQuantity('');
+      setDiscountPercent('');
+    setDiscountTk('');
+      setAmount('0.00');
+      // Keep expandedGroupId but clear inventory if we want
+    };
+
+    const removeFromCart = (id: number | string) => {
+      setCart(cart.filter((item) => item.id !== id));
+    };
+
+    const subtotal = cart.reduce((sum, item) => sum + item.amount, 0);
+
+    const handleConfirmOrder = async () => {
+      if (!userName || !userPhone) {
+        fireToast('Please fill in customer name and phone number', 'error');
+        return;
+      }
+      if (cart.length === 0) {
+        fireToast('Please add products to cart', 'error');
+        return;
       }
 
-      const createdOrder = response.data.data;
-      console.log('✅ Order created:', createdOrder.order_number);
-
-      // Handle defective items
-      const defectiveItems = cart.filter(item => item.isDefective);
-      for (const defectItem of defectiveItems) {
-        try {
-          await axios.post(`/defects/${defectItem.defectId}/mark-sold`, {
-            order_id: createdOrder.id,
-            selling_price: defectItem.unit_price,
-            sale_notes: `Sold via Social Commerce - Order #${createdOrder.order_number}`,
-            sold_at: new Date().toISOString()
-          });
-        } catch (err) {
-          console.error(`Failed to mark defective ${defectItem.defectId} as sold`, err);
+      // ✅ Validate delivery address
+      if (isInternational) {
+        if (!country || !internationalCity || (!deliveryAddress && !streetAddress)) {
+          fireToast('Please fill in international address', 'error');
+          return;
+        }
+      } else {
+        if (!streetAddress) {
+          fireToast('Please enter full delivery address', 'error');
+          return;
         }
       }
 
-      // Handle Payment
-      if (paymentOption !== 'none') {
-        const method = paymentMethods.find(m => String(m.id) === selectedPaymentMethod);
-        const amountToPay = paymentOption === 'full' ? total : (parseFloat(advanceAmount) || 0);
+      // Store assignment validation
+      if (storeAssignmentType === 'specific' && !selectedStoreId) {
+        fireToast('Please select a store or choose auto-assign', 'error');
+        return;
+      }
 
-        const paymentData: any = {
-          payment_method_id: parseInt(selectedPaymentMethod),
-          amount: amountToPay,
-          payment_type: paymentOption === 'full' ? 'full' : 'partial',
-          auto_complete: true,
-          notes: paymentNotes || `Social Commerce ${paymentOption} payment via ${method?.name}`,
-          payment_data: {
-            mobile_number: userPhone,
-            provider: method?.name,
-            transaction_id: transactionReference,
-            payment_stage: paymentOption === 'full' ? 'full' : 'advance'
+      // Payment validation
+      if (paymentOption !== 'none') {
+        if (!selectedPaymentMethod) {
+          fireToast('Please select a payment method', 'error');
+          return;
+        }
+        const method = paymentMethods.find(m => String(m.id) === selectedPaymentMethod);
+        if (method?.requires_reference && !transactionReference.trim()) {
+          fireToast(`Please enter transaction reference for ${method.name}`, 'error');
+          return;
+        }
+      }
+
+      if (paymentOption === 'partial') {
+        const adv = parseFloat(advanceAmount) || 0;
+        if (adv <= 0 || adv >= subtotal + (parseFloat(transportCost) || 0)) {
+          fireToast('Please enter a valid advance amount', 'error');
+          return;
+        }
+        if (!codPaymentMethod) {
+          fireToast('Please select COD payment method', 'error');
+          return;
+        }
+      }
+
+      if (paymentOption === 'none' && !codPaymentMethod) {
+        fireToast('Please select COD payment method for full amount', 'error');
+        return;
+      }
+
+      try {
+        setIsProcessingOrder(true);
+        console.log('📦 CREATING SOCIAL COMMERCE ORDER');
+
+        const total = subtotal + (parseFloat(transportCost) || 0);
+
+        const shipping_address = isInternational
+          ? {
+            name: userName,
+            phone: userPhone,
+            street: deliveryAddress || streetAddress,
+            city: internationalCity,
+            state: state || undefined,
+            country,
+            postal_code: internationalPostalCode || undefined,
           }
+          : {
+            name: userName,
+            phone: userPhone,
+            street: streetAddress,
+            postal_code: postalCode || undefined,
+          };
+
+        const orderData = {
+          order_type: 'social_commerce',
+          customer: {
+            name: userName,
+            email: userEmail || undefined,
+            phone: userPhone,
+          },
+          shipping_address,
+          store_id: storeAssignmentType === 'specific' ? parseInt(selectedStoreId) : null,
+          items: cart.map(item => ({
+            product_id: item.product_id,
+            batch_id: item.isDefective ? item.batch_id : null,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_amount: item.discount_amount,
+          })),
+          shipping_amount: parseFloat(transportCost) || 0,
+          notes: `Social Commerce. ${socialId ? `ID: ${socialId}. ` : ''}${isInternational ? 'International' : 'Domestic'} delivery. ${paymentOption === 'full' ? 'Full payment' : paymentOption === 'partial' ? 'Partial (Advance+COD)' : 'Full COD'}`,
         };
 
-        if (method?.requires_reference) {
-          paymentData.transaction_reference = transactionReference;
-          paymentData.external_reference = transactionReference;
+        const response = await axios.post('/orders', orderData);
+
+        if (!response.data.success) {
+          throw new Error(response.data.message || 'Failed to create order');
         }
 
-        await axios.post(`/orders/${createdOrder.id}/payments/simple`, paymentData);
+        const createdOrder = response.data.data;
+        console.log('✅ Order created:', createdOrder.order_number);
+
+        // Handle defective items
+        const defectiveItems = cart.filter(item => item.isDefective);
+        for (const defectItem of defectiveItems) {
+          try {
+            await axios.post(`/defects/${defectItem.defectId}/mark-sold`, {
+              order_id: createdOrder.id,
+              selling_price: defectItem.unit_price,
+              sale_notes: `Sold via Social Commerce - Order #${createdOrder.order_number}`,
+              sold_at: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error(`Failed to mark defective ${defectItem.defectId} as sold`, err);
+          }
+        }
+
+        // Handle Payment
+        if (paymentOption !== 'none') {
+          const method = paymentMethods.find(m => String(m.id) === selectedPaymentMethod);
+          const amountToPay = paymentOption === 'full' ? total : (parseFloat(advanceAmount) || 0);
+
+          const paymentData: any = {
+            payment_method_id: parseInt(selectedPaymentMethod),
+            amount: amountToPay,
+            payment_type: paymentOption === 'full' ? 'full' : 'partial',
+            auto_complete: true,
+            notes: paymentNotes || `Social Commerce ${paymentOption} payment via ${method?.name}`,
+            payment_data: {
+              mobile_number: userPhone,
+              provider: method?.name,
+              transaction_id: transactionReference,
+              payment_stage: paymentOption === 'full' ? 'full' : 'advance'
+            }
+          };
+
+          if (method?.requires_reference) {
+            paymentData.transaction_reference = transactionReference;
+            paymentData.external_reference = transactionReference;
+          }
+
+          await axios.post(`/orders/${createdOrder.id}/payments/simple`, paymentData);
+        }
+
+        fireToast(`Order ${createdOrder.order_number} placed successfully!`, 'success');
+
+        // Cleanup and redirect
+        setCart([]);
+        setUserName('');
+        setUserPhone('');
+        setUserEmail('');
+        setStreetAddress('');
+
+        setTimeout(() => {
+          window.location.href = '/orders';
+        }, 1500);
+
+      } catch (error: any) {
+        console.error('❌ Error:', error);
+        fireToast(error.response?.data?.message || error.message || 'Failed to process order', 'error');
+      } finally {
+        setIsProcessingOrder(false);
       }
+    };
 
-      fireToast(`Order ${createdOrder.order_number} placed successfully!`, 'success');
-      
-      // Cleanup and redirect
-      setCart([]);
-      setUserName('');
-      setUserPhone('');
-      setUserEmail('');
-      setStreetAddress('');
-      
-      setTimeout(() => {
-        window.location.href = '/orders';
-      }, 1500);
+    const renderOrderSummary = () => (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <div className="bg-teal-500 w-2 h-2 rounded-full"></div>
+            Order Summary ({cart.length} items)
+          </h3>
+        </div>
 
-    } catch (error: any) {
-      console.error('❌ Error:', error);
-      fireToast(error.response?.data?.message || error.message || 'Failed to process order', 'error');
-    } finally {
-      setIsProcessingOrder(false);
-    }
-  };
-
-  const renderOrderSummary = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-           <div className="bg-teal-500 w-2 h-2 rounded-full"></div>
-           Order Summary ({cart.length} items)
-        </h3>
-      </div>
-      
-      <div className="max-h-[300px] overflow-y-auto">
-        <table className="w-full text-xs">
-          <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400">
-            <tr>
-              <th className="px-4 py-2 text-left font-medium">Product</th>
-              <th className="px-2 py-2 text-center font-medium">Qty</th>
-              <th className="px-4 py-2 text-right font-medium">Amount</th>
-              <th className="px-2 py-2"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {cart.length === 0 ? (
+        <div className="max-h-[300px] overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400">
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500 italic">
-                  Cart is empty
-                </td>
+                <th className="px-4 py-2 text-left font-medium">Product</th>
+                <th className="px-2 py-2 text-center font-medium">Qty</th>
+                <th className="px-4 py-2 text-right font-medium">Amount</th>
+                <th className="px-2 py-2"></th>
               </tr>
-            ) : (
-              cart.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900 dark:text-white">{item.productName}</p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
-                  </td>
-                  <td className="px-2 py-3 text-center text-gray-700 dark:text-gray-300">{item.quantity}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
-                    {item.amount.toLocaleString()} Tk
-                  </td>
-                  <td className="px-2 py-3 text-center">
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <X size={14} />
-                    </button>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {cart.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500 italic">
+                    Cart is empty
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 space-y-4">
-        {/* Pricing Summary */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-            <span>Subtotal</span>
-            <span className="font-medium text-gray-900 dark:text-white">{subtotal.toLocaleString()} ৳/span>
-          </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-gray-600 dark:text-gray-400">Transport Cost</span>
-            <div className="flex items-center gap-2">
-              <input 
-                type="number" 
-                value={transportCost === '0' ? '' : transportCost}
-                placeholder="0"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setTransportCost(val === '' ? '0' : val);
-                }}
-                className="w-20 px-2 py-1 text-right text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
-              />
-              <span className="text-gray-400 font-medium">৳/span>
-            </div>
-          </div>
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between text-lg font-bold text-teal-600 dark:text-teal-400">
-            <span>Total</span>
-            <span>{(subtotal + (parseFloat(transportCost) || 0)).toLocaleString()} ৳/span>
-          </div>
+              ) : (
+                cart.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-900 dark:text-white">{item.productName}</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400">SKU: {item.sku}</p>
+                    </td>
+                    <td className="px-2 py-3 text-center text-gray-700 dark:text-gray-300">{item.quantity}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
+                      {item.amount.toLocaleString()} Tk
+                    </td>
+                    <td className="px-2 py-3 text-center">
+                      <button
+                        onClick={() => removeFromCart(item.id)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {/* Store Assignment */}
-        <div className="space-y-2 pt-2">
-          <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Logistics & Store</label>
-          <div className="grid grid-cols-2 gap-2">
-            <button 
-              onClick={() => setStoreAssignmentType('auto')}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${storeAssignmentType === 'auto' 
-                ? 'bg-teal-500 text-white border-teal-500 shadow-md' 
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-            >
-              <Truck size={14} /> Auto
-            </button>
-            <button 
-              onClick={() => setStoreAssignmentType('specific')}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${storeAssignmentType === 'specific' 
-                ? 'bg-teal-500 text-white border-teal-500 shadow-md' 
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
-            >
-              <StoreIcon size={14} /> Manual
-            </button>
-          </div>
-          {storeAssignmentType === 'specific' && (
-            <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-              <select 
-                value={selectedStoreId}
-                onChange={(e) => setSelectedStoreId(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-teal-500"
-              >
-                <option value="">Select Store Branch</option>
-                {stores.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
+        <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 space-y-4">
+          {/* Pricing Summary */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+              <span>Subtotal</span>
+              <span className="font-medium text-gray-900 dark:text-white">{subtotal.toLocaleString()} ৳</span>
             </div>
-          )}
-        </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-600 dark:text-gray-400">Transport Cost</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={transportCost === '0' ? '' : transportCost}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setTransportCost(val === '' ? '0' : val);
+                  }}
+                  className="w-20 px-2 py-1 text-right text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md focus:ring-1 focus:ring-teal-500 outline-none"
+                />
+                <span className="text-gray-400 font-medium">৳</span>
+              </div>
+            </div>
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-between text-lg font-bold text-teal-600 dark:text-teal-400">
+              <span>Total</span>
+              <span>{(subtotal + (parseFloat(transportCost) || 0)).toLocaleString()} ৳</span>
+            </div>
+          </div>
 
-        {/* Payment Logic */}
-        <div className="space-y-2 pt-2">
-          <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Payment Flow</label>
-          <div className="flex gap-2">
-            {[
-              { id: 'full', label: 'Full', icon: <DollarSign size={14} /> },
-              { id: 'partial', label: 'Partial', icon: <Wallet size={14} /> },
-              { id: 'none', label: 'None', icon: <X size={14} /> }
-            ].map((opt) => (
+          {/* Store Assignment */}
+          <div className="space-y-2 pt-2">
+            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Logistics & Store</label>
+            <div className="grid grid-cols-2 gap-2">
               <button
-                key={opt.id}
-                onClick={() => {
-                  setPaymentOption(opt.id as any);
-                  if (opt.id === 'none') setAdvanceAmount('');
-                }}
-                className={`flex-1 px-2 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${paymentOption === opt.id 
-                  ? 'bg-blue-500 text-white border-blue-500 shadow-md' 
+                onClick={() => setStoreAssignmentType('auto')}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${storeAssignmentType === 'auto'
+                  ? 'bg-teal-500 text-white border-teal-500 shadow-md'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
-                {opt.icon} {opt.label}
+                <Truck size={14} /> Auto
               </button>
-            ))}
+              <button
+                onClick={() => setStoreAssignmentType('specific')}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 border transition-all ${storeAssignmentType === 'specific'
+                  ? 'bg-teal-500 text-white border-teal-500 shadow-md'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              >
+                <StoreIcon size={14} /> Manual
+              </button>
+            </div>
+            {storeAssignmentType === 'specific' && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <select
+                  value={selectedStoreId}
+                  onChange={(e) => setSelectedStoreId(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-teal-500"
+                >
+                  <option value="">Select Store Branch</option>
+                  {stores.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-          
-          {(paymentOption === 'full' || paymentOption === 'partial') && (
-            <div className="space-y-2 pt-1">
-              {paymentOption === 'partial' && (
-                <input 
-                  type="number"
-                  placeholder="Advance Amount"
-                  value={advanceAmount}
-                  onChange={(e) => setAdvanceAmount(e.target.value)}
+
+          {/* Payment Logic */}
+          <div className="space-y-2 pt-2">
+            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Payment Flow</label>
+            <div className="flex gap-2">
+              {[
+                { id: 'full', label: 'Full', icon: <DollarSign size={14} /> },
+                { id: 'partial', label: 'Partial', icon: <Wallet size={14} /> },
+                { id: 'none', label: 'None', icon: <X size={14} /> }
+              ].map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setPaymentOption(opt.id as any);
+                    if (opt.id === 'none') setAdvanceAmount('');
+                  }}
+                  className={`flex-1 px-2 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 border transition-all ${paymentOption === opt.id
+                    ? 'bg-blue-500 text-white border-blue-500 shadow-md'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {(paymentOption === 'full' || paymentOption === 'partial') && (
+              <div className="space-y-2 pt-1">
+                {paymentOption === 'partial' && (
+                  <input
+                    type="number"
+                    placeholder="Advance Amount"
+                    value={advanceAmount}
+                    onChange={(e) => setAdvanceAmount(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                )}
+                <select
+                  value={selectedPaymentMethod}
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select Payment Method</option>
+                  {paymentMethods.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  placeholder="Transaction Reference"
+                  value={transactionReference}
+                  onChange={(e) => setTransactionReference(e.target.value)}
                   className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
                 />
-              )}
-              <select 
-                value={selectedPaymentMethod}
-                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+              </div>
+            )}
+
+            {(paymentOption === 'partial' || paymentOption === 'none') && (
+              <select
+                value={codPaymentMethod}
+                onChange={(e) => setCodPaymentMethod(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="">Select Payment Method</option>
-                {paymentMethods.map(m => (
+                <option value="">Select COD Method</option>
+                {paymentMethods.filter(m => m.type === 'cash').map(m => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
-              <input 
-                type="text"
-                placeholder="Transaction Reference"
-                value={transactionReference}
-                onChange={(e) => setTransactionReference(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
-              />
+            )}
+          </div>
+
+          <button
+            onClick={handleConfirmOrder}
+            disabled={cart.length === 0 || isProcessingOrder}
+            className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isProcessingOrder ? 'Creating Order...' : 'Confirm Order'}
+          </button>
+        </div>
+      </div>
+    );
+
+    const renderProductSearch = () => (
+      <div className="lg:col-span-2 space-y-6">
+        {/* Search Bar */}
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search products by SKU or Name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-transparent focus:border-teal-500 rounded-lg outline-none transition-all dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Selected Component - Qty, Discount, Add */}
+        {selectedProduct && (
+          <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl p-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h4 className="font-bold text-gray-900 dark:text-white">{selectedProduct.base_name}</h4>
+                <p className="text-xs text-teal-600 dark:text-teal-400">{selectedProduct.variation_suffix || 'Base Style'} - {selectedProduct.sku}</p>
+                <p className="text-sm font-bold mt-1 text-teal-700 dark:text-teal-300">{selectedProduct.selling_price} ৳</p>
+              </div>
+              <button onClick={() => setSelectedProduct(null)} className="p-1 hover:bg-teal-100 rounded-full"><X size={16} /></button>
             </div>
-          )}
-          
-          {(paymentOption === 'partial' || paymentOption === 'none') && (
-             <select 
-               value={codPaymentMethod}
-               onChange={(e) => setCodPaymentMethod(e.target.value)}
-               className="w-full px-3 py-2 text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg outline-none focus:ring-1 focus:ring-blue-500"
-             >
-               <option value="">Select COD Method</option>
-               {paymentMethods.filter(m => m.type === 'cash').map(m => (
-                 <option key={m.id} value={m.id}>{m.name}</option>
-               ))}
-             </select>
-          )}
-        </div>
-
-        <button
-          onClick={handleConfirmOrder}
-          disabled={cart.length === 0 || isProcessingOrder}
-          className="w-full mt-2 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {isProcessingOrder ? 'Creating Order...' : 'Confirm Order'}
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderProductSearch = () => (
-    <div className="lg:col-span-2 space-y-6">
-      {/* Search Bar */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
-          <input 
-            type="text"
-            placeholder="Search products by SKU or Name..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-900 border border-transparent focus:border-teal-500 rounded-lg outline-none transition-all dark:text-white"
-          />
-        </div>
-      </div>
-
-      {/* Selected Component - Qty, Discount, Add */}
-      {selectedProduct && (
-        <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-xl p-4 animate-in zoom-in-95 duration-200">
-           <div className="flex items-start justify-between mb-4">
+            <div className="grid grid-cols-4 gap-3 items-end">
               <div>
-                 <h4 className="font-bold text-gray-900 dark:text-white">{selectedProduct.base_name}</h4>
-                 <p className="text-xs text-teal-600 dark:text-teal-400">{selectedProduct.variation_suffix || 'Base Style'} - {selectedProduct.sku}</p>
-                 <p className="text-sm font-bold mt-1 text-teal-700 dark:text-teal-300">{selectedProduct.selling_price} ৳/p>
-              </div>
-              <button onClick={() => setSelectedProduct(null)} className="p-1 hover:bg-teal-100 rounded-full"><X size={16}/></button>
-           </div>
-           <div className="grid grid-cols-4 gap-3 items-end">
-              <div>
-                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Quantity</label>
-                 <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800"/>
+                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Quantity</label>
+                <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" />
               </div>
               <div>
-                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Disc %</label>
-                 <input type="number" value={discountPercent} onChange={(e) => { setDiscountPercent(e.target.value); setDiscount৳''); }} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="0"/>
+                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Disc %</label>
+                <input type="number" value={discountPercent} onChange={(e) => { setDiscountPercent(e.target.value); setDiscountTk(''); }} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="0"/>
               </div>
               <div>
-                 <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Disc ৳/label>
-                 <input type="number" value={discount৳ onChange={(e) => { setDiscount৳e.target.value); setDiscountPercent(''); }} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="0"/>
+                <label className="text-[10px] font-bold text-gray-400 uppercase mb-1 block">Disc ৳</label>
+                  <input type="number" value={discountTk} onChange={(e) => { setDiscountTk(e.target.value); setDiscountPercent(''); }} className="w-full p-2 text-sm border rounded-lg bg-white dark:bg-gray-800" placeholder="0"/>
               </div>
               <button onClick={addToCart} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 rounded-lg text-sm">Add to Cart</button>
-           </div>
-        </div>
-      )}
-
-      {/* Results List */}
-      <div className="space-y-3">
-        {searchResults.map((group) => (
-          <div key={group.base_name} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div 
-              onClick={() => handleGroupClick(group)}
-              className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
-            >
-              <div className="flex items-center gap-4">
-                <img 
-                  src={group.main_variant.images?.[0]?.url || '/placeholder-image.jpg'} 
-                  alt={group.base_name} 
-                  className="w-12 h-12 object-cover rounded-lg border"
-                />
-                <div>
-                  <h3 className="font-bold text-sm text-gray-900 dark:text-white">{group.base_name}</h3>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs font-bold text-teal-600">{group.min_price} ৳/span>
-                    <span className="text-[10px] font-medium px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full">Stock: {group.total_stock}</span>
-                  </div>
-                </div>
-              </div>
-              <ChevronDown size={16} className={`transition-transform ${expandedGroupId === group.base_name ? 'rotate-180' : ''}`} />
             </div>
+          </div>
+        )}
 
-            {expandedGroupId === group.base_name && (
-              <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/20">
-                {[group.main_variant, ...group.variants].map((variant) => (
-                  <div 
-                    key={variant.id}
-                    onClick={() => handleVariantSelect(variant, group)}
-                    className="p-3 flex items-center justify-between border-b last:border-0 border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-800"
-                  >
-                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{variant.variation_suffix || 'Standard'}</span>
-                    <div className="flex items-center gap-4 text-xs">
-                      <span className="font-bold">{variant.selling_price} ৳/span>
-                      <span className="text-gray-400">|</span>
-                      <span className={variant.stock_quantity > 0 ? 'text-green-600' : 'text-red-500'}>Stock: {variant.stock_quantity}</span>
-                      <Plus size={14} className="text-teal-600" />
+        {/* Results List */}
+        <div className="space-y-3">
+          {searchResults.map((group) => (
+            <div key={group.base_name} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              <div
+                onClick={() => handleGroupClick(group)}
+                className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900/50"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={group.main_variant.images?.[0]?.url || '/placeholder-image.jpg'}
+                    alt={group.base_name}
+                    className="w-12 h-12 object-cover rounded-lg border"
+                  />
+                  <div>
+                    <h3 className="font-bold text-sm text-gray-900 dark:text-white">{group.base_name}</h3>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs font-bold text-teal-600">{group.min_price} ৳</span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full">Stock: {group.total_stock}</span>
                     </div>
                   </div>
-                ))}
+                </div>
+                <ChevronDown size={16} className={`transition-transform ${expandedGroupId === group.base_name ? 'rotate-180' : ''}`} />
+              </div>
+
+              {expandedGroupId === group.base_name && (
+                <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/20">
+                  {[group.main_variant, ...group.variants].map((variant) => (
+                    <div
+                      key={variant.id}
+                      onClick={() => handleVariantSelect(variant, group)}
+                      className="p-3 flex items-center justify-between border-b last:border-0 border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-800"
+                    >
+                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{variant.variation_suffix || 'Standard'}</span>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="font-bold">{variant.selling_price} ৳</span>
+                          <span className="text-gray-400">|</span>
+                          <span className={variant.stock_quantity > 0 ? 'text-green-600' : 'text-red-500'}>Stock: {variant.stock_quantity}</span>
+                          <Plus size={14} className="text-teal-600" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+
+    const renderBranchAvailability = () => (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <StoreIcon size={16} className="text-teal-500" />
+            Branch Availability {selectedProduct ? `- ${selectedProduct.variation_suffix || selectedProduct.base_name}` : ''}
+          </h3>
+        </div>
+        <div className="p-4 flex-1">
+          {!selectedProductInventory ? (
+            <div className="py-8 text-center text-xs text-gray-400 italic">Select a product to see branch-wise stock</div>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-400 border-b dark:border-gray-700">
+                  <th className="text-left py-2 font-medium">Branch</th>
+                  <th className="text-center py-2 font-medium">Status</th>
+                  <th className="text-right py-2 font-medium">Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stores.map(branch => {
+                  const s = selectedProductInventory.stores.find(s => s.store_id === branch.id);
+                  const qty = s?.quantity || 0;
+                  return (
+                    <tr key={branch.id} className="border-b last:border-0 border-gray-50 dark:border-gray-700/50">
+                      <td className="py-3 font-medium">{branch.name}</td>
+                      <td className="py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded-full font-bold ${qty > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {qty > 0 ? 'In Stock' : 'Out of Stock'}
+                        </span>
+                      </td>
+                      <td className="py-3 text-right font-bold text-sm">{qty}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+
+    const renderCustomerDetails = () => (
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-6 flex flex-col justify-center">
+        <div className="flex items-center justify-between border-b pb-4">
+          <h3 className="text-sm font-bold flex items-center gap-2"><MapPin size={16} className="text-teal-500" /> Delivery Details</h3>
+          <button onClick={() => setIsInternational(!isInternational)} className="text-[10px] font-bold px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-lg hover:bg-teal-100 transition-colors">
+            {isInternational ? 'International Shipping' : 'Domestic Delivery'}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Customer Name*</label>
+              <input placeholder="Name" value={userName} onChange={e => setUserName(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Phone Number*</label>
+              <input placeholder="Phone" value={userPhone} onChange={e => setUserPhone(e.target.value)} onBlur={handlePhoneBlur} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Street Address*</label>
+              <textarea placeholder="Address" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} rows={3} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-900 dark:text-white" />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Email Address</label>
+              <input placeholder="Email" value={userEmail} onChange={e => setUserEmail(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase">Social Media ID</label>
+              <input placeholder="Social ID" value={socialId} onChange={e => setSocialId(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white" />
+            </div>
+            {isInternational && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">Country</label>
+                  <input placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} className="w-full p-2 text-xs border rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase">City</label>
+                  <input placeholder="City" value={internationalCity} onChange={e => setInternationalCity(e.target.value)} className="w-full p-2 text-xs border rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white" />
+                </div>
+              </div>
+            )}
+            {existingCustomer && (
+              <div className="text-[10px] p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800 font-medium text-teal-800 dark:text-teal-300">
+                <span className="font-bold">Returning Customer:</span> {existingCustomer.total_orders} total orders found.
               </div>
             )}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderBranchAvailability = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <StoreIcon size={16} className="text-teal-500" />
-          Branch Availability {selectedProduct ? `- ${selectedProduct.variation_suffix || selectedProduct.base_name}` : ''}
-        </h3>
-      </div>
-      <div className="p-4 flex-1">
-        {!selectedProductInventory ? (
-          <div className="py-8 text-center text-xs text-gray-400 italic">Select a product to see branch-wise stock</div>
-        ) : (
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-gray-400 border-b dark:border-gray-700">
-                <th className="text-left py-2 font-medium">Branch</th>
-                <th className="text-center py-2 font-medium">Status</th>
-                <th className="text-right py-2 font-medium">Qty</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stores.map(branch => {
-                const s = selectedProductInventory.stores.find(s => s.store_id === branch.id);
-                const qty = s?.quantity || 0;
-                return (
-                  <tr key={branch.id} className="border-b last:border-0 border-gray-50 dark:border-gray-700/50">
-                    <td className="py-3 font-medium">{branch.name}</td>
-                    <td className="py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full font-bold ${qty > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {qty > 0 ? 'In Stock' : 'Out of Stock'}
-                      </span>
-                    </td>
-                    <td className="py-3 text-right font-bold text-sm">{qty}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderCustomerDetails = () => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 space-y-6 flex flex-col justify-center">
-      <div className="flex items-center justify-between border-b pb-4">
-        <h3 className="text-sm font-bold flex items-center gap-2"><MapPin size={16} className="text-teal-500"/> Delivery Details</h3>
-        <button onClick={() => setIsInternational(!isInternational)} className="text-[10px] font-bold px-3 py-1.5 bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-lg hover:bg-teal-100 transition-colors">
-          {isInternational ? 'International Shipping' : 'Domestic Delivery'}
-        </button>
-      </div>
-      <div className="grid grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Customer Name*</label>
-            <input placeholder="Name" value={userName} onChange={e => setUserName(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white"/>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Phone Number*</label>
-            <input placeholder="Phone" value={userPhone} onChange={e => setUserPhone(e.target.value)} onBlur={handlePhoneBlur} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white"/>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Street Address*</label>
-            <textarea placeholder="Address" value={streetAddress} onChange={e => setStreetAddress(e.target.value)} rows={3} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 resize-none text-gray-900 dark:text-white"/>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Email Address</label>
-            <input placeholder="Email" value={userEmail} onChange={e => setUserEmail(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white"/>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Social Media ID</label>
-            <input placeholder="Social ID" value={socialId} onChange={e => setSocialId(e.target.value)} className="w-full p-2.5 text-sm border rounded-lg bg-gray-50 dark:bg-gray-900 border-none outline-none focus:ring-1 focus:ring-teal-500 text-gray-900 dark:text-white"/>
-          </div>
-          {isInternational && (
-             <div className="grid grid-cols-2 gap-3 pt-1">
-               <div className="space-y-1">
-                 <label className="text-[10px] font-bold text-gray-400 uppercase">Country</label>
-                 <input placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} className="w-full p-2 text-xs border rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"/>
-               </div>
-               <div className="space-y-1">
-                 <label className="text-[10px] font-bold text-gray-400 uppercase">City</label>
-                 <input placeholder="City" value={internationalCity} onChange={e => setInternationalCity(e.target.value)} className="w-full p-2 text-xs border rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"/>
-               </div>
-             </div>
-          )}
-          {existingCustomer && (
-            <div className="text-[10px] p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl border border-teal-100 dark:border-teal-800 font-medium text-teal-800 dark:text-teal-300">
-              <span className="font-bold">Returning Customer:</span> {existingCustomer.total_orders} total orders found.
-            </div>
-          )}
         </div>
       </div>
-    </div>
-  );
+    );
 
 
-  return (
-    <div className={darkMode ? 'dark' : ''}>
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-        <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header darkMode={darkMode} setDarkMode={setDarkMode} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                <h1 className="text-2xl font-black tracking-tight">SOCIAL COMMERCE</h1>
-                <div className="flex gap-4">
-                   <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border text-xs font-bold uppercase tracking-wider">Date: {date}</div>
-                   <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border text-xs font-bold uppercase tracking-wider">By: {salesBy}</div>
+    return (
+      <div className={darkMode ? 'dark' : ''}>
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+          <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <Header darkMode={darkMode} setDarkMode={setDarkMode} toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+            <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                  <h1 className="text-2xl font-black tracking-tight">SOCIAL COMMERCE</h1>
+                  <div className="flex gap-4">
+                    <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border text-xs font-bold uppercase tracking-wider">Date: {date}</div>
+                    <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border text-xs font-bold uppercase tracking-wider">By: {salesBy}</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                  {renderOrderSummary()}
+                  {renderProductSearch()}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                  {renderBranchAvailability()}
+                  {renderCustomerDetails()}
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                {renderOrderSummary()}
-                {renderProductSearch()}
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                {renderBranchAvailability()}
-                {renderCustomerDetails()}
-              </div>
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
