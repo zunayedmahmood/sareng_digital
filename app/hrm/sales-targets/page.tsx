@@ -5,6 +5,8 @@ import { useStore } from '@/contexts/StoreContext';
 import hrmService, { SalesTarget } from '@/services/hrmService';
 import employeeService, { Employee } from '@/services/employeeService';
 import SalesTargetModal from '@/components/hrm/SalesTargetModal';
+import AccessControl from '@/components/AccessControl';
+import { toast } from 'react-hot-toast';
 import { 
   Target, 
   Users, 
@@ -13,7 +15,8 @@ import {
   Search,
   Plus,
   ArrowUpRight,
-  ChevronRight
+  ChevronRight,
+  Copy
 } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 
@@ -24,6 +27,7 @@ export default function SalesTargetsPage() {
   const [report, setReport] = useState<any>(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isLoading, setIsLoading] = useState(true);
+  const [isCopying, setIsCopying] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modal state
@@ -61,6 +65,27 @@ export default function SalesTargetsPage() {
     }
   };
 
+  const handleCopyLastMonth = async () => {
+    if (!selectedStoreId) return;
+    setIsCopying(true);
+    try {
+      const res = await hrmService.copyLastMonthTargets({
+        store_id: selectedStoreId,
+        target_month: selectedMonth
+      });
+      if (res.success) {
+        toast.success(res.message || 'Copied targets from previous month successfully!');
+        loadData();
+      } else {
+        toast.error(res.message || 'Failed to copy targets');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || 'Error copying targets');
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
   const getEmpTarget = (empId: number | string) => {
     return targets.find(t => t.employee_id === Number(empId));
   };
@@ -88,14 +113,27 @@ export default function SalesTargetsPage() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Sales Goals & Performance</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">Set and track monthly sales targets for your team.</p>
         </div>
-        <div className="flex items-center gap-3 bg-white dark:bg-gray-800 p-2 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <Calendar className="w-5 h-5 text-blue-500 ml-2" />
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border-none focus:ring-0 bg-transparent text-sm font-bold text-gray-900 dark:text-white"
-          />
+        <div className="flex items-center gap-3">
+          <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+            <button 
+              onClick={handleCopyLastMonth} 
+              disabled={isCopying}
+              className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-bold text-gray-700 dark:text-gray-300 disabled:opacity-50 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <Copy className="w-4 h-4" />
+              {isCopying ? 'Copying...' : 'Copy Last Month'}
+            </button>
+          </AccessControl>
+          
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 p-2.5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <Calendar className="w-5 h-5 text-blue-500 ml-2" />
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border-none focus:ring-0 bg-transparent text-sm font-bold text-gray-900 dark:text-white p-0"
+            />
+          </div>
         </div>
       </div>
 
@@ -189,13 +227,15 @@ export default function SalesTargetsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => setTargetModal({ isOpen: true, employee: emp, initialTarget: target?.target_amount })}
-                        className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-black dark:hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
-                        title="Edit Target"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
+                      <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                        <button 
+                          onClick={() => setTargetModal({ isOpen: true, employee: emp, initialTarget: target?.target_amount })}
+                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-black dark:hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
+                          title="Edit Target"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                      </AccessControl>
                     </td>
                   </tr>
                 );

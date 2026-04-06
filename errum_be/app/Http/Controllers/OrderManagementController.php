@@ -573,5 +573,99 @@ class OrderManagementController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Mark multiple orders as delivered
+     * 
+     * POST /api/order-management/orders/bulk-mark-as-delivered
+     */
+    public function bulkMarkAsDelivered(Request $request): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'order_ids' => 'required|array|min:1',
+                'order_ids.*' => 'exists:orders,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $orderIds = $request->order_ids;
+            $results = [
+                'success' => [],
+                'failed' => [],
+            ];
+
+            foreach ($orderIds as $orderId) {
+                try {
+                    DB::beginTransaction();
+
+                    $order = Order::findOrFail($orderId);
+
+                    // Validation same as single markAsDelivered
+                    if ($order->status !== 'confirmed' && $order->fulfillment_status !== 'fulfilled') {
+                        throw new \Exception('Order must be confirmed or fulfilled to be marked as delivered.');
+                    }
+
+                    if ($order->status === 'delivered') {
+                        throw new \Exception('Order is already marked as delivered.');
+                    }
+
+                    $order->status = 'delivered';
+                    $order->delivered_at = now();
+                    
+                    $order->metadata = array_merge($order->metadata ?? [], [
+                        'delivered_at' => now()->toISOString(),
+                        'delivered_by' => auth('api')->id(),
+                        'delivery_manual_mark' => true,
+                        'bulk_process' => true,
+                    ]);
+
+                    $order->save();
+
+                    // Record purchase for customer history
+                    if ($order->customer) {
+                        $order->customer->recordPurchase($order->total_amount, $order->id);
+                    }
+
+                    DB::commit();
+
+                    $results['success'][] = [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                    ];
+
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    $results['failed'][] = [
+                        'order_id' => $orderId,
+                        'order_number' => Order::find($orderId)->order_number ?? 'Unknown',
+                        'reason' => $e->getMessage(),
+                    ];
+                }
+            }
+
+            $successCount = count($results['success']);
+            $failedCount = count($results['failed']);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Bulk delivery completed: $successCount succeeded, $failedCount failed.",
+                'data' => $results,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process bulk delivery',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
 

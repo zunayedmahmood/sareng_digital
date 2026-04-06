@@ -135,14 +135,29 @@ make sure the reserved_product system is aware of the changes.
 
 ### notepad:
 
-Sareng er deployment lagbe
-Errum er scm page er UI fix + testing
-Errum er full finance module 
-Errum er orders stage -> uradhura chinta 
-Errum er full reporting with python
-Deshio order number -> POS er alada ekta serial, but, similar to E and S.
+I want you to read ALL the frontend and backend code. especially the ones related to hrm.
+we want to do this:
 
-scrape sareng immediately (download everything)
-(get image from imgkit and save locally)
+see all the frontend and backend related to hrm.
+currently, the frontend part is half Implemented. like, most of the pages exist, but they have dummy notifications, non-functional buttons, etc.
+Hear the voice messages to understand how we want out hrm to function for now.
+then, make the changes. The whole system should be robust, no integrity issue.
+create new pages if need be, make thee buttons functional, add frontend for exisiting backend functionalities. add more if you want.
 
-since, lookup page is currently handling all return-exchange
+We have this picture in our mind:
+branch manager entries employee arrival, departure (edittable for mistakes)
+can also check if said person has duty that day (this store wise rooster dependant on store policy should already be Implemented in backend, if not, then don't assume somthing, ask me first)
+late, and pay for overtime will be automatically calculated from arrival, departure and store policy.
+
+employee selection from POS should update monthly target (set by branch manager, should be automatically copied at months end from last month which can be later editted by branch manager)
+there's also a system of fine and rewards from branch manager which will be shown in employees my panel and store panel.
+
+everybody can access store panel but viiew only, preselected for their branch.
+branch manager, for branch (branch = store), can edit everything.
+super admins, admins can select branch and do whatever branch managers can.
+
+
+What i want you to do:
+generate me a detailed workplan for gemini in antigravity for Implementation of this, and other features and changes needed for robust, efficient and functional hrm.'
+save this in a md file in Documentation/ . Later, i will use this md file to guide gemini in antigravity to implement the changes.
+mention the files in there as well. make it as detailed as possible covering all topics.

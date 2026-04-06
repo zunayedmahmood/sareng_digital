@@ -58,6 +58,7 @@ class Order extends Model
         'metadata',
         'payment_schedule',
         'payment_history',
+        'salesman_id',
     ];
 
     protected $casts = [
@@ -431,6 +432,11 @@ class Order extends Model
     public function fulfilledBy(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'fulfilled_by');
+    }
+
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'salesman_id');
     }
 
     // Scopes

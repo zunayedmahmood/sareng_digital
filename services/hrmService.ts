@@ -55,6 +55,11 @@ const hrmService = {
     return response.data;
   },
 
+  async updateAttendance(id: number, data: any): Promise<any> {
+    const response = await axiosInstance.put(`/hrm/attendance/${id}`, data);
+    return response.data;
+  },
+
   async getTodayAttendance(storeId?: number): Promise<AttendanceRecord[]> {
     const response = await axiosInstance.get('/hrm/attendance/report/today', { params: { store_id: storeId } });
     return response.data.success ? response.data.data : [];
@@ -81,6 +86,11 @@ const hrmService = {
     return response.data;
   },
 
+  async copyLastMonthTargets(data: { store_id: number; target_month: string }): Promise<any> {
+    const response = await axiosInstance.post('/hrm/sales-targets/copy-last-month', data);
+    return response.data;
+  },
+
   async getPerformanceReport(params?: any): Promise<any> {
     const response = await axiosInstance.get('/hrm/sales-targets/report', { params });
     return response.data.success ? response.data.data : null;
@@ -99,6 +109,11 @@ const hrmService = {
 
   async getMyOvertime(): Promise<any[]> {
     const response = await axiosInstance.get('/hrm/my/overtime');
+    return response.data.success ? response.data.data : [];
+  },
+
+  async getMyRewardsFines(params?: any): Promise<any[]> {
+    const response = await axiosInstance.get('/hrm/my/rewards-fines', { params });
     return response.data.success ? response.data.data : [];
   },
 
@@ -121,6 +136,16 @@ const hrmService = {
   async getCumulatedRewardFine(params: any): Promise<any> {
     const response = await axiosInstance.get('/hrm/attendance/rewards-fines/cumulated', { params });
     return response.data.success ? response.data.data : [];
+  },
+  // Payroll
+  async getMonthlySalarySheet(params: { store_id: number; month: string }): Promise<any> {
+    const response = await axiosInstance.get('/hrm/payroll/sheet', { params });
+    return response.data.success ? response.data.data : null;
+  },
+
+  async payMonthlySalary(data: { employee_id: number; store_id: number; month: string }): Promise<any> {
+    const response = await axiosInstance.post('/hrm/payroll/pay', data);
+    return response.data;
   },
 };
 

@@ -230,6 +230,23 @@ class OrderManagementService {
       throw new Error(error.response?.data?.message || 'Failed to mark order as delivered');
     }
   }
+
+  /**
+   * Mark multiple orders as delivered in bulk
+   */
+  async bulkMarkAsDelivered(orderIds: number[]): Promise<any> {
+    try {
+      console.log('📦 Bulk marking orders as delivered:', orderIds);
+      const response = await axiosInstance.post('/order-management/orders/bulk-mark-as-delivered', {
+        order_ids: orderIds
+      });
+      console.log('✅ Bulk delivery request completed:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to process bulk delivery:', error);
+      throw new Error(error.response?.data?.message || 'Failed to process bulk delivery');
+    }
+  }
 }
 
 

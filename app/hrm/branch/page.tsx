@@ -6,34 +6,37 @@ import { useAuth } from '@/contexts/AuthContext';
 import hrmService, { AttendanceRecord } from '@/services/hrmService';
 import employeeService, { Employee } from '@/services/employeeService';
 import AttendanceModal from '@/components/hrm/AttendanceModal';
-import { 
-  Users, 
-  UserPlus, 
-  TrendingUp, 
+import AccessControl from '@/components/AccessControl';
+import {
+  Users,
+  UserPlus,
+  TrendingUp,
   Calendar,
   CheckCircle2,
   Clock,
   MoreVertical,
   Search,
-  Filter
+  Filter,
+  Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function BranchHRMPage() {
   const { selectedStoreId } = useStore();
   const { user: currentUser } = useAuth();
-  
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord[]>([]);
   const [performanceReport, setPerformanceReport] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal states
   const [attendanceModal, setAttendanceModal] = useState<{
     isOpen: boolean;
     employee: any;
-    type: 'check_in' | 'check_out';
+    type: 'check_in' | 'check_out' | 'edit';
+    record?: any;
   }>({
     isOpen: false,
     employee: null,
@@ -54,7 +57,7 @@ export default function BranchHRMPage() {
         hrmService.getTodayAttendance(selectedStoreId!),
         hrmService.getPerformanceReport({ store_id: selectedStoreId!, month: format(new Date(), 'yyyy-MM') })
       ]);
-      
+
       setEmployees(empData);
       setTodayAttendance(attToday);
       setPerformanceReport(perfData);
@@ -65,7 +68,7 @@ export default function BranchHRMPage() {
     }
   };
 
-  const filteredEmployees = employees.filter(emp => 
+  const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.phone?.includes(searchQuery)
@@ -126,8 +129,8 @@ export default function BranchHRMPage() {
                 <p className="text-sm font-bold text-emerald-600">{performanceReport?.branch_achievement || 0}%</p>
               </div>
               <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 mt-1">
-                <div 
-                  className="bg-emerald-500 h-2 rounded-full transition-all duration-1000" 
+                <div
+                  className="bg-emerald-500 h-2 rounded-full transition-all duration-1000"
                   style={{ width: `${Math.min(performanceReport?.branch_achievement || 0, 100)}%` }}
                 ></div>
               </div>
@@ -187,11 +190,10 @@ export default function BranchHRMPage() {
                         </td>
                         <td className="px-6 py-4">
                           {record ? (
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              record.status === 'Present' || record.status === 'Late' 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${record.status === 'Present' || record.status === 'Late'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                                 : 'bg-red-100 text-red-700'
-                            }`}>
+                              }`}>
                               {record.status}
                             </span>
                           ) : (
@@ -215,24 +217,37 @@ export default function BranchHRMPage() {
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             {!record?.clock_in ? (
-                              <button 
-                                onClick={() => setAttendanceModal({ isOpen: true, employee: emp, type: 'check_in' })}
-                                className="bg-black dark:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform"
-                              >
-                                Clock In
-                              </button>
+                              <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                                <button
+                                  onClick={() => setAttendanceModal({ isOpen: true, employee: emp, type: 'check_in' })}
+                                  className="bg-black dark:bg-blue-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform"
+                                >
+                                  Clock In
+                                </button>
+                              </AccessControl>
                             ) : !record?.clock_out ? (
-                              <button 
-                                onClick={() => setAttendanceModal({ isOpen: true, employee: emp, type: 'check_out' })}
-                                className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform"
-                              >
-                                Clock Out
-                              </button>
+                              <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                                <button
+                                  onClick={() => setAttendanceModal({ isOpen: true, employee: emp, type: 'check_out' })}
+                                  className="bg-red-600 text-white text-xs font-bold px-4 py-2 rounded-xl hover:scale-105 transition-transform"
+                                >
+                                  Clock Out
+                                </button>
+                              </AccessControl>
                             ) : (
                               <div className="p-2 text-green-500">
                                 <CheckCircle2 className="w-5 h-5" />
                               </div>
                             )}
+                            <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                              <button
+                                onClick={() => record && setAttendanceModal({ isOpen: true, employee: emp, type: 'edit', record })}
+                                title="Edit Attendance"
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-blue-500 transition-colors focus:ring-2 focus:ring-blue-500 outline-none"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                            </AccessControl>
                             <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                               <MoreVertical className="w-4 h-4 text-gray-400" />
                             </button>
@@ -254,16 +269,15 @@ export default function BranchHRMPage() {
               <Calendar className="w-5 h-5 text-purple-500" />
               Leaderboard (Performance)
             </h3>
-            
+
             <div className="space-y-5">
               {performanceReport?.employee_rankings?.map((rank: any, idx: number) => (
                 <div key={rank.id} className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${
-                    idx === 0 ? 'bg-yellow-100 text-yellow-700' :
-                    idx === 1 ? 'bg-gray-100 text-gray-700' :
-                    idx === 2 ? 'bg-orange-100 text-orange-700' :
-                    'bg-gray-50 text-gray-500'
-                  }`}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${idx === 0 ? 'bg-yellow-100 text-yellow-700' :
+                      idx === 1 ? 'bg-gray-100 text-gray-700' :
+                        idx === 2 ? 'bg-orange-100 text-orange-700' :
+                          'bg-gray-50 text-gray-500'
+                    }`}>
                     {idx + 1}
                   </div>
                   <div className="flex-1">
@@ -315,6 +329,7 @@ export default function BranchHRMPage() {
           onClose={() => setAttendanceModal({ ...attendanceModal, isOpen: false })}
           employee={attendanceModal.employee}
           type={attendanceModal.type}
+          record={attendanceModal.record}
           onSuccess={loadBranchData}
         />
       )}

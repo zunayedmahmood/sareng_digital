@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '@/contexts/StoreContext';
 import hrmService from '@/services/hrmService';
-import employeeService, { Employee } from '@/services/employeeService';
 import RewardFineDialog from '@/components/hrm/RewardFineDialog';
+import AccessControl from '@/components/AccessControl';
 import { 
   Award, 
-  AlertTriangle, 
-  Users, 
+  AlertTriangle,
   Search, 
   Plus, 
   Calendar,
-  MoreVertical,
   MinusCircle,
   PlusCircle,
-  Eye
+  ChevronDown,
+  ChevronUp,
+  Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -37,6 +37,11 @@ export default function RewardsFinesPage() {
     employee: null,
     editData: null
   });
+
+  // Expandable row states
+  const [expandedEmployeeId, setExpandedEmployeeId] = useState<number | null>(null);
+  const [employeeDetails, setEmployeeDetails] = useState<any[]>([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   useEffect(() => {
     if (selectedStoreId) {
@@ -67,6 +72,27 @@ export default function RewardsFinesPage() {
       console.error('Failed to load rewards/fines:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const toggleRow = async (employeeId: number) => {
+    if (expandedEmployeeId === employeeId) {
+      setExpandedEmployeeId(null);
+      return;
+    }
+    setExpandedEmployeeId(employeeId);
+    setIsLoadingDetails(true);
+    try {
+      const data = await hrmService.getRewardFineReport({
+        store_id: selectedStoreId!,
+        employee_id: employeeId,
+        month: selectedMonth
+      });
+      setEmployeeDetails(data?.rows || []);
+    } catch (error) {
+      console.error('Failed to load employee details:', error);
+    } finally {
+      setIsLoadingDetails(false);
     }
   };
 
@@ -168,44 +194,110 @@ export default function RewardsFinesPage() {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
               {filteredEmployees.map((row) => (
-                <tr key={row.employee.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center font-bold text-amber-600">
-                        {row.employee.name.charAt(0)}
+                <React.Fragment key={row.employee.id}>
+                  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors cursor-pointer" onClick={() => toggleRow(row.employee.id)}>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center font-bold text-amber-600">
+                          {row.employee.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{row.employee.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{row.employee.employee_code || 'No Code'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{row.employee.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{row.employee.employee_code || 'No Code'}</p>
+                    </td>
+                    <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">
+                      +৳{row.total_reward.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-red-600 dark:text-red-400">
+                      -৳{row.total_fine.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-sm font-black ${row.net_adjustment >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {row.net_adjustment >= 0 ? '+' : ''}৳{row.net_adjustment.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                          <button 
+                            onClick={() => setDialog({ isOpen: true, employee: row.employee, editData: null })}
+                            className="p-2 bg-black dark:bg-blue-600 text-white rounded-xl hover:scale-105 transition-transform"
+                            title="Add Entry"
+                          >
+                             <Plus className="w-4 h-4" />
+                          </button>
+                        </AccessControl>
+                        <button onClick={() => toggleRow(row.employee.id)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                          {expandedEmployeeId === row.employee.id ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                        </button>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-bold text-emerald-600 dark:text-emerald-400">
-                    +৳{row.total_reward.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-red-600 dark:text-red-400">
-                    -৳{row.total_fine.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-sm font-black ${row.net_adjustment >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      {row.net_adjustment >= 0 ? '+' : ''}৳{row.net_adjustment.toLocaleString()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                       <button 
-                        onClick={() => setDialog({ isOpen: true, employee: row.employee, editData: null })}
-                        className="p-2 bg-black dark:bg-blue-600 text-white rounded-xl hover:scale-105 transition-transform"
-                        title="Add Entry"
-                      >
-                         <Plus className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                        <MoreVertical className="w-4 h-4 text-gray-400" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                  {expandedEmployeeId === row.employee.id && (
+                    <tr className="bg-gray-50/50 dark:bg-gray-900/30">
+                      <td colSpan={5} className="p-0 border-b border-gray-100 dark:border-gray-700">
+                        <div className="p-6">
+                          <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Detailed Entries ({format(new Date(selectedMonth + '-01'), 'MMMM yyyy')})</h4>
+                          {isLoadingDetails ? (
+                            <div className="text-center py-4 text-gray-500">Loading details...</div>
+                          ) : employeeDetails.length > 0 ? (
+                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                              <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 uppercase font-bold text-xs">
+                                  <tr>
+                                    <th className="px-4 py-3">Date</th>
+                                    <th className="px-4 py-3">Type</th>
+                                    <th className="px-4 py-3">Title & Notes</th>
+                                    <th className="px-4 py-3">Amount</th>
+                                    <th className="px-4 py-3 text-right">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                  {employeeDetails.map((entry) => (
+                                    <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                        {format(new Date(entry.entry_date), 'dd MMM, yyyy')}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded-md text-xs font-bold ${entry.entry_type === 'reward' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                          {entry.entry_type.toUpperCase()}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <p className="font-bold text-gray-900 dark:text-white">{entry.title}</p>
+                                        {entry.notes && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{entry.notes}</p>}
+                                      </td>
+                                      <td className={`px-4 py-3 font-bold ${entry.entry_type === 'reward' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        ৳{entry.amount.toLocaleString()}
+                                      </td>
+                                      <td className="px-4 py-3 text-right">
+                                        <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
+                                          <button 
+                                            onClick={() => setDialog({ isOpen: true, employee: row.employee, editData: entry })}
+                                            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-blue-600 dark:text-blue-400 ml-auto"
+                                            title="Edit Entry"
+                                          >
+                                            <Edit3 className="w-4 h-4" />
+                                          </button>
+                                        </AccessControl>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-gray-500 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                              No entries found for this month.
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {filteredEmployees.length === 0 && (
                 <tr>

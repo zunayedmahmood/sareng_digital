@@ -22,6 +22,10 @@ class EmployeeAttendance extends Model
         'marked_at',
         'notes',
         'is_modified',
+        'late_minutes',
+        'late_fee',
+        'is_applied',
+        'applied_at',
     ];
 
     protected $casts = [

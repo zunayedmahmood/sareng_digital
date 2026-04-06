@@ -294,6 +294,22 @@ class AttendanceController extends Controller
                     }
                 }
 
+                $lateMinutes = 0;
+                $lateFee = 0;
+
+                if ($status === 'late' && !empty($entry['in_time']) && $schedule && $policy) {
+                    $inTime = Carbon::createFromFormat('H:i', $entry['in_time']);
+                    $startTime = Carbon::createFromFormat('H:i:s', $schedule->start_time);
+                    if ($inTime->greaterThan($startTime)) {
+                        $lateMinutes = $inTime->diffInMinutes($startTime);
+                        
+                        if ($lateMinutes > (int) $policy->grace_period_minutes) {
+                            $chargeableMinutes = $lateMinutes - (int) $policy->grace_period_minutes;
+                            $lateFee = $chargeableMinutes * (float) $policy->late_fee_per_minute;
+                        }
+                    }
+                }
+
                 $attendance = EmployeeAttendance::query()
                     ->where('employee_id', $employee->id)
                     ->whereDate('attendance_date', $date->toDateString())
@@ -310,6 +326,8 @@ class AttendanceController extends Controller
                         'marked_at' => now(),
                         'notes' => $entry['notes'] ?? null,
                         'is_modified' => true,
+                        'late_minutes' => $lateMinutes,
+                        'late_fee' => $lateFee,
                     ]);
 
                     EmployeeAttendanceHistory::create([
@@ -336,6 +354,8 @@ class AttendanceController extends Controller
                         'marked_at' => now(),
                         'notes' => $entry['notes'] ?? null,
                         'is_modified' => false,
+                        'late_minutes' => $lateMinutes,
+                        'late_fee' => $lateFee,
                     ]);
                 }
 
@@ -367,14 +387,48 @@ class AttendanceController extends Controller
 
         $old = $attendance->only(['status', 'in_time', 'out_time']);
 
+        $status = $validated['status'] ?? $attendance->status;
+        $inTimeStr = array_key_exists('in_time', $validated) ? $validated['in_time'] : $attendance->in_time;
+        $outTimeStr = array_key_exists('out_time', $validated) ? $validated['out_time'] : $attendance->out_time;
+
+        $date = Carbon::parse($attendance->attendance_date);
+        $schedule = $this->scheduleForDate($attendance->employee_id, $date);
+        $policy = $this->policyForDate($attendance->store_id, $date);
+
+        if ($status === 'present' && !empty($inTimeStr) && $schedule) {
+            $inTime = Carbon::createFromFormat('H:i', $inTimeStr);
+            $startTime = Carbon::createFromFormat('H:i:s', $schedule->start_time);
+            if ($inTime->greaterThan($startTime)) {
+                $status = 'late';
+            }
+        }
+
+        $lateMinutes = 0;
+        $lateFee = 0;
+
+        if ($status === 'late' && !empty($inTimeStr) && $schedule && $policy) {
+            $inTime = Carbon::createFromFormat('H:i', $inTimeStr);
+            $startTime = Carbon::createFromFormat('H:i:s', $schedule->start_time);
+            if ($inTime->greaterThan($startTime)) {
+                $lateMinutes = $inTime->diffInMinutes($startTime);
+                
+                if ($lateMinutes > (int) $policy->grace_period_minutes) {
+                    $chargeableMinutes = $lateMinutes - (int) $policy->grace_period_minutes;
+                    $lateFee = $chargeableMinutes * (float) $policy->late_fee_per_minute;
+                }
+            }
+        }
+
         $attendance->update([
-            'status' => $validated['status'] ?? $attendance->status,
-            'in_time' => array_key_exists('in_time', $validated) ? $validated['in_time'] : $attendance->in_time,
-            'out_time' => array_key_exists('out_time', $validated) ? $validated['out_time'] : $attendance->out_time,
+            'status' => $status,
+            'in_time' => $inTimeStr,
+            'out_time' => $outTimeStr,
             'notes' => $validated['notes'] ?? $attendance->notes,
             'marked_by' => $actor->id,
             'marked_at' => now(),
             'is_modified' => true,
+            'late_minutes' => $lateMinutes,
+            'late_fee' => $lateFee,
         ]);
 
         EmployeeAttendanceHistory::create([
@@ -636,6 +690,12 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        $policy = $this->policyForDate($storeId, $date);
+        $overtimePay = 0;
+        if ($policy) {
+            $overtimePay = ($minutes / 60) * (float) $policy->overtime_rate_per_hour;
+        }
+
         $overtime = EmployeeOvertime::create([
             'employee_id' => $employee->id,
             'store_id' => $storeId,
@@ -647,6 +707,7 @@ class AttendanceController extends Controller
             'marked_by' => $actor->id,
             'marked_at' => now(),
             'is_modified' => false,
+            'overtime_pay' => $overtimePay,
         ]);
 
         return response()->json([

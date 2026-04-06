@@ -38,7 +38,12 @@ class SalesTargetAggregationService
     {
         $query = Order::query()
             ->whereNull('deleted_at')
-            ->where('created_by', $employeeId)
+            ->where(function ($q) use ($employeeId) {
+                $q->where('salesman_id', $employeeId)
+                  ->orWhere(function ($q2) use ($employeeId) {
+                      $q2->whereNull('salesman_id')->where('created_by', $employeeId);
+                  });
+            })
             ->where('store_id', $storeId)
             ->whereIn('status', ['completed', 'delivered'])
             ->whereDate('order_date', $salesDate);
@@ -75,7 +80,7 @@ class SalesTargetAggregationService
             return null;
         }
 
-        $employeeId = (int) ($order->created_by ?? 0);
+        $employeeId = (int) ($order->salesman_id ?? $order->created_by ?? 0);
         $storeId = (int) ($order->store_id ?? 0);
         $salesDate = $this->normalizeDate($order->order_date);
 
@@ -101,7 +106,7 @@ class SalesTargetAggregationService
             return null;
         }
 
-        $employeeId = (int) ($old['created_by'] ?? 0);
+        $employeeId = (int) ($old['salesman_id'] ?? $old['created_by'] ?? 0);
         $storeId = (int) ($old['store_id'] ?? 0);
         $salesDate = $this->normalizeDate($old['order_date'] ?? null);
 

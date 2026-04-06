@@ -23,6 +23,9 @@ class EmployeeOvertime extends Model
         'marked_by',
         'marked_at',
         'is_modified',
+        'overtime_pay',
+        'is_applied',
+        'applied_at',
     ];
 
     protected $casts = [

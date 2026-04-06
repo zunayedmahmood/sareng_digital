@@ -21,7 +21,7 @@ class OrderObserver
 
     public function updated(Order $order): void
     {
-        if ($order->wasChanged(['status', 'created_by', 'store_id', 'total_amount', 'order_date'])) {
+        if ($order->wasChanged(['status', 'created_by', 'salesman_id', 'store_id', 'total_amount', 'order_date'])) {
             $this->aggregationService->syncOrderChange($order, $order->getOriginal());
         }
     }

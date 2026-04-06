@@ -109,6 +109,79 @@ class SalesTargetController extends Controller
         ]);
     }
 
+    public function copyLastMonthTargets(Request $request)
+    {
+        $actor = $this->actor($request);
+        $validated = $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'target_month' => 'required|date_format:Y-m',
+        ]);
+
+        $storeId = (int) $validated['store_id'];
+        $this->assertStoreAccess($actor, $storeId);
+
+        $currentMonth = Carbon::createFromFormat('Y-m', $validated['target_month'], self::TIMEZONE)->startOfMonth();
+        $lastMonth = $currentMonth->copy()->subMonth()->toDateString();
+        $currentMonthStr = $currentMonth->toDateString();
+
+        $lastMonthTargets = EmployeeSalesTarget::query()
+            ->where('store_id', $storeId)
+            ->where('target_month', $lastMonth)
+            ->get();
+
+        if ($lastMonthTargets->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No targets found for the previous month to copy.',
+            ], 404);
+        }
+
+        $copiedCount = 0;
+
+        DB::transaction(function () use ($lastMonthTargets, $currentMonthStr, $storeId, $actor, &$copiedCount) {
+            foreach ($lastMonthTargets as $oldTarget) {
+                $employee = Employee::find($oldTarget->employee_id);
+                if (!$employee || !$employee->is_active || (int) $employee->store_id !== $storeId) {
+                    continue;
+                }
+
+                $existing = EmployeeSalesTarget::query()
+                    ->where('employee_id', $employee->id)
+                    ->where('target_month', $currentMonthStr)
+                    ->exists();
+
+                if (!$existing) {
+                    $newTarget = EmployeeSalesTarget::create([
+                        'employee_id' => $employee->id,
+                        'store_id' => $storeId,
+                        'target_month' => $currentMonthStr,
+                        'target_amount' => $oldTarget->target_amount,
+                        'notes' => 'Copied from previous month',
+                        'set_by' => $actor->id,
+                    ]);
+
+                    EmployeeSalesTargetHistory::create([
+                        'sales_target_id' => $newTarget->id,
+                        'old_target_amount' => 0,
+                        'new_target_amount' => $newTarget->target_amount,
+                        'changed_by' => $actor->id,
+                        'reason' => 'Copied from previous month',
+                        'action' => 'created',
+                        'changed_at' => now(),
+                    ]);
+
+                    $copiedCount++;
+                }
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully copied $copiedCount targets from previous month.",
+            'copied_count' => $copiedCount,
+        ]);
+    }
+
     public function getDailyPerformance(Request $request)
     {
         $actor = $this->actor($request);

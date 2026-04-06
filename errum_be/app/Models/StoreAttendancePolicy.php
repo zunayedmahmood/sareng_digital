@@ -21,6 +21,9 @@ class StoreAttendancePolicy extends Model
         'effective_to',
         'declared_by',
         'notes',
+        'late_fee_per_minute',
+        'overtime_rate_per_hour',
+        'grace_period_minutes',
     ];
 
     protected $casts = [

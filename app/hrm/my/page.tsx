@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import hrmService, { AttendanceRecord, SalesTarget } from '@/services/hrmService';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Clock, 
-  Calendar, 
-  TrendingUp, 
-  Award, 
+import {
+  Clock,
+  Calendar,
+  TrendingUp,
+  Award,
   AlertCircle,
   CheckCircle2,
   XCircle,
@@ -19,6 +19,8 @@ export default function MyHRMPage() {
   const { user } = useAuth();
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [performance, setPerformance] = useState<any>(null);
+  const [rewardsFines, setRewardsFines] = useState<any[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -28,12 +30,14 @@ export default function MyHRMPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [attData, perfData] = await Promise.all([
+      const [attData, perfData, rfData] = await Promise.all([
         hrmService.getMyAttendance(),
-        hrmService.getMyPerformance()
+        hrmService.getMyPerformance(),
+        hrmService.getMyRewardsFines()
       ]);
       setAttendance(attData);
       setPerformance(perfData);
+      setRewardsFines(rfData);
     } catch (error) {
       console.error('Failed to load personal HRM data:', error);
     } finally {
@@ -75,9 +79,8 @@ export default function MyHRMPage() {
               Today's Status
             </h3>
             {todayRecord ? (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                todayRecord.status === 'Present' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${todayRecord.status === 'Present' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
                 {todayRecord.status}
               </span>
             ) : (
@@ -86,7 +89,7 @@ export default function MyHRMPage() {
               </span>
             )}
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
               <span className="text-sm text-gray-500 dark:text-gray-400">Check In</span>
@@ -113,12 +116,12 @@ export default function MyHRMPage() {
             <div>
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-gray-500 dark:text-gray-400">Progress</span>
-                <span className="font-semibold">{performance?.achievement_percentage || 0}% Achievement</span>
+                <span className="font-semibold">{performance?.percent || 0}% Achievement</span>
               </div>
               <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-3">
-                <div 
-                  className="bg-emerald-500 h-3 rounded-full transition-all duration-1000" 
-                  style={{ width: `${Math.min(performance?.achievement_percentage || 0, 100)}%` }}
+                <div
+                  className="bg-emerald-500 h-3 rounded-full transition-all duration-1000"
+                  style={{ width: `${Math.min(performance?.percent || 0, 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -127,13 +130,13 @@ export default function MyHRMPage() {
               <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl">
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase font-bold tracking-wider mb-1">Achieved</p>
                 <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                  ৳{(performance?.total_sales || 0).toLocaleString()}
+                  ৳{(performance?.achieved || 0).toLocaleString()}
                 </p>
               </div>
               <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider mb-1">Target</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  ৳{(performance?.target_amount || 0).toLocaleString()}
+                  ৳{(performance?.target || 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -152,9 +155,8 @@ export default function MyHRMPage() {
             {attendance.slice(0, 5).map((record) => (
               <div key={record.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    record.status === 'Present' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                  }`}>
+                  <div className={`p-2 rounded-lg ${record.status === 'Present' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                    }`}>
                     {record.status === 'Present' ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                   </div>
                   <div>
@@ -184,37 +186,84 @@ export default function MyHRMPage() {
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-6">Performance Insights</h3>
           <div className="space-y-4">
-            <div className="flex items-start gap-4 p-4 rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20">
-              <AlertCircle className="w-6 h-6 text-orange-500 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Attendance Note</p>
-                <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                  You have been late 3 times this month. Try to be on time to maintain a perfect score!
-                </p>
+            {attendance.filter(r => r.is_late).length > 0 && (
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/20">
+                <AlertCircle className="w-6 h-6 text-orange-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Attendance Note</p>
+                  <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
+                    You have been late {attendance.filter(r => r.is_late).length} times this month. Try to be on time to maintain a perfect score!
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
-              <Award className="w-6 h-6 text-blue-500 shrink-0" />
-              <div>
-                <p className="text-sm font-bold text-blue-800 dark:text-blue-300">Sales Achievement</p>
-                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                  Your sales performance is 15% higher than last month. Keep up the great work!
-                </p>
+            )}
+
+            {(performance?.percent || 0) >= 100 && (
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20">
+                <Award className="w-6 h-6 text-blue-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-300">Sales Achievement</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                    Congratulations! You reached your sales target for this month. Keep up the great work!
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+
+            {rewardsFines.length > 0 && (
+              <div className="flex items-start gap-4 p-4 rounded-xl bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/20">
+                <Award className="w-6 h-6 text-purple-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-purple-800 dark:text-purple-300">Rewards & Fines Details</p>
+                  <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+                    You have {rewardsFines.length} reward/fine entries this month. Net adjustment: ৳{
+                      rewardsFines.reduce((acc, row) => acc + (row.entry_type === 'reward' ? Number(row.amount) : -Number(row.amount)), 0).toLocaleString()
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {attendance.filter(r => r.is_late).length === 0 && (performance?.percent || 0) < 100 && rewardsFines.length === 0 && (
+              <div className="p-4 text-sm text-gray-500 dark:text-gray-400 text-center bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                No new insights from this month. Keep up the good work!
+              </div>
+            )}
           </div>
 
           <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700">
-            <button className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl group transition-all hover:bg-gray-100 dark:hover:bg-gray-600">
+            <button 
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl group transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                   <Award className="w-5 h-5 text-purple-500" />
                 </div>
                 <span className="text-sm font-medium text-gray-900 dark:text-white">View Reward/Fine History</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+              <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${isHistoryOpen ? 'rotate-90' : 'group-hover:translate-x-1'}`} />
             </button>
+
+            {isHistoryOpen && (
+              <div className="mt-4 space-y-3 border-l-2 border-purple-500 pl-4 ml-6">
+                {rewardsFines.length === 0 ? (
+                   <p className="text-sm text-gray-500 dark:text-gray-400 py-2">No records found for this month.</p>
+                ) : (
+                  rewardsFines.map(entry => (
+                    <div key={entry.id} className="flex justify-between items-center p-3 text-sm bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-white">{entry.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{format(new Date(entry.entry_date), 'MMM dd, yyyy')}</p>
+                      </div>
+                      <span className={`font-bold ${entry.entry_type === 'reward' ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {entry.entry_type === 'reward' ? '+' : '-'}৳{Number(entry.amount).toLocaleString()}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

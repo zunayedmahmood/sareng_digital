@@ -17,6 +17,7 @@ function HRMLayoutContent({ children }: { children: React.ReactNode }) {
     { label: 'Attendance', href: '/hrm/attendance', icon: Calendar, roles: ['branch-manager', 'admin', 'super-admin', 'online-moderator'] },
     { label: 'Sales Targets', href: '/hrm/sales-targets', icon: Target, roles: ['branch-manager', 'admin', 'super-admin', 'online-moderator'] },
     { label: 'Rewards & Fines', href: '/hrm/rewards-fines', icon: Award, roles: ['branch-manager', 'admin', 'super-admin', 'online-moderator'] },
+    { label: 'Payroll', href: '/hrm/payroll', icon: Calendar, roles: ['branch-manager', 'admin', 'super-admin', 'online-moderator'] },
   ];
 
   const filteredTabs = tabs.filter(tab => {

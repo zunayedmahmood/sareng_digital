@@ -555,6 +555,15 @@ export default function OrdersDashboard() {
     details: Array<{ orderId?: number; orderNumber?: string; status: 'success' | 'failed'; message: string }>;
   }>({ show: false, current: 0, total: 0, success: 0, failed: 0, batchCode: undefined, batchStatus: 'preparing', details: [] });
 
+  const [bulkDeliverProgress, setBulkDeliverProgress] = useState<{
+    show: boolean;
+    current: number;
+    total: number;
+    success: number;
+    failed: number;
+    details: Array<{ orderId?: number; orderNumber?: string; status: 'success' | 'failed'; message: string }>;
+  }>({ show: false, current: 0, total: 0, success: 0, failed: 0, details: [] });
+
   // ✅ QZ / printer state
   const [qzConnected, setQzConnected] = useState(false);
   const [printers, setPrinters] = useState<string[]>([]);
@@ -1924,6 +1933,77 @@ export default function OrdersDashboard() {
   };
 
   // ✅ Bulk: Send to Pathao
+  const handleBulkMarkAsDelivered = async () => {
+    if (selectedOrders.size === 0) return;
+
+    if (!window.confirm(`Are you sure you want to mark ${selectedOrders.size} orders as delivered?`)) {
+      return;
+    }
+
+    const orderIds = Array.from(selectedOrders);
+    setBulkDeliverProgress({
+      show: true,
+      current: 0,
+      total: orderIds.length,
+      success: 0,
+      failed: 0,
+      details: [],
+    });
+
+    try {
+      const response = await orderManagementService.bulkMarkAsDelivered(orderIds);
+      
+      const successes = response.results?.success || [];
+      const failures = response.results?.failed || [];
+
+      // Build details for the progress UI
+      const details: any[] = [
+        ...successes.map((s: any) => ({
+          orderId: s.order_id,
+          orderNumber: orders.find(o => o.id === s.order_id)?.orderNumber || `#${s.order_id}`,
+          status: 'success',
+          message: 'Marked as delivered'
+        })),
+        ...failures.map((f: any) => ({
+          orderId: f.order_id,
+          orderNumber: orders.find(o => o.id === f.order_id)?.orderNumber || `#${f.order_id}`,
+          status: 'failed',
+          message: f.error || 'Failed to update'
+        }))
+      ];
+
+      setBulkDeliverProgress({
+        show: true,
+        current: orderIds.length,
+        total: orderIds.length,
+        success: successes.length,
+        failed: failures.length,
+        details: details
+      });
+
+    } catch (error: any) {
+      console.error('❌ Bulk delivery error:', error);
+      setBulkDeliverProgress(prev => ({
+        ...prev,
+        current: prev.total,
+        failed: prev.total,
+        details: orderIds.map(id => ({
+          orderId: id,
+          orderNumber: orders.find(o => o.id === id)?.orderNumber || `#${id}`,
+          status: 'failed',
+          message: error.message || 'System error'
+        }))
+      }));
+    }
+
+    // Auto-close after 5 seconds then reload
+    setTimeout(() => {
+      setBulkDeliverProgress(prev => ({ ...prev, show: false }));
+      setSelectedOrders(new Set());
+      loadOrders();
+    }, 5000);
+  };
+
   const handleBulkSendToPathao = async () => {
     if (selectedOrders.size === 0) {
       alert('Please select at least one order to send to Pathao.');
@@ -3456,6 +3536,15 @@ export default function OrdersDashboard() {
                           <Truck className="w-3 h-3" />
                           {isSendingBulk ? 'Sending' : 'Pathao'}
                         </button>
+
+                        <button
+                          onClick={handleBulkMarkAsDelivered}
+                          className="flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded transition-colors text-[10px] font-medium"
+                          title="Mark selected orders as Delivered"
+                        >
+                          <CheckCircle className="w-3 h-3" />
+                          Mark Delivered
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -3524,6 +3613,59 @@ export default function OrdersDashboard() {
                         }}
                       />
                     </div>
+                  </div>
+                )}
+
+                {/* Bulk Progress: Deliver */}
+                {bulkDeliverProgress.show && (
+                  <div className="mb-2 border border-gray-300 dark:border-gray-700 rounded px-3 py-1.5 bg-green-50/50 dark:bg-green-900/10">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-[10px] font-semibold text-black dark:text-white flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3 text-green-500" />
+                        Marking Delivered {bulkDeliverProgress.current}/{bulkDeliverProgress.total}
+                      </p>
+                      <button 
+                        onClick={() => setBulkDeliverProgress(prev => ({ ...prev, show: false }))}
+                        className="text-[10px] text-gray-500 hover:text-black dark:hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-1.5 mb-2 overflow-hidden">
+                      <div 
+                        className="bg-green-600 h-1.5 transition-all duration-500 rounded-full"
+                        style={{ width: `${bulkDeliverProgress.total > 0 ? (bulkDeliverProgress.current / bulkDeliverProgress.total) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[9px] mb-2">
+                      <div className="bg-white dark:bg-black/40 p-1.5 rounded border border-green-100 dark:border-green-800/20 text-center">
+                        <p className="text-green-600 font-bold">{bulkDeliverProgress.success}</p>
+                        <p className="text-gray-500">Success</p>
+                      </div>
+                      <div className="bg-white dark:bg-black/40 p-1.5 rounded border border-red-100 dark:border-red-800/20 text-center">
+                        <p className="text-red-600 font-bold">{bulkDeliverProgress.failed}</p>
+                        <p className="text-gray-500">Failed</p>
+                      </div>
+                    </div>
+
+                    {bulkDeliverProgress.details.length > 0 && (
+                      <div className="max-h-32 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                        {bulkDeliverProgress.details.slice().reverse().map((detail, idx) => (
+                          <div key={idx} className="flex items-center justify-between py-1 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                            <span className="text-[9px] font-medium dark:text-gray-300">{detail.orderNumber}</span>
+                            {detail.status === 'success' ? (
+                              <span className="text-[8px] text-green-600 flex items-center gap-0.5">
+                                <CheckCircle className="w-2 h-2" /> Delivered
+                              </span>
+                            ) : (
+                              <span className="text-[8px] text-red-600" title={detail.message}>{detail.message}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

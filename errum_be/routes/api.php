@@ -338,6 +338,7 @@ Route::middleware('auth:api')->group(function () {
         
         // Mark order as delivered manually
         Route::post('/orders/{orderId}/mark-as-delivered', [\App\Http\Controllers\OrderManagementController::class, 'markAsDelivered']);
+        Route::post('/orders/bulk-mark-as-delivered', [\App\Http\Controllers\OrderManagementController::class, 'bulkMarkAsDelivered']);
     });
 
     // Store Fulfillment (Store Employee) - Dashboard & Barcode Scanning
@@ -429,12 +430,21 @@ Route::middleware('auth:api')->group(function () {
             Route::put('/overtime/{id}', [\App\Http\Controllers\AttendanceController::class, 'updateOvertime']);
             Route::get('/overtime/history/{id}', [\App\Http\Controllers\AttendanceController::class, 'getOvertimeHistory']);
             Route::get('/overtime/report', [\App\Http\Controllers\AttendanceController::class, 'getEmployeeOvertimeReport']);
+            // Rewards & Fines
+            Route::post('/rewards-fines', [\App\Http\Controllers\AttendanceController::class, 'createRewardFine']);
+            Route::put('/rewards-fines/{id}', [\App\Http\Controllers\AttendanceController::class, 'updateRewardFine']);
+            Route::delete('/rewards-fines/{id}', [\App\Http\Controllers\AttendanceController::class, 'deleteRewardFine']);
+            Route::get('/rewards-fines/report', [\App\Http\Controllers\AttendanceController::class, 'getEmployeeRewardFineReport']);
+            Route::get('/rewards-fines/cumulated', [\App\Http\Controllers\AttendanceController::class, 'getCumulatedRewardFine']);
+            Route::get('/rewards-fines/history/{id}', [\App\Http\Controllers\AttendanceController::class, 'getRewardFineHistory']);
+            Route::post('/rewards-fines/apply', [\App\Http\Controllers\AttendanceController::class, 'applyRewardFineToSalary']);
         });
 
         // Sales Target Management (Manager/Admin)
         Route::prefix('sales-targets')->group(function () {
             Route::get('/', [\App\Http\Controllers\SalesTargetController::class, 'index']);
             Route::post('/', [\App\Http\Controllers\SalesTargetController::class, 'setTarget']);
+            Route::post('/copy-last-month', [\App\Http\Controllers\SalesTargetController::class, 'copyLastMonthTargets']);
             Route::get('/performance', [\App\Http\Controllers\SalesTargetController::class, 'getDailyPerformance']);
             Route::get('/report', [\App\Http\Controllers\SalesTargetController::class, 'getTargetReport']);
             Route::get('/history/{employeeId}', [\App\Http\Controllers\SalesTargetController::class, 'getTargetHistory']);
@@ -446,6 +456,8 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/overtime', [\App\Http\Controllers\EmployeePanelController::class, 'getMyOvertime']);
             Route::get('/rewards-fines', [\App\Http\Controllers\EmployeePanelController::class, 'getMyRewardsFines']);
             Route::get('/performance', [\App\Http\Controllers\EmployeePanelController::class, 'getMyPerformance']);
+            Route::get('/payroll/sheet', [\App\Http\Controllers\PayrollController::class, 'getMonthlySalarySheet']);
+            Route::post('/payroll/pay', [\App\Http\Controllers\PayrollController::class, 'payMonthlySalary']);
         });
     });
 

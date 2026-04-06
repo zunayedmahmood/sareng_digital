@@ -1392,6 +1392,13 @@ export default function POSPage() {
     }
   }, [selectedOutlet]); // ✅ Only depend on selectedOutlet
 
+  // ✅ Auto-assign pos-salesman
+  useEffect(() => {
+    if (role === 'pos-salesman' && user?.id) {
+      setSelectedEmployee(String(user.id));
+    }
+  }, [role, user]);
+
   // ============ RENDER ============
 
   return (
@@ -1506,7 +1513,8 @@ export default function POSPage() {
                         setSelectedEmployee(e.target.value);
                       }
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    disabled={role === 'pos-salesman'}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-75 disabled:bg-gray-200 dark:disabled:bg-gray-800"
                   >
                     <option value="">Select Employee</option>
                     {employees.map((emp) => (
@@ -1514,7 +1522,7 @@ export default function POSPage() {
                         {emp.name} - {emp.role}
                       </option>
                     ))}
-                    <option value="add_new">+ Add New Employee</option>
+                    {role !== 'pos-salesman' && <option value="add_new">+ Add New Employee</option>}
                   </select>
                 </div>
 
