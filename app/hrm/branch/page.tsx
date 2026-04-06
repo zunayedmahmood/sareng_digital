@@ -332,6 +332,7 @@ export default function BranchHRMPage() {
           employee={attendanceModal.employee}
           type={attendanceModal.type}
           record={attendanceModal.record}
+          storeId={selectedStoreId!}
           onSuccess={loadBranchData}
         />
       )}

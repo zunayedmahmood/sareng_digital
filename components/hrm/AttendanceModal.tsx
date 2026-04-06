@@ -11,10 +11,11 @@ interface AttendanceModalProps {
   employee: { id: number; name: string };
   type: 'check_in' | 'check_out' | 'edit';
   record?: any;
+  storeId: number;
   onSuccess: () => void;
 }
 
-export default function AttendanceModal({ isOpen, onClose, employee, type, record, onSuccess }: AttendanceModalProps) {
+export default function AttendanceModal({ isOpen, onClose, employee, type, record, storeId, onSuccess }: AttendanceModalProps) {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }));
   const [inTime, setInTime] = useState(record?.clock_in || '');
   const [outTime, setOutTime] = useState(record?.clock_out || '');
@@ -47,7 +48,9 @@ export default function AttendanceModal({ isOpen, onClose, employee, type, recor
         res = await hrmService.markAttendance({
           employee_id: employee.id,
           type: type,
-          time: time
+          time: time,
+          store_id: storeId,
+          date: new Date().toISOString().split('T')[0] // Use today's date for check-in/out
         });
       }
 

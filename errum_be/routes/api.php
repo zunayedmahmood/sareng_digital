@@ -450,14 +450,19 @@ Route::middleware('auth:api')->group(function () {
             Route::get('/history/{employeeId}', [\App\Http\Controllers\SalesTargetController::class, 'getTargetHistory']);
         });
 
+        // Payroll Management
+        Route::prefix('payroll')->group(function () {
+            Route::get('/sheet', [\App\Http\Controllers\PayrollController::class, 'getMonthlySalarySheet']);
+            Route::post('/pay', [\App\Http\Controllers\PayrollController::class, 'payMonthlySalary']);
+        });
+
         // Employee Self-Service Panel
         Route::prefix('my')->group(function () {
             Route::get('/attendance', [\App\Http\Controllers\EmployeePanelController::class, 'getMyAttendance']);
             Route::get('/overtime', [\App\Http\Controllers\EmployeePanelController::class, 'getMyOvertime']);
             Route::get('/rewards-fines', [\App\Http\Controllers\EmployeePanelController::class, 'getMyRewardsFines']);
             Route::get('/performance', [\App\Http\Controllers\EmployeePanelController::class, 'getMyPerformance']);
-            Route::get('/payroll/sheet', [\App\Http\Controllers\PayrollController::class, 'getMonthlySalarySheet']);
-            Route::post('/payroll/pay', [\App\Http\Controllers\PayrollController::class, 'payMonthlySalary']);
+            // My Payroll (if needed separately)
         });
     });
 

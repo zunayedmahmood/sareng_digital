@@ -50,8 +50,26 @@ const hrmService = {
     return response.data;
   },
 
-  async markAttendance(data: { employee_id: number; type: 'check_in' | 'check_out'; time?: string }): Promise<any> {
-    const response = await axiosInstance.post('/hrm/attendance/mark', data);
+  async markAttendance(data: { 
+    employee_id: number; 
+    type: 'check_in' | 'check_out'; 
+    time?: string;
+    store_id: number;
+    date: string;
+  }): Promise<any> {
+    const payload = {
+      store_id: data.store_id,
+      attendance_date: data.date,
+      entries: [
+        {
+          employee_id: data.employee_id,
+          status: 'present', // Backend will automatically adjust to 'late' if policy applies
+          in_time: data.type === 'check_in' ? data.time : undefined,
+          out_time: data.type === 'check_out' ? data.time : undefined,
+        }
+      ]
+    };
+    const response = await axiosInstance.post('/hrm/attendance/mark', payload);
     return response.data;
   },
 
@@ -90,18 +108,18 @@ const hrmService = {
 
   async getAttendanceHistory(employeeId: number): Promise<AttendanceRecord[]> {
     const response = await axiosInstance.get(`/hrm/attendance/history/${employeeId}`);
-    return response.data.success ? response.data.data : [];
+    return (response.data.success && Array.isArray(response.data.data)) ? response.data.data : [];
   },
 
   async getAttendanceReport(params: { store_id: number; from: string; to: string; employee_ids?: number[] }): Promise<any> {
     const response = await axiosInstance.get('/hrm/attendance/report/range', { params });
-    return response.data.success ? response.data.data : null;
+    return response.data.success ? (response.data.data || {}) : {};
   },
 
   // Sales Targets
   async getSalesTargets(params?: any): Promise<SalesTarget[]> {
     const response = await axiosInstance.get('/hrm/sales-targets', { params });
-    return response.data.success ? response.data.data : [];
+    return (response.data.success && Array.isArray(response.data.data)) ? response.data.data : [];
   },
 
   async setSalesTarget(data: { store_id: number; employee_id: number; target_amount: number; target_month: string }): Promise<any> {
@@ -116,28 +134,28 @@ const hrmService = {
 
   async getPerformanceReport(params?: any): Promise<any> {
     const response = await axiosInstance.get('/hrm/sales-targets/report', { params });
-    return response.data.success ? response.data.data : null;
+    return response.data.success ? (response.data.data || {}) : {};
   },
 
   // Employee Self-Service
   async getMyPerformance(): Promise<any> {
     const response = await axiosInstance.get('/hrm/my/performance');
-    return response.data.success ? response.data.data : null;
+    return response.data.success ? (response.data.data || {}) : {};
   },
 
   async getMyAttendance(params?: any): Promise<AttendanceRecord[]> {
     const response = await axiosInstance.get('/hrm/my/attendance', { params });
-    return response.data.success ? response.data.data : [];
+    return (response.data.success && Array.isArray(response.data.data)) ? response.data.data : [];
   },
 
   async getMyOvertime(): Promise<any[]> {
     const response = await axiosInstance.get('/hrm/my/overtime');
-    return response.data.success ? response.data.data : [];
+    return (response.data.success && Array.isArray(response.data.data)) ? response.data.data : [];
   },
 
   async getMyRewardsFines(params?: any): Promise<any[]> {
     const response = await axiosInstance.get('/hrm/my/rewards-fines', { params });
-    return response.data.success ? response.data.data : [];
+    return (response.data.success && Array.isArray(response.data.data)) ? response.data.data : [];
   },
 
   // Rewards & Fines
@@ -153,17 +171,17 @@ const hrmService = {
 
   async getRewardFineReport(params: any): Promise<any> {
     const response = await axiosInstance.get('/hrm/attendance/rewards-fines/report', { params });
-    return response.data.success ? response.data.data : null;
+    return response.data.success ? (response.data.data || { rows: [] }) : { rows: [] };
   },
 
   async getCumulatedRewardFine(params: any): Promise<any> {
     const response = await axiosInstance.get('/hrm/attendance/rewards-fines/cumulated', { params });
-    return response.data.success ? response.data.data : [];
+    return response.data.success ? (response.data.data || { rows: [] }) : { rows: [] };
   },
   // Payroll
   async getMonthlySalarySheet(params: { store_id: number; month: string }): Promise<any> {
     const response = await axiosInstance.get('/hrm/payroll/sheet', { params });
-    return response.data.success ? response.data.data : null;
+    return response.data.success ? (response.data.data || { sheet: [] }) : { sheet: [] };
   },
 
   async payMonthlySalary(data: { employee_id: number; store_id: number; month: string }): Promise<any> {

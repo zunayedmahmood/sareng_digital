@@ -134,30 +134,14 @@ make sure the reserved_product system is aware of the changes.
 
 
 ### notepad:
-
-I want you to read ALL the frontend and backend code. especially the ones related to hrm.
-we want to do this:
-
-see all the frontend and backend related to hrm.
-currently, the frontend part is half Implemented. like, most of the pages exist, but they have dummy notifications, non-functional buttons, etc.
-Hear the voice messages to understand how we want out hrm to function for now.
-then, make the changes. The whole system should be robust, no integrity issue.
-create new pages if need be, make thee buttons functional, add frontend for exisiting backend functionalities. add more if you want.
-
-We have this picture in our mind:
-branch manager entries employee arrival, departure (edittable for mistakes)
-can also check if said person has duty that day (this store wise rooster dependant on store policy should already be Implemented in backend, if not, then don't assume somthing, ask me first)
-late, and pay for overtime will be automatically calculated from arrival, departure and store policy.
-
-employee selection from POS should update monthly target (set by branch manager, should be automatically copied at months end from last month which can be later editted by branch manager)
-there's also a system of fine and rewards from branch manager which will be shown in employees my panel and store panel.
-
-everybody can access store panel but viiew only, preselected for their branch.
-branch manager, for branch (branch = store), can edit everything.
-super admins, admins can select branch and do whatever branch managers can.
-
-
-What i want you to do:
-generate me a detailed workplan for gemini in antigravity for Implementation of this, and other features and changes needed for robust, efficient and functional hrm.'
-save this in a md file in Documentation/ . Later, i will use this md file to guide gemini in antigravity to implement the changes.
-mention the files in there as well. make it as detailed as possible covering all topics.
+page-3aa198c9d7300168.js:1 Uncaught TypeError: i.filter is not a function
+    at _ (page-3aa198c9d7300168.js:1:17806)
+    at l9 (4bd1b696-100b9d70ed4e49c1.js:1:51130)
+    at o_ (4bd1b696-100b9d70ed4e49c1.js:1:70990)
+    at oq (4bd1b696-100b9d70ed4e49c1.js:1:82020)
+    at ik (4bd1b696-100b9d70ed4e49c1.js:1:114682)
+    at 4bd1b696-100b9d70ed4e49c1.js:1:114527
+    at ib (4bd1b696-100b9d70ed4e49c1.js:1:114535)
+    at iu (4bd1b696-100b9d70ed4e49c1.js:1:111618)
+    at iX (4bd1b696-100b9d70ed4e49c1.js:1:132934)
+    at MessagePort.w (1255-642c76f13c20a3ec.js:1:64169)

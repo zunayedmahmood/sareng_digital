@@ -508,6 +508,7 @@ class AttendanceController extends Controller
                 'half_day' => 0,
                 'off_day_auto' => 0,
                 'holiday_auto' => 0,
+                'upcoming' => 0,
             ];
 
             foreach ($days as $date) {
@@ -1482,6 +1483,18 @@ class AttendanceController extends Controller
                 'out_time' => null,
                 'attendance_id' => null,
                 'source' => 'auto',
+            ];
+        }
+
+        // Check if date is in the future
+        if ($date->isFuture() && !$date->isToday()) {
+            return [
+                'date' => $date->toDateString(),
+                'status' => 'upcoming',
+                'in_time' => null,
+                'out_time' => null,
+                'attendance_id' => null,
+                'source' => 'future_scheduled',
             ];
         }
 
