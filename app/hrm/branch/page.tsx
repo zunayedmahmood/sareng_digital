@@ -20,10 +20,12 @@ import {
   Edit3
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 export default function BranchHRMPage() {
   const { selectedStoreId } = useStore();
   const { user: currentUser } = useAuth();
+  const router = useRouter();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord[]>([]);
@@ -305,16 +307,16 @@ export default function BranchHRMPage() {
           <div className="bg-black text-white rounded-2xl p-6 shadow-lg shadow-black/20">
             <h3 className="font-bold mb-4">Branch Quick Actions</h3>
             <div className="grid grid-cols-1 gap-3">
-              <button className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
+              <button onClick={() => router.push('/hrm/sales-targets')} className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
                 Set Sales Targets
                 <ChevronRight className="w-4 h-4 text-white/50" />
               </button>
-              <button className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
-                Manage Holidays
+              <button onClick={() => router.push('/hrm/rewards-fines')} className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
+                Manage Rewards & Fines
                 <ChevronRight className="w-4 h-4 text-white/50" />
               </button>
-              <button className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
-                Store HRM Settings
+              <button onClick={() => router.push('/hrm/payroll')} className="flex items-center justify-between p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors text-sm font-medium">
+                Process Payroll
                 <ChevronRight className="w-4 h-4 text-white/50" />
               </button>
             </div>

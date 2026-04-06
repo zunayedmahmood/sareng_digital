@@ -81,7 +81,7 @@ const hrmService = {
     return response.data.success ? response.data.data : [];
   },
 
-  async setSalesTarget(data: { employee_id: number; target_amount: number; target_month: string }): Promise<any> {
+  async setSalesTarget(data: { store_id: number; employee_id: number; target_amount: number; target_month: string }): Promise<any> {
     const response = await axiosInstance.post('/hrm/sales-targets', data);
     return response.data;
   },

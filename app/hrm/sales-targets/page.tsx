@@ -90,9 +90,9 @@ export default function SalesTargetsPage() {
     return targets.find(t => t.employee_id === Number(empId));
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = (report?.items || []).filter((item: any) => 
+    item.employee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.employee.employee_code?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!selectedStoreId) {
@@ -200,15 +200,14 @@ export default function SalesTargetsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-              {filteredEmployees.map((emp) => {
-                const target = getEmpTarget(emp.id);
-                const achievement = target?.achievement_percentage || 0;
+              {filteredItems.map((item: any) => {
+                const achievement = item.achievement_percentage || 0;
                 
                 return (
-                  <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
-                    <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{emp.name}</td>
+                  <tr key={item.employee.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
+                    <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{item.employee.name}</td>
                     <td className="px-6 py-4 font-medium text-gray-700 dark:text-gray-300">
-                      {target ? `৳${target.target_amount.toLocaleString()}` : <span className="text-gray-400 italic">No target set</span>}
+                      {item.target_amount > 0 ? `৳${item.target_amount.toLocaleString()}` : <span className="text-gray-400 italic">No target set</span>}
                     </td>
                     <td className="px-6 py-4 min-w-[200px]">
                       <div className="flex items-center gap-3">
@@ -223,13 +222,13 @@ export default function SalesTargetsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-bold text-gray-900 dark:text-white">
-                        ৳{(target?.achieved_amount || 0).toLocaleString()}
+                        ৳{(item.achieved_amount || 0).toLocaleString()}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <AccessControl roles={['super-admin', 'admin', 'branch-manager']}>
                         <button 
-                          onClick={() => setTargetModal({ isOpen: true, employee: emp, initialTarget: target?.target_amount })}
+                          onClick={() => setTargetModal({ isOpen: true, employee: item.employee, initialTarget: item.target_amount })}
                           className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-black dark:hover:bg-emerald-600 hover:text-white rounded-xl transition-all"
                           title="Edit Target"
                         >
@@ -252,6 +251,7 @@ export default function SalesTargetsPage() {
           onClose={() => setTargetModal({ ...targetModal, isOpen: false })}
           employee={targetModal.employee}
           onSuccess={loadData}
+          storeId={selectedStoreId}
           initialTarget={targetModal.initialTarget}
           initialMonth={selectedMonth}
         />

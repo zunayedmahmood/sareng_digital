@@ -11,6 +11,7 @@ interface SalesTargetModalProps {
   onClose: () => void;
   employee: { id: number; name: string } | null;
   onSuccess: () => void;
+  storeId: number;
   initialTarget?: number;
   initialMonth?: string;
 }
@@ -20,6 +21,7 @@ export default function SalesTargetModal({
   onClose, 
   employee, 
   onSuccess,
+  storeId,
   initialTarget,
   initialMonth
 }: SalesTargetModalProps) {
@@ -45,6 +47,7 @@ export default function SalesTargetModal({
     setIsLoading(true);
     try {
       const res = await hrmService.setSalesTarget({
+        store_id: storeId,
         employee_id: employee.id,
         target_amount: Number(targetAmount),
         target_month: targetMonth
