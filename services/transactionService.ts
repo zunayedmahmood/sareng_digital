@@ -20,6 +20,18 @@ export interface BackendTransaction {
     order_number?: string;
     order_type?: string;
     payment_method?: string;
+    group_id?: string;
+    attachments?: Array<{
+      url: string;
+      name: string;
+      uploaded_at: string;
+    }>;
+    additional_references?: Array<{
+      label: string;
+      url: string;
+      added_at: string;
+      transaction_id: number;
+    }>;
     [key: string]: any;
   };
   createdAt: string;
@@ -238,8 +250,34 @@ const transactionService = {
   async getTransaction(id: number) {
     const response = await api.get(`/transactions/${id}`);
     return {
-      transaction: mapTransactionToUI(response.data.data),
+      transaction: mapTransactionToUI(response.data.data.transaction || response.data.data),
+      related_transactions: response.data.data.related_transactions || [],
+      group_id: response.data.data.group_id,
+      attachments: response.data.data.attachments || [],
+      additional_references: response.data.data.additional_references || [],
     };
+  },
+
+  // Add attachment to transaction
+  async addAttachment(id: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await api.post(`/transactions/${id}/attachments`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Add external reference to transaction
+  async addReference(id: number, label: string, url: string) {
+    const response = await api.post(`/transactions/${id}/references`, {
+      reference_label: label,
+      reference_url: url,
+    });
+    return response.data;
   },
 
   // Create transaction (manual entry)

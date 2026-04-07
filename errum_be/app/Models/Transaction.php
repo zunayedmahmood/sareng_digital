@@ -71,6 +71,44 @@ class Transaction extends Model
         return $this->morphTo();
     }
 
+    // Accessors for metadata-driven features
+    public function getGroupIdAttribute(): ?string
+    {
+        return $this->metadata['group_id'] ?? null;
+    }
+
+    public function getAttachmentsAttribute(): array
+    {
+        return $this->metadata['attachments'] ?? [];
+    }
+
+    public function getAdditionalReferencesAttribute(): array
+    {
+        return $this->metadata['additional_references'] ?? [];
+    }
+
+    /**
+     * Get all transactions belonging to the same business event group.
+     * Groups by group_id (if exists) or by reference_type/reference_id.
+     */
+    public function getRelatedTransactions()
+    {
+        $groupId = $this->group_id;
+        
+        if ($groupId) {
+            return static::where('metadata->group_id', $groupId)
+                ->with(['account', 'store', 'createdBy'])
+                ->orderBy('id', 'asc')
+                ->get();
+        }
+
+        return static::where('reference_type', $this->reference_type)
+            ->where('reference_id', $this->reference_id)
+            ->with(['account', 'store', 'createdBy'])
+            ->orderBy('id', 'asc')
+            ->get();
+    }
+
     // Scopes
     public function scopeDebit($query)
     {
@@ -104,6 +142,14 @@ class Transaction extends Model
 
     public function scopeByStore($query, $storeId)
     {
+        if ($storeId === 'all' || $storeId === '' || $storeId === null) {
+            return $query;
+        }
+        
+        if ($storeId === 'global' || $storeId === 'errum' || $storeId === 'NULL') {
+            return $query->whereNull('store_id');
+        }
+
         return $query->where('store_id', $storeId);
     }
 
@@ -180,11 +226,13 @@ class Transaction extends Model
         $cashAccountId = static::getCashAccountId($payment->store_id);
         $salesRevenueAccountId = static::getSalesRevenueAccountId();
         $taxLiabilityAccountId = static::getTaxLiabilityAccountId();
+        $groupId = (string) Str::uuid();
 
         $metadata = [
             'payment_method' => $payment->paymentMethod->name ?? 'Unknown',
             'order_number' => $payment->order->order_number ?? null,
             'customer_name' => $payment->customer->name ?? null,
+            'group_id' => $groupId,
         ];
 
         // Calculate proportional tax for this payment (inclusive tax system)
@@ -266,11 +314,13 @@ class Transaction extends Model
         $transactionDate = $payment->completed_at ?? $payment->processed_at ?? now();
         $cashAccountId = static::getCashAccountId($payment->store_id);
         $serviceRevenueAccountId = static::getServiceRevenueAccountId();
+        $groupId = (string) Str::uuid();
 
         $metadata = [
             'payment_method' => $payment->paymentMethod->name ?? 'Unknown',
             'service_order_number' => $payment->serviceOrder->order_number ?? null,
             'customer_name' => $payment->customer->name ?? null,
+            'group_id' => $groupId,
         ];
 
         // DOUBLE-ENTRY BOOKKEEPING:
@@ -316,6 +366,7 @@ class Transaction extends Model
         $taxLiabilityAccountId = static::getTaxLiabilityAccountId();
 
         $refundAmount = (float)$refund->refund_amount;
+        $groupId = (string) Str::uuid();
 
         // Calculate proportional tax reversal (inclusive tax system)
         $order = $refund->order;
@@ -334,6 +385,7 @@ class Transaction extends Model
             'refund_type' => $refund->refund_type,
             'includes_tax_reversal' => $taxAmount > 0,
             'tax_amount_reversed' => $taxAmount,
+            'group_id' => $groupId,
         ];
 
         // DOUBLE-ENTRY BOOKKEEPING (Reversal of sale):
@@ -401,6 +453,7 @@ class Transaction extends Model
 
         // Calculate total return value (cost basis of returned items)
         $returnCostValue = (float)$productReturn->total_return_value;
+        $groupId = (string) Str::uuid();
 
         if ($returnCostValue <= 0) {
             return; // Nothing to reverse
@@ -411,6 +464,7 @@ class Transaction extends Model
             'order_number' => $productReturn->order->order_number ?? null,
             'customer_name' => $productReturn->customer->name ?? null,
             'return_reason' => $productReturn->reason,
+            'group_id' => $groupId,
         ];
 
         // DOUBLE-ENTRY BOOKKEEPING (Reverse of COGS recognized at sale):
@@ -465,6 +519,7 @@ class Transaction extends Model
         $oldItemValue = (float)$productReturn->total_return_value;
         $newOrderTotal = (float)$newOrder->total_amount;
         $netDifference = round($newOrderTotal - $oldItemValue, 2); // positive = customer pays more
+        $groupId = (string) Str::uuid();
 
         $metadata = [
             'exchange_type' => $netDifference > 0 ? 'upgrade' : ($netDifference < 0 ? 'downgrade' : 'even'),
@@ -473,6 +528,7 @@ class Transaction extends Model
             'new_order_number' => $newOrder->order_number,
             'new_order_total' => $newOrderTotal,
             'net_difference' => $netDifference,
+            'group_id' => $groupId,
         ];
 
         // === ENTRY 1: Reverse old item inventory (back to stock) ===
@@ -613,6 +669,7 @@ class Transaction extends Model
     public static function createFromExpense(Expense $expense): self
     {
         $status = $expense->payment_status === 'paid' ? 'completed' : 'pending';
+        $groupId = (string) Str::uuid();
 
         return static::create([
             'transaction_date' => $expense->expense_date,
@@ -628,6 +685,7 @@ class Transaction extends Model
                 'expense_category' => $expense->category->name ?? null,
                 'vendor_name' => $expense->vendor->name ?? null,
                 'expense_type' => $expense->expense_type,
+                'group_id' => $groupId,
             ],
             'status' => $status,
         ]);
@@ -636,6 +694,7 @@ class Transaction extends Model
     public static function createFromExpensePayment(ExpensePayment $payment): self
     {
         $status = $payment->status === 'completed' ? 'completed' : 'pending';
+        $groupId = (string) Str::uuid();
 
         return static::create([
             'transaction_date' => $payment->completed_at ?? $payment->processed_at ?? now(),
@@ -651,6 +710,7 @@ class Transaction extends Model
                 'payment_method' => $payment->paymentMethod->name ?? 'Unknown',
                 'expense_number' => $payment->expense->expense_number ?? null,
                 'expense_description' => $payment->expense->description ?? null,
+                'group_id' => $groupId,
             ],
             'status' => $status,
         ]);
@@ -662,6 +722,7 @@ class Transaction extends Model
         $transactionDate = $payment->processed_at ?? $payment->payment_date ?? now();
         $inventoryAccountId = static::getInventoryAccountId();
         $cashAccountId = static::getCashAccountId();
+        $groupId = (string) Str::uuid();
 
         $metadata = [
             'payment_method' => $payment->paymentMethod->name ?? 'Unknown',
@@ -669,6 +730,7 @@ class Transaction extends Model
             'payment_type' => $payment->payment_type,
             'allocated_amount' => $payment->allocated_amount,
             'unallocated_amount' => $payment->unallocated_amount,
+            'group_id' => $groupId,
         ];
 
         // DOUBLE-ENTRY BOOKKEEPING:
@@ -727,6 +789,7 @@ class Transaction extends Model
         $status = $order->status === 'completed' ? 'completed' : 'pending';
         $transactionDate = $order->completed_at ?? now();
         $inventoryAccountId = static::getInventoryAccountId();
+        $groupId = (string) Str::uuid();
         
         // Calculate total COGS from all order items
         $totalCOGS = $order->items->sum('cogs');
@@ -736,6 +799,7 @@ class Transaction extends Model
             'customer_name' => $order->customer->name ?? null,
             'order_type' => $order->order_type,
             'items_count' => $order->items->count(),
+            'group_id' => $groupId,
         ];
 
         // DOUBLE-ENTRY BOOKKEEPING:

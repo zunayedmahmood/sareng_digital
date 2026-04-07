@@ -36,16 +36,20 @@ class AccountingReportController extends Controller
         $dateTo = $request->input('date_to', now()->toDateString());
 
         // Get transactions for this account
-        $transactions = Transaction::where('account_id', $accountId)
-            ->whereBetween('transaction_date', [$dateFrom, $dateTo])
+        $transactions = Transaction::where('account_id', $accountId);
+        $this->applyStoreFilter($transactions, $request);
+        
+        $transactions = $transactions->whereBetween('transaction_date', [$dateFrom, $dateTo])
             ->orderBy('transaction_date', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
         // Calculate opening balance (all transactions before date_from)
-        $openingBalance = Transaction::where('account_id', $accountId)
-            ->where('transaction_date', '<', $dateFrom)
-            ->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+        $openingBalanceQuery = Transaction::where('account_id', $accountId)
+            ->where('transaction_date', '<', $dateFrom);
+        $this->applyStoreFilter($openingBalanceQuery, $request);
+        
+        $openingBalance = $openingBalanceQuery->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
 
         $debitEntries = [];
         $creditEntries = [];
@@ -121,10 +125,12 @@ class AccountingReportController extends Controller
         $totalCredits = 0;
 
         foreach ($accounts as $account) {
-            $balance = Transaction::where('account_id', $account->id)
+            $balanceQuery = Transaction::where('account_id', $account->id)
                 ->where('transaction_date', '<=', $asOfDate)
-                ->where('status', 'completed')
-                ->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+                ->where('status', 'completed');
+            $this->applyStoreFilter($balanceQuery, $request);
+            
+            $balance = $balanceQuery->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
 
             if ($balance != 0) {
                 $debitBalance = $balance > 0 ? $balance : 0;
@@ -172,34 +178,42 @@ class AccountingReportController extends Controller
 
         // Revenue: Credit entries to Sales Revenue account = Gross Sales
         $salesRevenueAccountId = Transaction::getSalesRevenueAccountId();
-        $totalRevenue = Transaction::where('account_id', $salesRevenueAccountId)
+        $revenueQuery = Transaction::where('account_id', $salesRevenueAccountId)
             ->where('type', 'credit')
             ->where('status', 'completed')
-            ->whereBetween('transaction_date', [$dateFrom, $dateTo])
-            ->sum('amount');
+            ->whereBetween('transaction_date', [$dateFrom, $dateTo]);
+        $this->applyStoreFilter($revenueQuery, $request);
+        
+        $totalRevenue = $revenueQuery->sum('amount');
 
-        $salesCount = Order::whereBetween('created_at', [$dateFrom, $dateTo])
-            ->where('status', 'completed')
-            ->count();
+        $salesCountQuery = Order::whereBetween('created_at', [$dateFrom, $dateTo])
+            ->where('status', 'completed');
+        $this->applyStoreFilter($salesCountQuery, $request);
+        
+        $salesCount = $salesCountQuery->count();
 
         // [ARCHITECTURAL FIX] COGS now queries the COGS Account ledger (debit = expense increase)
         // This respects manual journal entries and exchange adjustments.
         $cogsAccountId = Transaction::getCOGSAccountId();
-        $cogs = Transaction::where('account_id', $cogsAccountId)
+        $cogsQuery = Transaction::where('account_id', $cogsAccountId)
             ->where('type', 'debit')
             ->where('status', 'completed')
-            ->whereBetween('transaction_date', [$dateFrom, $dateTo])
-            ->sum('amount');
+            ->whereBetween('transaction_date', [$dateFrom, $dateTo]);
+        $this->applyStoreFilter($cogsQuery, $request);
+        
+        $cogs = $cogsQuery->sum('amount');
 
         // Gross Profit
         $grossProfit = $totalRevenue - $cogs;
         $grossProfitMargin = $totalRevenue > 0 ? ($grossProfit / $totalRevenue) * 100 : 0;
 
         // Operating Expenses
-        $expenses = Expense::whereBetween('expense_date', [$dateFrom, $dateTo])
+        $expensesQuery = Expense::whereBetween('expense_date', [$dateFrom, $dateTo])
             ->where('status', 'approved')
-            ->with('category')
-            ->get();
+            ->with('category');
+        $this->applyStoreFilter($expensesQuery, $request);
+        
+        $expenses = $expensesQuery->get();
 
         $expensesByCategory = $expenses->groupBy('category.name')->map(function($group) {
             return [
@@ -257,8 +271,9 @@ class AccountingReportController extends Controller
         $asOfDate = $request->input('as_of_date', now()->toDateString());
 
         // ASSETS
-        $cashAccounts = Account::where('account_type', 'asset')
-            ->where('category', 'cash')
+        // Cash and Bank Balances
+        $cashAccounts = Account::where('type', 'asset')
+            ->where('sub_type', 'cash')
             ->where('is_active', true)
             ->get();
 
@@ -266,10 +281,12 @@ class AccountingReportController extends Controller
         $cashBreakdown = [];
 
         foreach ($cashAccounts as $account) {
-            $balance = Transaction::where('account_id', $account->id)
+            $balanceQuery = Transaction::where('account_id', $account->id)
                 ->where('transaction_date', '<=', $asOfDate)
-                ->where('status', 'completed')
-                ->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+                ->where('status', 'completed');
+            $this->applyStoreFilter($balanceQuery, $request);
+            
+            $balance = $balanceQuery->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
             
             if ($balance != 0) {
                 $totalCash += $balance;
@@ -283,26 +300,32 @@ class AccountingReportController extends Controller
         // [ARCHITECTURAL FIX] Inventory Value: Use the Inventory Account balance from the ledger.
         // This respects manual write-offs and journal adjustments to the Inventory account.
         $inventoryAccountId = Transaction::getInventoryAccountId();
-        $inventoryValue = Transaction::where('account_id', $inventoryAccountId)
+        $inventoryQuery = Transaction::where('account_id', $inventoryAccountId)
             ->where('transaction_date', '<=', $asOfDate)
-            ->where('status', 'completed')
-            ->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+            ->where('status', 'completed');
+        $this->applyStoreFilter($inventoryQuery, $request);
+        
+        $inventoryValue = $inventoryQuery->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
 
         // Accounts Receivable (unpaid orders)
-        $accountsReceivable = Order::where('status', 'completed')
+        $arQuery = Order::where('status', 'completed')
             ->where('created_at', '<=', $asOfDate)
-            ->whereIn('payment_status', ['pending', 'partially_paid'])
-            ->sum('outstanding_amount');
+            ->whereIn('payment_status', ['pending', 'partially_paid']);
+        $this->applyStoreFilter($arQuery, $request);
+        
+        $accountsReceivable = $arQuery->sum('outstanding_amount');
 
         $totalCurrentAssets = $totalCash + $inventoryValue + $accountsReceivable;
 
         // LIABILITIES
         // Accounts Payable (unpaid vendor payments)
-        $accountsPayable = DB::table('purchase_orders')
+        $apQuery = DB::table('purchase_orders')
             ->where('status', 'received')
             ->where('created_at', '<=', $asOfDate)
-            ->whereNotIn('payment_status', ['paid', 'fully_paid'])
-            ->sum('total_amount');
+            ->whereNotIn('payment_status', ['paid', 'fully_paid']);
+        $this->applyStoreFilter($apQuery, $request);
+        
+        $accountsPayable = $apQuery->sum('total_amount');
 
         // Other liabilities from liability accounts
         $liabilityAccounts = Account::where('account_type', 'liability')
@@ -313,10 +336,12 @@ class AccountingReportController extends Controller
         $liabilityBreakdown = [];
 
         foreach ($liabilityAccounts as $account) {
-            $balance = Transaction::where('account_id', $account->id)
+            $balanceQuery = Transaction::where('account_id', $account->id)
                 ->where('transaction_date', '<=', $asOfDate)
-                ->where('status', 'completed')
-                ->sum(DB::raw('CASE WHEN type = "credit" THEN amount ELSE -amount END'));
+                ->where('status', 'completed');
+            $this->applyStoreFilter($balanceQuery, $request);
+            
+            $balance = $balanceQuery->sum(DB::raw('CASE WHEN type = "credit" THEN amount ELSE -amount END'));
             
             if ($balance != 0) {
                 $otherLiabilities += $balance;
@@ -338,10 +363,12 @@ class AccountingReportController extends Controller
         $equityBreakdown = [];
 
         foreach ($equityAccounts as $account) {
-            $balance = Transaction::where('account_id', $account->id)
+            $balanceQuery = Transaction::where('account_id', $account->id)
                 ->where('transaction_date', '<=', $asOfDate)
-                ->where('status', 'completed')
-                ->sum(DB::raw('CASE WHEN type = "credit" THEN amount ELSE -amount END'));
+                ->where('status', 'completed');
+            $this->applyStoreFilter($balanceQuery, $request);
+            
+            $balance = $balanceQuery->sum(DB::raw('CASE WHEN type = "credit" THEN amount ELSE -amount END'));
             
             if ($balance != 0) {
                 $ownerEquity += $balance;
@@ -353,7 +380,7 @@ class AccountingReportController extends Controller
         }
 
         // Retained Earnings (Net Profit for the period)
-        $retainedEarnings = $this->calculateRetainedEarnings($asOfDate);
+        $retainedEarnings = $this->calculateRetainedEarnings($asOfDate, $request);
         $totalEquity = $ownerEquity + $retainedEarnings;
 
         $totalLiabilitiesAndEquity = $totalLiabilities + $totalEquity;
@@ -443,7 +470,7 @@ class AccountingReportController extends Controller
         $netCashChange = $netCashFromOperations + $netCashFromInvesting + $netCashFromFinancing;
 
         // Opening and Closing Cash
-        $openingCash = $this->getCashBalance($dateFrom, '<');
+        $openingCash = $this->getCashBalance($dateFrom, '<', $request);
         $closingCash = $openingCash + $netCashChange;
 
         return response()->json([
@@ -604,19 +631,26 @@ class AccountingReportController extends Controller
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
 
-        $transactions = Transaction::whereBetween('transaction_date', [$dateFrom, $dateTo])
+        $query = Transaction::whereBetween('transaction_date', [$dateFrom, $dateTo])
             ->where('status', 'completed')
-            ->with('account')
-            ->orderBy('transaction_date', 'asc')
-            ->orderBy('id', 'asc')
+            ->with(['account', 'store', 'createdBy']);
+        $this->applyStoreFilter($query, $request);
+        
+        $transactions = $query->orderBy('transaction_date', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
-        // Group transactions by reference_id to show double entries together
-        $journalEntries = $transactions->groupBy('reference_id')->map(function($group) {
+        // Group transactions by group_id (UUID) or fallback to reference pair to show double entries together
+        $journalEntries = $transactions->groupBy(function ($item) {
+            return $item->group_id ?? ("{$item->reference_type}-{$item->reference_id}");
+        })->map(function($group) {
+            $first = $group->first();
             $entry = [
-                'date' => $group->first()->transaction_date->format('Y-m-d'),
-                'reference' => $group->first()->reference_id,
-                'description' => $group->first()->description,
+                'date' => $first->transaction_date->format('Y-m-d'),
+                'group_id' => $first->group_id,
+                'reference_id' => $first->reference_id,
+                'reference_type' => $first->reference_type,
+                'description' => $first->description,
                 'entries' => []
             ];
 
@@ -666,26 +700,29 @@ class AccountingReportController extends Controller
     /**
      * Helper: Calculate retained earnings up to a date
      */
-    private function calculateRetainedEarnings($asOfDate)
+    private function calculateRetainedEarnings($asOfDate, Request $request)
     {
         $salesRevenueAccountId = Transaction::getSalesRevenueAccountId();
-        $revenue = Transaction::where('account_id', $salesRevenueAccountId)
+        $revenueQuery = Transaction::where('account_id', $salesRevenueAccountId)
             ->where('type', 'credit')
             ->where('status', 'completed')
-            ->where('transaction_date', '<=', $asOfDate)
-            ->sum('amount');
+            ->where('transaction_date', '<=', $asOfDate);
+        $this->applyStoreFilter($revenueQuery, $request);
+        $revenue = $revenueQuery->sum('amount');
 
         // [ARCHITECTURAL FIX] Use COGS account ledger instead of OrderItems loop
         $cogsAccountId = Transaction::getCOGSAccountId();
-        $cogs = Transaction::where('account_id', $cogsAccountId)
+        $cogsQuery = Transaction::where('account_id', $cogsAccountId)
             ->where('type', 'debit')
             ->where('status', 'completed')
-            ->where('transaction_date', '<=', $asOfDate)
-            ->sum('amount');
+            ->where('transaction_date', '<=', $asOfDate);
+        $this->applyStoreFilter($cogsQuery, $request);
+        $cogs = $cogsQuery->sum('amount');
 
-        $expenses = Expense::where('expense_date', '<=', $asOfDate)
-            ->where('status', 'approved')
-            ->sum('total_amount');
+        $expensesQuery = Expense::where('expense_date', '<=', $asOfDate)
+            ->where('status', 'approved');
+        $this->applyStoreFilter($expensesQuery, $request);
+        $expenses = $expensesQuery->sum('total_amount');
 
         return $revenue - $cogs - $expenses;
     }
@@ -693,16 +730,36 @@ class AccountingReportController extends Controller
     /**
      * Helper: Get cash balance at a specific date
      */
-    private function getCashBalance($date, $operator = '<=')
+    private function getCashBalance($date, $operator = '<=', Request $request)
     {
         $cashAccounts = Account::where('account_type', 'asset')
             ->where('category', 'cash')
             ->where('is_active', true)
             ->pluck('id');
 
-        return Transaction::whereIn('account_id', $cashAccounts)
+        $query = Transaction::whereIn('account_id', $cashAccounts)
             ->where('transaction_date', $operator, $date)
-            ->where('status', 'completed')
-            ->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+            ->where('status', 'completed');
+        $this->applyStoreFilter($query, $request);
+        
+        return $query->sum(DB::raw('CASE WHEN type = "debit" THEN amount ELSE -amount END'));
+    }
+
+    /**
+     * Helper: Apply store filter based on request
+     */
+    private function applyStoreFilter($query, Request $request)
+    {
+        $storeId = $request->input('store_id');
+
+        if ($storeId === 'all' || $storeId === '' || $storeId === null) {
+            return $query;
+        }
+
+        if ($storeId === 'global' || $storeId === 'errum') {
+            return $query->whereNull('store_id');
+        }
+
+        return $query->where('store_id', $storeId);
     }
 }

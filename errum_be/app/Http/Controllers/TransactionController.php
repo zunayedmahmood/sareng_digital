@@ -127,8 +127,77 @@ class TransactionController extends Controller
     public function show($id)
     {
         $transaction = Transaction::with(['account', 'store', 'createdBy', 'reference'])->findOrFail($id);
+        $related = $transaction->getRelatedTransactions();
 
-        return response()->json(['success' => true, 'data' => $transaction]);
+        return response()->json([
+            'success' => true, 
+            'data' => [
+                'transaction' => $transaction,
+                'related_transactions' => $related,
+                'group_id' => $transaction->group_id,
+                'attachments' => $transaction->attachments,
+                'additional_references' => $transaction->additional_references,
+            ]
+        ]);
+    }
+
+    public function addAttachment(Request $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        
+        $validator = Validator::make($request->all(), [
+            'file' => 'required|file|image|max:5120', // 5MB limit
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('transactions/attachments', 'public');
+            $url = asset('storage/' . $path);
+            
+            $metadata = $transaction->metadata ?? [];
+            $attachments = $metadata['attachments'] ?? [];
+            $attachments[] = [
+                'url' => $url,
+                'name' => $request->file('file')->getClientOriginalName(),
+                'uploaded_at' => now()->toDateTimeString(),
+            ];
+            $metadata['attachments'] = $attachments;
+            
+            $transaction->update(['metadata' => $metadata]);
+        }
+
+        return response()->json(['success' => true, 'data' => $transaction, 'message' => 'Attachment added successfully']);
+    }
+
+    public function addReference(Request $request, $id)
+    {
+        $transaction = Transaction::findOrFail($id);
+        
+        $validator = Validator::make($request->all(), [
+            'reference_label' => 'required|string|max:255',
+            'reference_url' => 'required|url',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $metadata = $transaction->metadata ?? [];
+        $references = $metadata['additional_references'] ?? [];
+        $references[] = [
+            'label' => $request->reference_label,
+            'url' => $request->reference_url,
+            'added_at' => now()->toDateTimeString(),
+            'transaction_id' => $transaction->id, // Ensuring transaction ID is included as requested
+        ];
+        $metadata['additional_references'] = $references;
+        
+        $transaction->update(['metadata' => $metadata]);
+
+        return response()->json(['success' => true, 'data' => $transaction, 'message' => 'Reference added successfully']);
     }
 
     public function update(Request $request, $id)

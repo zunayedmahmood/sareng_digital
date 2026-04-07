@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useTheme } from "@/contexts/ThemeContext";
+import { useRouter } from 'next/navigation';
 import { FileText, BookOpen, TrendingUp, Download, Search, RefreshCw } from 'lucide-react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import storeService, { Store } from '@/services/storeService';
 import accountingService, {
   Account,
   Transaction,
@@ -16,6 +20,8 @@ import accountingService, {
 
 export default function AccountingSystem() {
   const { darkMode, setDarkMode } = useTheme();
+  const { role, storeId: userStoreId, isAdmin, isSuperAdmin, isLoading: authLoading } = useAuth() as any;
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('journal');
   const [dateRange, setDateRange] = useState({ 
@@ -34,10 +40,30 @@ export default function AccountingSystem() {
   const [selectedAccount, setSelectedAccount] = useState<number | null>(null);
   const [accountSearch, setAccountSearch] = useState<string>('');
   const [ledgerData, setLedgerData] = useState<LedgerData | null>(null);
+  const [selectedStoreId, setSelectedStoreId] = useState<number | string | undefined>(undefined);
+  const [stores, setStores] = useState<Store[]>([]);
+
+  // Permissions check
+  const isAuthorized = role === 'admin' || role === 'super-admin' || role === 'branch-manager';
+  const showStoreSelector = role === 'admin' || role === 'super-admin';
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
+    if (!authLoading && !isAuthorized) {
+      router.push('/dashboard');
+    }
+  }, [authLoading, isAuthorized]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthorized) {
+      if (userStoreId) {
+        setSelectedStoreId(userStoreId);
+      }
+      fetchInitialData();
+      if (showStoreSelector) {
+        fetchStores();
+      }
+    }
+  }, [authLoading, userStoreId, isAuthorized]);
 
   useEffect(() => {
     if (activeTab === 'journal') {
@@ -47,13 +73,13 @@ export default function AccountingSystem() {
     } else if (activeTab === 'transactions') {
       fetchTransactions();
     }
-  }, [activeTab, dateRange]);
+  }, [activeTab, dateRange, selectedStoreId]);
 
   useEffect(() => {
     if (selectedAccount && activeTab === 'ledger') {
       fetchLedger(selectedAccount);
     }
-  }, [selectedAccount, dateRange]);
+  }, [selectedAccount, dateRange, selectedStoreId]);
 
   const fetchInitialData = async () => {
     try {
@@ -93,6 +119,15 @@ export default function AccountingSystem() {
     }
   };
 
+  const fetchStores = async () => {
+    try {
+      const storesData = await storeService.getAllStores();
+      setStores(storesData);
+    } catch (error) {
+      console.error('Error fetching stores:', error);
+    }
+  };
+
 const fetchJournalEntries = async () => {
   try {
     setLoading(true);
@@ -100,6 +135,7 @@ const fetchJournalEntries = async () => {
     const response = await accountingService.reports.getJournalEntries({
       date_from: dateRange.start,
       date_to: dateRange.end,
+      store_id: selectedStoreId,
     });
     
     if (response.success) {
@@ -132,6 +168,7 @@ const fetchJournalEntries = async () => {
       const response = await accountingService.reports.getTrialBalance({
         start_date: dateRange.start,
         end_date: dateRange.end,
+        store_id: selectedStoreId,
       });
       
       console.log('📊 Trial balance response:', response);
@@ -167,6 +204,7 @@ const fetchJournalEntries = async () => {
         sort_by: 'transaction_date',
         sort_order: 'desc',
         per_page: 1000,
+        store_id: selectedStoreId,
       });
       
       if (response.success) {
@@ -196,6 +234,7 @@ const fetchJournalEntries = async () => {
       const response = await accountingService.reports.getAccountLedger(accountId, {
         date_from: dateRange.start,
         date_to: dateRange.end,
+        store_id: selectedStoreId,
       });
       
       if (response.success) {
@@ -281,6 +320,18 @@ const fetchJournalEntries = async () => {
       alert('Failed to export data');
     }
   };
+
+  if (authLoading || (isAuthorized && !role)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <RefreshCw className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // Will redirect via useEffect
+  }
 
   return (
     <div className={darkMode ? 'dark' : ''}>
@@ -368,7 +419,37 @@ const fetchJournalEntries = async () => {
                     Refresh
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {showStoreSelector && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Filter by Store
+                      </label>
+                      <select
+                        value={selectedStoreId || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === 'global') {
+                            setSelectedStoreId('global');
+                          } else if (val === '') {
+                            setSelectedStoreId(undefined);
+                          } else {
+                            setSelectedStoreId(Number(val));
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      >
+                        <option value="">All Stores</option>
+                        <option value="global">Global (Errum)</option>
+                        {stores.map((store) => (
+                          <option key={store.id} value={store.id}>
+                            {store.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   {activeTab === 'transactions' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -501,6 +582,12 @@ const fetchJournalEntries = async () => {
                                   <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
                                     {entry.reference_type}
                                   </span>
+                                  <Link 
+                                    href={`/accounting/transaction/${entry.group_id || entry.id || entry.lines[0]?.id}`}
+                                    className="px-2 py-1 text-[10px] font-bold bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                                  >
+                                    VIEW DETAILS
+                                  </Link>
                                   {!entry.balanced && (
                                     <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
                                       ⚠️ Unbalanced
@@ -726,7 +813,12 @@ const fetchJournalEntries = async () => {
                           {transactions.map((txn) => (
                             <tr key={txn.id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                                {txn.transaction_number}
+                                <Link 
+                                  href={`/accounting/transaction/${txn.id}`}
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline font-mono"
+                                >
+                                  {txn.transaction_number || (`TXN-${txn.id}`)}
+                                </Link>
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                 {formatDate(txn.transaction_date)}
