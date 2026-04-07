@@ -88,8 +88,8 @@ function mapTransactionToUI(transaction: BackendTransaction): Transaction {
   if (refType.includes('orderpayment') || refType.includes('order') || refType.includes('sale')) {
     actualType = 'income';
   } 
-  // If it's a purchase order or vendor payment, it's expense (money paid out)
-  else if (refType.includes('purchaseorder') || refType.includes('vendor') || refType.includes('batch')) {
+  // If it's a purchase order or vendor payment or expense, it's expense (money paid out)
+  else if (refType.includes('purchaseorder') || refType.includes('vendor') || refType.includes('batch') || refType.includes('expense')) {
     actualType = 'expense';
   }
   // Otherwise use the backend type
@@ -126,6 +126,8 @@ function mapTransactionToUI(transaction: BackendTransaction): Transaction {
     source = 'sale'; // Direct POS sale
   } else if (refType.includes('batch') || refType.includes('purchaseorder')) {
     source = 'batch'; // Inventory Purchase
+  } else if (refType.includes('expense')) {
+    source = 'expense'; // Company Expense / Payroll
   } else if (refType.includes('return')) {
     source = 'return'; // Return Refund
   } else if (refType.includes('exchange')) {

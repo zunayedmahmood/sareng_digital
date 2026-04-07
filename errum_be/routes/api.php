@@ -1067,6 +1067,13 @@ Route::middleware('auth:api')->group(function () {
         // Create order (all 3 channels)
         Route::post('/', [OrderController::class, 'create']);
 
+        // Intended Courier Management
+        Route::patch('/{id}/set-courier', [OrderController::class, 'setIntendedCourier']);
+        Route::get('/by-courier', [OrderController::class, 'getOrdersByCourier']);
+        Route::get('/lookup-courier/{orderId}', [OrderController::class, 'lookupOrderCourier']);
+        Route::post('/bulk-lookup-courier', [OrderController::class, 'bulkLookupCourier']);
+        Route::get('/available-couriers', [OrderController::class, 'getAvailableCouriers']);
+
         // Order operations
         Route::prefix('{id}')->group(function () {
             Route::get('/', [OrderController::class, 'show']);
@@ -1085,13 +1092,6 @@ Route::middleware('auth:api')->group(function () {
             Route::patch('/complete', [OrderController::class, 'complete']);  // Reduce inventory
             Route::patch('/cancel', [OrderController::class, 'cancel']);
         });
-
-        // Intended Courier Management
-        Route::patch('/{id}/set-courier', [OrderController::class, 'setIntendedCourier']);
-        Route::get('/by-courier', [OrderController::class, 'getOrdersByCourier']);
-        Route::get('/lookup-courier/{orderId}', [OrderController::class, 'lookupOrderCourier']);
-        Route::post('/bulk-lookup-courier', [OrderController::class, 'bulkLookupCourier']);
-        Route::get('/available-couriers', [OrderController::class, 'getAvailableCouriers']);
     });
 
     // ============================================

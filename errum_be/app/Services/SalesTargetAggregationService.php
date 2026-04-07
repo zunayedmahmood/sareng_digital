@@ -45,7 +45,7 @@ class SalesTargetAggregationService
                   });
             })
             ->where('store_id', $storeId)
-            ->whereIn('status', ['completed', 'delivered'])
+            ->whereIn('status', ['confirmed', 'completed', 'delivered'])
             ->whereDate('order_date', $salesDate);
 
         $orderCount = (int) $query->count();
@@ -132,6 +132,6 @@ class SalesTargetAggregationService
 
     private function isCountableStatus(string $status): bool
     {
-        return in_array($status, ['completed', 'delivered'], true);
+        return in_array($status, ['confirmed', 'completed', 'delivered'], true);
     }
 }

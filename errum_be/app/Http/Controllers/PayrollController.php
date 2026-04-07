@@ -8,6 +8,8 @@ use App\Models\EmployeeOvertime;
 use App\Models\EmployeeRewardFine;
 use App\Models\EmployeeSalaryAdjustment;
 use App\Models\Expense;
+use App\Models\ExpensePayment;
+use App\Models\PaymentMethod;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
@@ -79,8 +81,12 @@ class PayrollController extends Controller
             // But we can also check if there exists an Expense of type salary_payment for this month.
             $alreadyPaid = Expense::query()
                 ->where('expense_type', 'salary_payment')
+                ->where('employee_id', $employee->id)
                 ->where('store_id', $storeId)
-                ->where('description', 'like', "%Salary payment to: {$employee->name} for {$monthStr}%")
+                ->where(function($q) use ($monthStr, $employee) {
+                    $q->where('metadata->payroll_month', $monthStr)
+                      ->orWhere('description', 'like', "%Salary payment to: {$employee->name} for {$monthStr}%");
+                })
                 ->exists();
 
             $totalRewardsAndOvertime = $rewards + $overtimePay;
@@ -138,8 +144,12 @@ class PayrollController extends Controller
         // Check if already paid exactly for this month
         $alreadyPaid = Expense::query()
             ->where('expense_type', 'salary_payment')
+            ->where('employee_id', $employee->id)
             ->where('store_id', $storeId)
-            ->where('description', 'like', "%Salary payment to: {$employee->name} for {$monthStr}%")
+            ->where(function($q) use ($monthStr, $employee) {
+                $q->where('metadata->payroll_month', $monthStr)
+                  ->orWhere('description', 'like', "%Salary payment to: {$employee->name} for {$monthStr}%");
+            })
             ->exists();
 
         if ($alreadyPaid) {
@@ -206,16 +216,63 @@ class PayrollController extends Controller
                 'applied_at' => now()
             ]);
 
-            // Create Expense
-            $expense = Expense::createSalaryPayment($employee, $netPayable, [
-                'description' => "Salary payment to: {$employee->name} for {$monthStr}",
-                'store_id' => null, // Explicitly assign to overall expense (central accounting)
-            ]);
+            DB::beginTransaction();
+            try {
+                // Find default payment method (cash)
+                $paymentMethod = PaymentMethod::where('code', 'cash')->first();
+                if (!$paymentMethod) {
+                    // Fallback to first active payment method if cash not found
+                    $paymentMethod = PaymentMethod::active()->first();
+                }
 
-            return [
-                'net_payable' => $netPayable,
-                'expense_id' => $expense->id
-            ];
+                if (!$paymentMethod) {
+                    throw new \Exception("No active payment method found system-wide.");
+                }
+
+                // Create Expense
+                $expense = Expense::createSalaryPayment($employee, $netPayable, [
+                    'description' => "Salary payment to: {$employee->name} for {$monthStr}",
+                    'store_id' => $storeId,
+                    'created_by' => $actor->id,
+                    'status' => 'completed',
+                    'payment_status' => 'paid',
+                    'paid_amount' => $netPayable,
+                    'expense_date' => date('Y-m-d'),
+                    'metadata' => [
+                        'payroll_month' => $monthStr
+                    ]
+                ]);
+
+                // Create ExpensePayment record (this triggers TransactionObserver)
+                ExpensePayment::create([
+                    'payment_number' => ExpensePayment::generatePaymentNumber(),
+                    'expense_id' => $expense->id,
+                    'payment_method_id' => $paymentMethod->id,
+                    'store_id' => $storeId,
+                    'processed_by' => $actor->id,
+                    'amount' => $netPayable,
+                    'net_amount' => $netPayable,
+                    'status' => 'completed',
+                    'processed_at' => now(),
+                    'completed_at' => now(),
+                    'description' => $expense->description,
+                    'metadata' => [
+                        'payroll_month' => $monthStr,
+                        'employee_name' => $employee->name
+                    ]
+                ]);
+
+                DB::commit();
+
+                return [
+                    'net_payable' => $netPayable,
+                    'expense_id' => $expense->id
+                ];
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
         });
 
         return response()->json([
@@ -227,7 +284,11 @@ class PayrollController extends Controller
 
     private function actor(Request $request): Employee
     {
-        return $request->user();
+        $user = $request->user();
+        if ($user && !$user->relationLoaded('role')) {
+            $user->load('role');
+        }
+        return $user;
     }
 
     private function isAdmin(Employee $employee): bool
@@ -238,7 +299,8 @@ class PayrollController extends Controller
 
     private function isManager(Employee $employee): bool
     {
-        return $employee->role?->slug === 'manager';
+        $slug = $employee->role?->slug;
+        return $slug === 'manager' || $slug === 'branch-manager' || $slug === 'branch_manager';
     }
 
     private function assertStoreAccess(Employee $actor, int $storeId): void

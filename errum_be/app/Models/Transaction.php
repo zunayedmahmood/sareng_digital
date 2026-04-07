@@ -366,7 +366,7 @@ class Transaction extends Model
             'account_id' => static::getExpenseAccountId($expense->category_id),
             'reference_type' => Expense::class,
             'reference_id' => $expense->id,
-            'description' => "Expense - {$expense->expense_number}: {$expense->title}",
+            'description' => "Expense - {$expense->expense_number}: " . ($expense->description ?? 'No description'),
             'store_id' => $expense->store_id,
             'created_by' => $expense->created_by,
             'metadata' => [
@@ -389,13 +389,13 @@ class Transaction extends Model
             'account_id' => static::getCashAccountId($payment->expense->store_id),
             'reference_type' => ExpensePayment::class,
             'reference_id' => $payment->id,
-            'description' => "Expense Payment - {$payment->payment_number}",
+            'description' => "Expense Payment - {$payment->payment_number}: " . ($payment->expense->description ?? 'No description'),
             'store_id' => $payment->expense->store_id,
             'created_by' => $payment->processed_by,
             'metadata' => [
                 'payment_method' => $payment->paymentMethod->name ?? 'Unknown',
                 'expense_number' => $payment->expense->expense_number ?? null,
-                'expense_title' => $payment->expense->title ?? null,
+                'expense_description' => $payment->expense->description ?? null,
             ],
             'status' => $status,
         ]);
