@@ -285,22 +285,24 @@ const transactionService = {
   },
 
   // Create transaction (manual entry)
-  async createTransaction(data: TransactionCreate) {
+  async createTransaction(data: any) {
     // Map the frontend data structure to backend structure
     const transactionData = {
-      transaction_date: data.date,
+      transaction_date: data.transaction_date || data.date,
       amount: data.amount,
-      type: data.type === 'income' ? 'credit' : 'debit',
-      account_id: 1, // Default cash account - adjust as needed
-      description: `${data.name}${data.description ? ' - ' + data.description : ''}`,
-      reference_type: 'manual',
+      type: data.type === 'income' || data.type === 'credit' ? 'credit' : 'debit',
+      account_id: data.account_id || 1, // Default cash account
+      description: data.description || `${data.name}${data.description_extra ? ' - ' + data.description_extra : ''}`,
+      store_id: data.store_id,
+      reference_type: data.reference_type || 'manual',
       metadata: {
         category: data.category,
-        comment: data.comment,
-        receiptImage: data.receiptImage,
-        original_name: data.name,
+        comment: data.comment || data.note,
+        receiptImage: data.receiptImage || data.receipt_image,
+        original_name: data.name || data.description,
+        reference_note: data.reference_note
       },
-      status: 'completed',
+      status: data.status || 'completed',
     };
 
     const response = await api.post('/transactions', transactionData);

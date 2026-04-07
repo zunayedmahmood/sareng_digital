@@ -14,9 +14,8 @@ interface ManualEntryModalProps {
 }
 
 export default function ManualEntryModal({ isOpen, onClose, onSuccess }: ManualEntryModalProps) {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'admin' || user?.role === 'super-admin';
-  const userStoreId = user?.store_id;
+  const { user, role, isGlobal, storeId: userStoreId } = useAuth();
+  const isAdmin = isGlobal;
 
   const [formData, setFormData] = useState({
     transaction_date: new Date().toISOString().split('T')[0],
@@ -247,7 +246,7 @@ export default function ManualEntryModal({ isOpen, onClose, onSuccess }: ManualE
                       value={formData.store_id}
                       onChange={(e) => handleInputChange('store_id', e.target.value)}
                       disabled={!isAdmin}
-                      className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-900 dark:text-white disabled:opacity-60 appearance-none"
+                      className={`w-full pl-10 pr-3 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-gray-900 dark:text-white appearance-none ${!isAdmin ? 'opacity-60 cursor-not-allowed' : ''}`}
                     >
                       {isAdmin && <option value="errum">Errum (Global HQ)</option>}
                       {stores.map(store => (
