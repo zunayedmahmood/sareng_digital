@@ -31,6 +31,7 @@ import {
   User,
   CreditCard,
   RotateCcw,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 import orderService, { type Order as BackendOrder } from '@/services/orderService';
@@ -45,6 +46,7 @@ import batchService from '@/services/batchService';
 import productService from '@/services/productService';
 import serviceManagementService from '@/services/serviceManagementService';
 import orderManagementService from '@/services/orderManagementService';
+import storeService, { type Store } from '@/services/storeService';
 
 import ReturnProductModal from '@/components/sales/ReturnProductModal';
 import ExchangeProductModal from '@/components/sales/ExchangeProductModal';
@@ -322,6 +324,10 @@ export default function OrdersDashboard() {
   const [isPathaoLookupLoading, setIsPathaoLookupLoading] = useState(false);
   const pathaoInFlightRef = useRef<Set<string>>(new Set());
 
+  const [isExportingBulk, setIsExportingBulk] = useState(false);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [storeFilter, setStoreFilter] = useState<number | 'All Stores'>('All Stores');
+
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -580,6 +586,18 @@ export default function OrdersDashboard() {
     singleActionLoading?.orderId === orderId && singleActionLoading?.action === action;
 
   useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const list = await storeService.getAllStores();
+        setStores(list);
+      } catch (err) {
+        console.error('Failed to load stores:', err);
+      }
+    };
+    fetchStores();
+  }, []);
+
+  useEffect(() => {
     const name = localStorage.getItem('userName') || '';
     setUserName(name);
     loadOrders();
@@ -589,7 +607,7 @@ export default function OrdersDashboard() {
     }
     checkPrinterStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode]);
+  }, [viewMode, storeFilter]);
 
 
   const parseMoney = (val: any) => Number(String(val ?? '0').replace(/[^0-9.-]/g, ''));
@@ -1149,30 +1167,30 @@ export default function OrdersDashboard() {
     setIsLoading(true);
     try {
       let allOrders: any[] = [];
+      const commonParams: any = {
+        store_id: storeFilter === 'All Stores' ? undefined : storeFilter,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+        per_page: 1000,
+      };
 
       if (viewMode === 'installments') {
         const inst = await orderService.getAll({
+          ...commonParams,
           order_type: 'counter',
           installment_only: true,
-          sort_by: 'created_at',
-          sort_order: 'desc',
-          per_page: 1000,
         });
 
         allOrders = inst.data || [];
       } else {
         const [social, ecommerce] = await Promise.all([
           orderService.getAll({
+            ...commonParams,
             order_type: 'social_commerce',
-            sort_by: 'created_at',
-            sort_order: 'desc',
-            per_page: 1000,
           }),
           orderService.getAll({
+            ...commonParams,
             order_type: 'ecommerce',
-            sort_by: 'created_at',
-            sort_order: 'desc',
-            per_page: 1000,
           }),
         ]);
 
@@ -2002,6 +2020,35 @@ export default function OrdersDashboard() {
       setSelectedOrders(new Set());
       loadOrders();
     }, 5000);
+  };
+
+  const handleBulkExport = async () => {
+    if (selectedOrders.size === 0) {
+      alert('Please select at least one order to export.');
+      return;
+    }
+
+    setIsExportingBulk(true);
+    try {
+      const orderIds = Array.from(selectedOrders);
+      const blob = await orderService.bulkExport(orderIds);
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setSelectedOrders(new Set());
+    } catch (error: any) {
+      console.error('❌ Export error:', error);
+      alert(error.message || 'Failed to export orders');
+    } finally {
+      setIsExportingBulk(false);
+    }
   };
 
   const handleBulkSendToPathao = async () => {
@@ -3325,6 +3372,21 @@ export default function OrdersDashboard() {
                     ))}
                   </select>
 
+                  {!isRole('branch-manager') && (
+                    <select
+                      value={storeFilter}
+                      onChange={(e) => setStoreFilter(e.target.value === 'All Stores' ? 'All Stores' : Number(e.target.value))}
+                      className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 text-black dark:text-white focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white min-w-[140px]"
+                    >
+                      <option value="All Stores">All Stores</option>
+                      {stores.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
                   <select
                     value={paymentStatusFilter}
                     onChange={(e) => setPaymentStatusFilter(e.target.value)}
@@ -3538,6 +3600,16 @@ export default function OrdersDashboard() {
                         </button>
 
                         <button
+                          onClick={handleBulkExport}
+                          disabled={isExportingBulk}
+                          className="flex items-center gap-1 px-2 py-1 bg-black dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-200 text-white dark:text-black rounded transition-colors disabled:opacity-50 text-[10px] font-medium"
+                          title="Export selected orders to CSV"
+                        >
+                          <FileSpreadsheet className="w-3 h-3" />
+                          {isExportingBulk ? 'Exporting' : 'Export'}
+                        </button>
+
+                        <button
                           onClick={handleBulkMarkAsDelivered}
                           className="flex items-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded transition-colors text-[10px] font-medium"
                           title="Mark selected orders as Delivered"
@@ -3719,6 +3791,9 @@ export default function OrdersDashboard() {
                                 <p className="text-sm font-bold text-black dark:text-white leading-tight">
                                   {order.orderNumber}
                                 </p>
+                                {order.store && (
+                                  <p className="text-[10px] text-gray-500 font-medium">Store: {order.store}</p>
+                                )}
                                 <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5 truncate">
                                   {order.customer.name} • {order.customer.phone}
                                 </p>
@@ -3826,6 +3901,9 @@ export default function OrdersDashboard() {
                                 <div>
                                   <p className="text-sm font-bold text-black dark:text-white leading-tight">{order.orderNumber}</p>
                                   <p className="text-[10px] text-gray-400 dark:text-gray-500 font-mono italic">#{order.id}</p>
+                                  {order.store && (
+                                    <p className="text-[10px] text-gray-500 font-medium mt-1">Store: {order.store}</p>
+                                  )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-1">
                                   {getOrderTypeBadge(order.orderType)}

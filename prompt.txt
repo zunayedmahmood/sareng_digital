@@ -180,4 +180,15 @@ Since, testing confirmed that inventory reports was working and we want newer fe
 
 we want this new feature in orders page.
 ->when 1 or more order is selected we see these options: mark as delivered, pathao, print etc. we want a new one: export. use an excel or file icon.
-->when we click on it, the we create a csb file exactly like order_sample.csv 
+->when we click on it, the we create a csv file exactly like order_sample.csv with same column names. the data should be for the selected orders only. and the file should be downloaded to the user's device.
+->the csv file should be created in the backend and sent to the frontend for download.
+->within those coloumns 'item type' will always be 'parcel', store name will be the name of the branch/store it is from, MerchantOrderId will be the order's unique order_id, recipient name, phone and address will be customer's name, phone, address. recipient city and zone and area if available otherwise empty, Amount to collect will be number (see pathao amount to collect), item quantity will be total number of items, item weight will alwats be 0.5 Kg, itemDesc will be a list of names of products ordered and special instruction if available otherwise empty. 
+->in backend, simply make a new method in order controller to handle this.
+
+we also want these features:
+After a store has been assigned to a branch, we'll show name of the store under the order number in the order list.
+there will be a store selection dropdown where we can select a store and see only orders assigned to that branch.
+
+Since the system is in production, we can not afford to break anything. so, please be very careful.
+Since, testing confirmed that order page was working and we want newer features, avoid doing any drastic changes to the already working process.
+

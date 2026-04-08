@@ -81,7 +81,7 @@ export default function StockWatchlistCard({
                   {row.age_days} days
                 </span>
               </div>
-              {row.revenue_30d > 10000 && (
+              {row.revenue_30d > 30000 && (
                 <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">
                   <TrendingUp className="w-3 h-3" />
                   High Sales

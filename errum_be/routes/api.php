@@ -1073,6 +1073,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/by-courier', [OrderController::class, 'getOrdersByCourier']);
         Route::get('/lookup-courier/{orderId}', [OrderController::class, 'lookupOrderCourier']);
         Route::post('/bulk-lookup-courier', [OrderController::class, 'bulkLookupCourier']);
+        Route::post('/bulk-export', [OrderController::class, 'bulkExport']);
         Route::get('/available-couriers', [OrderController::class, 'getAvailableCouriers']);
 
         // Order operations

@@ -627,6 +627,19 @@ const orderService = {
         message: error.response?.data?.message || 'Invalid barcode'
       };
     }
+  },
+
+  /** Bulk export orders as CSV */
+  async bulkExport(order_ids: number[]): Promise<Blob> {
+    try {
+      const response = await axiosInstance.post('/orders/bulk-export', { order_ids }, {
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Bulk export error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to export orders');
+    }
   }
 };
 

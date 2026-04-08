@@ -2179,5 +2179,91 @@ class OrderController extends Controller
             'data' => $couriers
         ]);
     }
+
+    /**
+     * Bulk export selected orders to CSV
+     * 
+     * POST /api/orders/bulk-export
+     */
+    public function bulkExport(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'order_ids' => 'required|array|min:1',
+            'order_ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $orders = Order::with(['customer', 'store', 'items'])
+            ->whereIn('id', $request->order_ids)
+            ->get();
+
+        $filename = 'orders_export_' . date('Y-m-d_His') . '.csv';
+        
+        $callback = function() use ($orders) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Header from order_sample.csv
+            fputcsv($file, [
+                'ItemType', 
+                'StoreName', 
+                'MerchantOrderId', 
+                'RecipientName(*)', 
+                'RecipientPhone(*)', 
+                'RecipientAddress(*)', 
+                'RecipientCity(*)', 
+                'RecipientZone(*)', 
+                'RecipientArea', 
+                'AmountToCollect(*)', 
+                'ItemQuantity', 
+                'ItemWeight', 
+                'ItemDesc', 
+                'SpecialInstruction'
+            ]);
+
+            foreach ($orders as $order) {
+                $shipping = is_array($order->shipping_address) ? $order->shipping_address : json_decode($order->shipping_address, true);
+                if (!$shipping) $shipping = [];
+
+                $customer = $order->customer;
+                $address = $order->customer_address ?? ($customer ? $customer->address : '');
+                
+                // Item descriptions: join product names
+                $itemDesc = $order->items->pluck('product_name')->implode(', ');
+                $totalItems = $order->items->sum('quantity');
+
+                fputcsv($file, [
+                    'parcel', // ItemType
+                    $order->store->name ?? '', // StoreName
+                    $order->order_number, // MerchantOrderId
+                    $order->customer_name ?? ($customer ? $customer->name : ''), // RecipientName
+                    $order->customer_phone ?? ($customer ? $customer->phone : ''), // RecipientPhone
+                    $address, // RecipientAddress
+                    $shipping['city'] ?? '', // RecipientCity
+                    $shipping['zone'] ?? '', // RecipientZone
+                    $shipping['area'] ?? '', // RecipientArea
+                    round($order->outstanding_amount, 2), // AmountToCollect
+                    $totalItems, // ItemQuantity
+                    '0.5 Kg', // ItemWeight
+                    $itemDesc, // ItemDesc
+                    $order->notes ?? '' // SpecialInstruction
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ]);
+    }
 }
+
 
