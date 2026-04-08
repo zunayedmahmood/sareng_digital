@@ -34,11 +34,10 @@ export default function SalesTrendCard({
     }
   };
 
-  const handleDateChange = (from: string, to: string) => {
-    const newFilters = { ...filters, from, to };
-    setFilters(newFilters);
-    fetchData(newFilters, interval);
-  };
+  useEffect(() => {
+    setData(initialData);
+    setFilters(initialFilters);
+  }, [initialData, initialFilters]);
 
   const handleIntervalChange = (newInterval: string) => {
     setInterval(newInterval);
@@ -89,18 +88,6 @@ export default function SalesTrendCard({
               </button>
             ))}
           </div>
-          <div className="flex items-center bg-white dark:bg-gray-900 rounded-lg px-3 py-1.5 shadow-sm border border-gray-200 dark:border-gray-700">
-            <Search className="w-3.5 h-3.5 text-gray-400 mr-2" />
-            <input
-              type="text"
-              placeholder="Filter by SKU..."
-              value={filters.sku || ''}
-              onChange={(e) => setFilters(p => ({ ...p, sku: e.target.value }))}
-              onKeyDown={(e) => e.key === 'Enter' && fetchData()}
-              className="bg-transparent border-none p-0 text-xs focus:ring-0 w-24 dark:text-gray-300"
-            />
-          </div>
-          <LocalDatePicker from={filters.from} to={filters.to} onChange={handleDateChange} />
         </div>
       }
     >

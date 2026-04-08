@@ -45,6 +45,11 @@ export default function BestSellersCard({
   };
 
   useEffect(() => {
+    setData(initialData);
+    setFilters(initialFilters);
+  }, [initialData, initialFilters]);
+
+  useEffect(() => {
     // Fetch categories with tree=true to get hierarchy
     categoryService.getAll({ tree: true, per_page: 500 }).then(res => {
       const cats = (Array.isArray(res) ? res : (res.data || [])) as any[];
@@ -69,10 +74,9 @@ export default function BestSellersCard({
     return flat;
   }, [categories]);
 
+  // Date changes are now handled globally in the parent page
   const handleDateChange = (from: string, to: string) => {
-    const newFilters = { ...filters, from, to };
-    setFilters(newFilters);
-    fetchData(newFilters, categoryId, minPrice, maxPrice);
+    // No-op
   };
 
   return (
@@ -89,7 +93,6 @@ export default function BestSellersCard({
           >
             <Filter className="w-4 h-4" />
           </button>
-          <LocalDatePicker from={filters.from} to={filters.to} onChange={handleDateChange} />
         </div>
       }
     >
@@ -128,20 +131,7 @@ export default function BestSellersCard({
               className="w-full text-xs rounded-lg border-gray-200 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" 
             />
           </div>
-          <div className="space-y-1.5 leading-none">
-            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Product SKU</label>
-            <div className="relative">
-              <input 
-                type="text" 
-                value={filters.sku || ''}
-                onChange={(e) => setFilters(p => ({ ...p, sku: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && fetchData()}
-                placeholder="SKU"
-                className="w-full text-xs pl-8 rounded-lg border-gray-200 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200" 
-              />
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            </div>
-          </div>
+          <div className="hidden lg:block lg:col-span-1" />
         </div>
       )}
 

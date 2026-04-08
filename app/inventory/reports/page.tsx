@@ -29,6 +29,8 @@ import StockWatchlistCard from './components/StockWatchlistCard';
 import HourlyPulseCard from './components/HourlyPulseCard';
 import BranchPerformanceCard from './components/BranchPerformanceCard';
 import MixChartsSection from './components/MixChartsSection';
+import ProductSelectModal from './components/ProductSelectModal';
+import { Layers } from 'lucide-react';
 
 function currency(value: number) {
   return new Intl.NumberFormat('en-BD', { maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -52,6 +54,7 @@ export default function InventoryReportsPage() {
   const [error, setError] = useState('');
   const [data, setData] = useState<CommandCenterResponse['data'] | null>(null);
   const [filters, setFilters] = useState<ReportingFilters>({ from: todayStr(-29), to: todayStr() });
+  const [showProductModal, setShowProductModal] = useState(false);
 
   const loadData = async (silent = false) => loadDataWith(filters, silent);
 
@@ -113,52 +116,66 @@ export default function InventoryReportsPage() {
               {/* Executive Header */}
               <div className="mb-8 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300">
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300">
                     <Gauge className="h-3.5 w-3.5" /> Business Command Center
                   </div>
-                  <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">Inventory Intelligence & Sales Tracking</h1>
-                  <p className="mt-2 max-w-3xl text-base text-gray-500 dark:text-gray-400">
-                    Real-time visibility into cross-store performance, profitability metrics, and inventory health.
+                  <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white md:text-4xl">Inventory Intelligence & Performance</h1>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Actionable visibility into cross-store performance, SKU velocity, and financial health.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex bg-white dark:bg-gray-900 rounded-xl p-1 shadow-sm border border-gray-200 dark:border-gray-800">
-                    <div className="flex items-center px-3 border-r border-gray-100 dark:border-gray-800">
-                      <Search className="w-3.5 h-3.5 text-gray-400 mr-2" />
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex bg-white dark:bg-gray-900 rounded-2xl p-1.5 shadow-sm border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center px-3 border-r border-gray-100 dark:border-gray-800 gap-3">
+                      <div className="flex items-center">
+                        <Search className="w-3.5 h-3.5 text-gray-400 mr-2" />
+                        <input
+                          type="text"
+                          placeholder="Global SKU"
+                          value={filters.sku || ''}
+                          onChange={(e) => setFilters((p) => ({ ...p, sku: e.target.value }))}
+                          onKeyDown={(e) => e.key === 'Enter' && loadData()}
+                          className="bg-transparent border-none text-xs font-bold focus:ring-0 w-28 dark:text-gray-300 uppercase"
+                        />
+                      </div>
+                      <button 
+                        onClick={() => setShowProductModal(true)}
+                        className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 rounded-lg text-indigo-600 dark:text-indigo-400 transition-colors"
+                        title="Pick product from list"
+                      >
+                        <Layers className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center px-2">
+                       <input
+                        type="date"
+                        value={filters.from || ''}
+                        onChange={(e) => setFilters((p) => ({ ...p, from: e.target.value }))}
+                        className="bg-transparent border-none text-xs font-medium focus:ring-0 dark:text-gray-300"
+                      />
+                      <span className="text-gray-300 px-1">→</span>
                       <input
-                        type="text"
-                        placeholder="Global SKU Filter"
-                        value={filters.sku || ''}
-                        onChange={(e) => setFilters((p) => ({ ...p, sku: e.target.value }))}
-                        className="bg-transparent border-none text-sm focus:ring-0 w-32 dark:text-gray-300"
+                        type="date"
+                        value={filters.to || ''}
+                        onChange={(e) => setFilters((p) => ({ ...p, to: e.target.value }))}
+                        className="bg-transparent border-none text-xs font-medium focus:ring-0 dark:text-gray-300"
                       />
                     </div>
-                    <input
-                      type="date"
-                      value={filters.from || ''}
-                      onChange={(e) => setFilters((p) => ({ ...p, from: e.target.value }))}
-                      className="bg-transparent border-none text-sm focus:ring-0 dark:text-gray-300"
-                    />
-                    <span className="flex items-center px-1 text-gray-300">→</span>
-                    <input
-                      type="date"
-                      value={filters.to || ''}
-                      onChange={(e) => setFilters((p) => ({ ...p, to: e.target.value }))}
-                      className="bg-transparent border-none text-sm focus:ring-0 dark:text-gray-300"
-                    />
                   </div>
-                  <button
-                    onClick={() => loadData()}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-sm font-bold text-white dark:bg-white dark:text-gray-900 transition-all hover:scale-105 active:scale-95 shadow-md"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Update Headline
-                  </button>
-                  <button
-                    onClick={exportCsv}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-5 py-2.5 text-sm font-bold text-gray-700 dark:border-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
-                  >
-                    <Download className="h-4 w-4" /> Export CSV
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => loadData()}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 px-5 py-2.5 text-xs font-black uppercase text-white tracking-widest dark:bg-white dark:text-gray-900 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-gray-950/10"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /> Refresh
+                    </button>
+                    <button
+                      onClick={exportCsv}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-black uppercase tracking-widest text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all shadow-sm"
+                    >
+                      <Download className="h-4 w-4" /> Export
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -274,6 +291,16 @@ export default function InventoryReportsPage() {
           </main>
         </div>
       </div>
+
+      {showProductModal && (
+        <ProductSelectModal 
+          onClose={() => setShowProductModal(false)}
+          onSelect={(sku) => {
+            applyFilters({ sku });
+            setShowProductModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

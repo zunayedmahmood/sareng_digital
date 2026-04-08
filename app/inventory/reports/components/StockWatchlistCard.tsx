@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import businessAnalyticsService, { StockWatchRow } from '@/services/businessAnalyticsService';
 import ReportCard from './ReportCard';
 import { AlertTriangle, Clock, TrendingUp } from 'lucide-react';
@@ -18,6 +18,10 @@ export default function StockWatchlistCard({
 }) {
   const [data, setData] = useState<StockWatchRow[]>(initialData);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const fetchData = async () => {
     setLoading(true);
