@@ -15,10 +15,11 @@ interface PremiumProductCardProps {
   onOpen: (product: SimpleProduct) => void;
   onAddToCart: (product: SimpleProduct, e: React.MouseEvent) => void | Promise<void>;
   compact?: boolean;
+  animDelay?: number;
 }
 
 const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
-  product, imageErrored = false, onImageError, onOpen, onAddToCart, compact = false,
+  product, imageErrored = false, onImageError, onOpen, onAddToCart, compact = false, animDelay = 0,
 }) => {
   const { getApplicablePromotion } = usePromotion();
   const [isInWishlist, setIsInWishlist] = React.useState(false);
@@ -47,26 +48,47 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
     }
   };
 
-  const primaryImage   = product.images?.[0]?.url || '';
+  // 2.3 — Urgency Signals
+  const stock = Number(product.stock_quantity || 0);
+  const isLowStock = stock > 0 && stock <= 5;
+
+  // Stable pseudo-random sold count
+  const fakeSold = React.useMemo(() => (product.id % 47) + 12, [product.id]);
+
+  // New arrival check (within 14 days)
+  const isNew = React.useMemo(() => {
+    const createdAt = (product as any).created_at;
+    if (!createdAt) return false;
+    const createdDate = new Date(createdAt);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= 14;
+  }, [product]);
+
+  const primaryImage = product.images?.[0]?.url || '';
   const shouldFallback = imageErrored || !primaryImage;
-  const imageUrl       = shouldFallback ? '/images/placeholder-product.jpg' : primaryImage;
-  const extraVariants  = getAdditionalVariantCount(product);
-  const stockLabel     = getCardStockLabel(product);
-  const hasStock       = stockLabel !== 'Out of Stock';
-  const categoryName   = typeof product.category === 'object' && product.category ? product.category.name : '';
+  const imageUrl = shouldFallback ? '/images/placeholder-product.jpg' : primaryImage;
+  const extraVariants = getAdditionalVariantCount(product);
+  const stockLabel = getCardStockLabel(product);
+  const hasStock = stockLabel !== 'Out of Stock';
+  const categoryName = typeof product.category === 'object' && product.category ? product.category.name : '';
 
   // Promotion / SALE badge
-  const categoryId   = typeof product.category === 'object' && product.category ? (product.category as { id?: number }).id ?? null : null;
-  const salePromo    = getApplicablePromotion(product.id, categoryId);
-  const salePercent  = salePromo?.discount_value ?? 0;
+  const categoryId = typeof product.category === 'object' && product.category ? (product.category as { id?: number }).id ?? null : null;
+  const salePromo = getApplicablePromotion(product.id, categoryId);
+  const salePercent = salePromo?.discount_value ?? 0;
   const originalPrice = Number(product.selling_price ?? 0);
-  const salePrice     = salePromo ? Math.max(0, originalPrice - (originalPrice * salePercent) / 100) : null;
+  const salePrice = salePromo ? Math.max(0, originalPrice - (originalPrice * salePercent) / 100) : null;
 
   return (
     <article
       onClick={() => onOpen(product)}
-      className="bg-white group cursor-pointer overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]"
-      style={{ borderRadius: '24px' }}
+      className="bg-white group cursor-pointer overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] ec-anim-fade-up"
+      style={{
+        borderRadius: '24px',
+        animationDelay: `${animDelay}ms`,
+        animationFillMode: 'both'
+      }}
     >
       {/* Image */}
       <div className="relative overflow-hidden aspect-[3/4] bg-[#f9f9f9]">
@@ -82,11 +104,10 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
         <div className="absolute right-3 top-3 z-10 sm:opacity-0 sm:scale-90 sm:group-hover:opacity-100 sm:group-hover:scale-100 transition-all duration-300">
           <button
             onClick={handleToggleWishlist}
-            className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all border ${
-              isInWishlist 
-                ? 'bg-black border-black text-white' 
+            className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur-md transition-all border ${isInWishlist
+                ? 'bg-black border-black text-white'
                 : 'bg-white/80 border-gray-100 text-black/40 hover:text-black hover:bg-white'
-            }`}
+              }`}
           >
             <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
           </button>
@@ -94,13 +115,45 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
 
         {/* SALE badge */}
         {salePromo && (
-          <div className="absolute top-3 left-3 z-10">
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
             <span
               className="bg-black text-white px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase"
               style={{ fontFamily: "'DM Mono', monospace" }}
             >
               {salePercent}% OFF
             </span>
+            {isLowStock && (
+              <span className="bg-[var(--gold)] text-white px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase flex items-center gap-1"
+                style={{ fontFamily: "'DM Mono', monospace" }}>
+                🔥 ONLY {stock} LEFT
+              </span>
+            )}
+            {isNew && (
+              <span className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase flex items-center gap-1"
+                style={{ fontFamily: "'DM Mono', monospace" }}>
+                <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                NEW
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Not on sale but has low stock or is new */}
+        {!salePromo && (isLowStock || isNew) && (
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+            {isLowStock && (
+              <span className="bg-[var(--gold)] text-white px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase flex items-center gap-1"
+                style={{ fontFamily: "'DM Mono', monospace" }}>
+                🔥 ONLY {stock} LEFT
+              </span>
+            )}
+            {isNew && (
+              <span className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase flex items-center gap-1"
+                style={{ fontFamily: "'DM Mono', monospace" }}>
+                <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                NEW
+              </span>
+            )}
           </div>
         )}
 
@@ -108,7 +161,7 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
         {extraVariants > 0 && (
           <div className="absolute left-3 bottom-3 z-10 transition-transform sm:group-hover:-translate-y-14">
             <span className="rounded-full px-3 py-1 text-[9px] font-bold text-black border border-black/5 bg-white/90 backdrop-blur-sm tracking-wider"
-                  style={{ fontFamily: "'DM Mono', monospace" }}>
+              style={{ fontFamily: "'DM Mono', monospace" }}>
               +{extraVariants} variants
             </span>
           </div>
@@ -136,7 +189,7 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
         <div className="flex justify-between items-start gap-2 mb-2">
           {categoryName ? (
             <p className="truncate text-[10px] font-bold tracking-[0.2em] uppercase text-gray-400"
-               style={{ fontFamily: "'DM Mono', monospace" }}>
+              style={{ fontFamily: "'DM Mono', monospace" }}>
               {categoryName}
             </p>
           ) : <div />}
@@ -147,17 +200,17 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
             </span>
           )}
         </div>
-        
+
         <h3 className="line-clamp-2 font-medium leading-snug group-hover:text-black transition-colors"
-            style={{ 
-              fontFamily: "'Cormorant Garamond', serif", 
-              fontSize: compact ? '16px' : '18px', 
-              color: '#111', 
-              minHeight: compact ? '2.5rem' : '3rem' 
-            }}>
+          style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: compact ? '16px' : '18px',
+            color: '#111',
+            minHeight: compact ? '2.5rem' : '3rem'
+          }}>
           {product.display_name || product.base_name || product.name}
         </h3>
-        
+
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-gray-100 pt-4">
           {salePromo && salePrice !== null ? (
             <div className="flex items-baseline gap-2">
@@ -177,6 +230,7 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
             <ArrowRight size={14} />
           </div>
         </div>
+
       </div>
     </article>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 import catalogService, { CatalogCategory, SimpleProduct } from '@/services/catalogService';
@@ -134,6 +134,19 @@ const SubcategoryProductTabs: React.FC<SubcategoryProductTabsProps> = ({
   const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const [parentLabel, setParentLabel] = useState<string>('');
   const [parentNode,  setParentNode]  = useState<CatalogCategory | null>(null);
+  const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    const activeTab = tabRefs.current[activeId === null ? 'all' : activeId];
+    if (activeTab && tabsContainerRef.current) {
+      setUnderlineStyle({
+        left: activeTab.offsetLeft,
+        width: activeTab.offsetWidth
+      });
+    }
+  }, [activeId, tabs]);
 const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCategory | null => {
   const q = (queries || []).map(normalizeKey).filter(Boolean);
   if (!q.length) return null;
@@ -424,16 +437,27 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
 
         {/* Scrollable text-based sub-category slider */}
         <div className="relative mb-8 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <div className="flex items-center gap-8 overflow-x-auto pb-4 scrollbar-hide no-scrollbar">
+          <div 
+            ref={tabsContainerRef}
+            className="flex items-center gap-8 overflow-x-auto pb-4 scrollbar-hide no-scrollbar scroll-smooth"
+            style={{ 
+              scrollSnapType: 'x mandatory',
+              position: 'relative'
+            }}
+          >
             {/* All Products Tab */}
             <button
+              ref={el => { tabRefs.current['all'] = el; }}
               onClick={() => setActiveId(null)}
-              className={`text-sm sm:text-base font-medium whitespace-nowrap pb-2 border-b-2 transition-all duration-300 ${
+              className={`text-sm sm:text-base font-medium whitespace-nowrap pb-3 transition-colors duration-300 ${
                 activeId === null 
-                  ? 'text-black border-black' 
-                  : 'text-gray-400 border-transparent hover:text-black'
+                  ? 'text-black' 
+                  : 'text-gray-400 hover:text-black'
               }`}
-              style={{ fontFamily: "'Jost', sans-serif" }}
+              style={{ 
+                fontFamily: "'Jost', sans-serif",
+                scrollSnapAlign: 'start'
+              }}
             >
               All Products
             </button>
@@ -442,17 +466,30 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
             {tabs.map((cat) => (
               <button
                 key={cat.id}
+                ref={el => { tabRefs.current[cat.id] = el; }}
                 onClick={() => setActiveId(cat.id)}
-                className={`text-sm sm:text-base font-medium whitespace-nowrap pb-2 border-b-2 transition-all duration-300 ${
+                className={`text-sm sm:text-base font-medium whitespace-nowrap pb-3 transition-colors duration-300 ${
                   activeId === cat.id 
-                    ? 'text-black border-black' 
-                    : 'text-gray-400 border-transparent hover:text-black'
+                    ? 'text-black' 
+                    : 'text-gray-400 hover:text-black'
                 }`}
-                style={{ fontFamily: "'Jost', sans-serif" }}
+                style={{ 
+                  fontFamily: "'Jost', sans-serif",
+                  scrollSnapAlign: 'start'
+                }}
               >
                 {cat.name}
               </button>
             ))}
+
+            {/* Sliding Underline */}
+            <div 
+              className="absolute bottom-4 h-0.5 bg-[var(--gold)] transition-all duration-300 ease-out"
+              style={{ 
+                left: underlineStyle.left, 
+                width: underlineStyle.width 
+              }}
+            />
           </div>
         </div>
 
@@ -469,11 +506,12 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
             </div>
           ) : activeTab?.products.length ? (
             <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-3 lg:grid-cols-4">
-              {activeTab.products.map(p => (
+              {activeTab.products.map((p, index) => (
                 <PremiumProductCard
                   key={`${activeKey}-${p.id}`}
                   product={p}
                   compact
+                  animDelay={Math.min(index, 9) * 60}
                   imageErrored={imageErrors.has(p.id)}
                   onImageError={onImgError}
                   onOpen={onProductClick}

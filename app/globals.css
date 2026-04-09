@@ -312,7 +312,13 @@ body {
 .ec-anim-slide-right { animation: ec-slide-right 0.6s cubic-bezier(0.22,1,0.36,1) both; }
 .ec-anim-slide-in-right { animation: ec-slide-in-right 0.5s cubic-bezier(0.32, 0.72, 0, 1) both; }
 .ec-anim-slide-in-up { animation: ec-slide-in-up 0.5s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@keyframes ec-slide-out-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
 .ec-anim-slide-out-right { animation: ec-slide-out-right 0.4s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.ec-anim-slide-out-down { animation: ec-slide-out-down 0.4s cubic-bezier(0.32, 0.72, 0, 1) both; }
 .ec-anim-backdrop { animation: ec-backdrop-fade 0.4s ease both; }
 .ec-anim-backdrop-out { animation: ec-backdrop-fade-out 0.4s ease both; }
 

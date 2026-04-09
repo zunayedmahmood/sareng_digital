@@ -566,16 +566,7 @@ export default function CategoryPage() {
             </aside>
 
             <main className="flex-1">
-              {/* Mobile: Filters button */}
-              <div className="xl:hidden flex items-center justify-between gap-3 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setIsFiltersOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-white/10 bg-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.12)] text-white"
-                >
-                  Filters
-                </button>
-              </div>
+              {/* Mobile: Filters button placeholder (removed in favor of bottom pill) */}
 
               {partialLoadWarning && !error && (
                 <div className="mb-4 rounded-lg border border-amber-200/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
@@ -594,17 +585,30 @@ export default function CategoryPage() {
                   </button>
                 </div>
               ) : products.length === 0 ? (
-                <div className="text-center py-20 ec-surface bg-white/2">
-                  <p className="text-white/60 text-lg">No products found in this category</p>
-                  <p className="text-white/30 mt-2 text-sm">Try adjusting your filters or browse other collections</p>
+                <div className="flex flex-col items-center justify-center py-32 text-center bg-white/5 rounded-3xl border border-dashed border-white/10 ec-anim-fade-up">
+                  <div className="h-20 w-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                    <X className="h-8 w-8 text-white/20" />
+                  </div>
+                  <h3 className="text-2xl font-light text-white mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Nothing here yet</h3>
+                  <p className="text-white/40 mb-8 max-w-xs mx-auto text-sm">We couldn't find any products matching your current filters. Try adjusting them or browse our full collection.</p>
+                  <button 
+                    onClick={() => {
+                      setSelectedPriceRange('all');
+                      handleCategoryChange('all');
+                    }}
+                    className="ec-btn ec-btn-gold px-10"
+                  >
+                    Browse All Products
+                  </button>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {products.map((product) => (
+                    {products.map((product, index) => (
                       <PremiumProductCard
                         key={product.id}
                         product={product as SimpleProduct}
+                        animDelay={Math.min(index, 9) * 60}
                         imageErrored={imageErrors.has(product.id)}
                         onImageError={handleImageError}
                         onOpen={handleProductClick}
@@ -659,16 +663,19 @@ export default function CategoryPage() {
 
       <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Mobile filter drawer */}
+      {/* Mobile filter drawer (Bottom Sheet) */}
       {isFiltersOpen && (
-        <div className="fixed inset-0 z-[100] xl:hidden">
+        <div className="fixed inset-0 z-[100] xl:hidden flex items-end">
           <div 
             className={`fixed inset-0 bg-black/60 backdrop-blur-md ${isClosingFilters ? 'ec-anim-backdrop-out' : 'ec-anim-backdrop'}`}
             onClick={closeFilters}
           />
-          <div className={`fixed top-0 right-0 bottom-0 z-[101] w-[85%] max-w-sm bg-[#0d0d0d] shadow-[-20px_0_80px_rgba(0,0,0,0.8)] flex flex-col ${isClosingFilters ? 'ec-anim-slide-out-right' : 'ec-anim-slide-in-right'}`}>
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
-              <h2 className="text-xl font-bold text-white uppercase tracking-tight" style={{ fontFamily: "'Jost', sans-serif" }}>Filters</h2>
+          <div className={`relative z-[101] w-full bg-[#0d0d0d] rounded-t-3xl shadow-[0_-20px_80px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh] ${isClosingFilters ? 'ec-anim-slide-out-down' : 'ec-anim-slide-in-up'}`}>
+            {/* Handle bar */}
+            <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto my-3" />
+            
+            <div className="flex items-center justify-between p-6 pt-2 border-b border-white/5">
+              <h2 className="text-xl font-bold text-white uppercase tracking-tight" style={{ fontFamily: "'Jost', sans-serif" }}>Filters & Sort</h2>
               <button 
                 onClick={closeFilters} 
                 className="flex h-9 w-9 items-center justify-center rounded-full text-white/50 hover:text-white bg-white/5 transition-all"
@@ -695,7 +702,7 @@ export default function CategoryPage() {
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0d0d0d] via-[#0d0d0d] to-transparent pt-10">
               <button 
                 onClick={closeFilters}
-                className="w-full py-4 rounded-xl bg-[var(--gold)] text-white font-bold shadow-[0_10px_30px_rgba(176,124,58,0.3)]"
+                className="w-full py-4 rounded-2xl bg-[var(--gold)] text-white font-bold shadow-[0_10px_30px_rgba(176,124,58,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 Show Results
               </button>
@@ -703,6 +710,18 @@ export default function CategoryPage() {
           </div>
         </div>
       )}
+
+      {/* 2.4 — Mobile Filter Pill */}
+      <div className="xl:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full px-6 max-w-[320px]">
+        <button
+          onClick={() => setIsFiltersOpen(true)}
+          className="w-full py-4 bg-white text-black rounded-full font-bold shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all text-sm uppercase tracking-widest border border-black/5"
+          style={{ fontFamily: "'Jost', sans-serif" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
+          Filter & Sort
+        </button>
+      </div>
     </>
   );
 }

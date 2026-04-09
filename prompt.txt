@@ -249,3 +249,5 @@ If you want, we are considering to add a couple or two videos/short clips if nec
 
 The e-commerce pages aren't mobile optimised (except find-stock, ignore that page for now), and mobile is our first priority, so we need to update each page for mobile optimisation anyways.
 when you're building the suggestions, make each page (and or its components) a complete section. Like, i'll tell Ai to make changes in chunks instead of one go.
+
+
