@@ -613,10 +613,11 @@ body {
 .ec-ticker-track {
   display: flex;
   white-space: nowrap;
-  animation: ticker 30s linear infinite;
+  animation: ticker 46s linear infinite;
   padding: 1rem 0;
 }
 
+.ec-ticker-track.paused,
 .ec-ticker-track:hover {
   animation-play-state: paused;
 }

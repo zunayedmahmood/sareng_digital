@@ -436,7 +436,8 @@ class EcommerceCatalogController extends Controller
                 ->where('id', $identifier)
                 ->firstOrFail();
 
-            // Get related products: random 5 products from same category, de-duplicated by base_name (to avoid showing different sizes of same SKU)
+            // Related Essentials logic:
+            // 1. Get up to 20 random products from the same category (one per SKU group)
             $relatedProductIds = DB::table('products')
                 ->where('category_id', $product->category_id)
                 ->where('base_name', '!=', $product->base_name)
@@ -453,8 +454,32 @@ class EcommerceCatalogController extends Controller
                 ->select(DB::raw('MIN(id) as id'))
                 ->groupBy('base_name')
                 ->inRandomOrder()
-                ->take(5)
+                ->take(20)
                 ->pluck('id');
+
+            // 2. If we have fewer than 20, fill the rest with latest products from OTHER categories
+            if ($relatedProductIds->count() < 20) {
+                $fillCount = 20 - $relatedProductIds->count();
+                $fillIds = DB::table('products')
+                    ->where('category_id', '!=', $product->category_id) // "no duplicates from this category"
+                    ->where('is_archived', false)
+                    ->whereNull('deleted_at')
+                    ->whereExists(function ($query) {
+                        $query->select(DB::raw(1))
+                            ->from('product_batches')
+                            ->whereColumn('product_batches.product_id', 'products.id')
+                            ->where('product_batches.quantity', '>', 0)
+                            ->where('product_batches.is_active', true)
+                            ->where('product_batches.availability', true);
+                    })
+                    ->select(DB::raw('MIN(id) as id'))
+                    ->groupBy('base_name')
+                    ->orderBy(DB::raw('MAX(created_at)'), 'desc') // Latest products
+                    ->take($fillCount)
+                    ->pluck('id');
+                
+                $relatedProductIds = $relatedProductIds->concat($fillIds);
+            }
 
             $relatedProducts = Product::with(['images', 'batches' => function ($q) {
                     $q->orderBy('sell_price', 'asc');

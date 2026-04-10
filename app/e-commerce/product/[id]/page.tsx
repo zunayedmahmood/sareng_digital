@@ -448,7 +448,7 @@ export default function ProductDetailPage() {
         const mainProduct = response.product;
 
         setProduct(mainProduct);
-        setRelatedProducts([...(response.related_products || [])].sort((a, b) => getNewestKey(b) - getNewestKey(a)));
+        setRelatedProducts(response.related_products || []);
 
         const directVariantsRaw = Array.isArray((mainProduct as any).variants)
           ? (mainProduct as any).variants
@@ -901,7 +901,7 @@ export default function ProductDetailPage() {
       </div>
 
       {/* Main product section */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 sm:pt-28 sm:pb-12 md:pt-16 md:pb-16">
         <div className="grid lg:grid-cols-[6fr_4fr] gap-10 lg:gap-20 items-start">
 
           {/* 3.1 — Image Gallery */}
@@ -951,12 +951,12 @@ export default function ProductDetailPage() {
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest"
                        style={{ 
                          fontFamily: "'DM Mono', monospace",
-                         color: availableInventory <= 5 ? '#ef4444' : availableInventory <= 20 ? '#f59e0b' : '#10b981'
+                         color: availableInventory <= 5 ? '#ef4444' : availableInventory <= 10 ? '#f59e0b' : '#10b981'
                        }}>
                     <span>
                       {availableInventory <= 0 ? 'Out of stock' : 
                        availableInventory <= 5 ? `🔥 Almost gone! Only ${availableInventory} left` : 
-                       availableInventory <= 20 ? `Selling fast — only ${availableInventory} left` : 
+                       availableInventory <= 10 ? `Selling fast — only ${availableInventory} left` : 
                        `In Stock — ${availableInventory} units available`}
                     </span>
                   </div>
@@ -964,7 +964,7 @@ export default function ProductDetailPage() {
                     <div 
                       className={`h-full transition-[width] duration-700 ease-out rounded-full ${
                         availableInventory <= 5 ? 'bg-red-500 animate-pulse' : 
-                        availableInventory <= 20 ? 'bg-amber-500' : 
+                        availableInventory <= 10 ? 'bg-amber-500' : 
                         'bg-emerald-500'
                       }`} 
                       style={{ width: `${Math.min((availableInventory / 25) * 100, 100)}%` }} 
@@ -1078,7 +1078,7 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-6 sm:gap-8 sm:grid-cols-3 lg:grid-cols-4">
-              {relatedProducts.slice(0, 4).map(item => (
+              {relatedProducts.map(item => (
                 <PremiumProductCard
                   key={item.id}
                   product={item}

@@ -15,6 +15,7 @@ export default function NewArrivalsTicker() {
   const router = useRouter();
   const [products, setProducts] = useState<SimpleProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     const fetchNewArrivals = async () => {
@@ -43,7 +44,11 @@ export default function NewArrivalsTicker() {
 
   return (
     <div className="ec-ticker-container bg-[#0a0a0a] border-y border-white/5 py-8">
-      <div className="ec-ticker-track">
+      <div 
+        className={`ec-ticker-track ${isPaused ? 'paused' : ''}`}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setTimeout(() => setIsPaused(false), 2000)} // Resume after 2s
+      >
         {displayProducts.map((product, idx) => (
           <div key={`${product.id}-${idx}`} className="w-[280px] px-3 flex-shrink-0">
             <PremiumProductCard

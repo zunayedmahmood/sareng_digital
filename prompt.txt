@@ -281,4 +281,4 @@ The slide stops and starts on hover perfectly on desktop. but on mobile, it does
 
 for each categories we are showing, we show all products, then each subcategories.
 Update this.
-For "All Products" under each category, we'll simply show all products of That category including subcategories.
+For "All Products" under each category, we'll simply show all products of That category including subcategories of That category.

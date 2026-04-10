@@ -26,66 +26,6 @@ const flattenAll = (nodes: CatalogCategory[]): CatalogCategory[] => {
   return out;
 };
 
-/**
- * Build the set of IDs and name-keys that this category (and all its descendants) own.
- * A product matches if its category id or name/slug is in this set.
- */
-const buildAllowedSet = (cat: CatalogCategory) => {
-  const ids  = new Set<number>();
-  const keys = new Set<string>();
-  const walk = (node: CatalogCategory) => {
-    if (node.id)   ids.add(Number(node.id));
-    if (node.name) keys.add(normalizeKey(node.name));
-    if (node.slug) keys.add(normalizeKey(node.slug));
-    node.children?.forEach(walk);
-  };
-  walk(cat);
-  return { ids, keys };
-};
-
-/**
- * Does this product's attached category match the allowed set?
- * Checks category.id, category.name, category.slug, and legacy flat fields.
- */
-const productMatchesCat = (
-  product: SimpleProduct,
-  allowed: { ids: Set<number>; keys: Set<string> }
-): boolean => {
-  if (allowed.ids.size === 0 && allowed.keys.size === 0) return true;
-
-  const cat: any = (product as any)?.category;
-
-  // id match
-  const catId = Number(cat?.id || 0);
-  if (catId > 0 && allowed.ids.has(catId)) return true;
-
-  // name / slug match
-  const checkKeys = [
-    cat?.name,
-    cat?.slug,
-    (product as any)?.category_name,
-    (product as any)?.category_slug,
-  ]
-    .map(v => normalizeKey(v))
-    .filter(Boolean);
-
-  return checkKeys.some(k => allowed.keys.has(k));
-};
-
-/**
- * Does the product's base_name / name / display_name contain this category's name?
- * Used as a heuristic when products are tagged with a parent category only.
- * e.g. product named "Jordan 1 High Union LA" contains "jordan 1 high"
- */
-const productNameContainsCat = (product: SimpleProduct, catName: string): boolean => {
-  const needle = normalizeKey(catName);
-  if (!needle) return false;
-  const haystack = normalizeKey(
-    [product.display_name, product.base_name, product.name].filter(Boolean).join(' ')
-  );
-  return haystack.includes(needle);
-};
-
 /* ─── component ─────────────────────────────────────────────────────────── */
 
 interface TabData {
@@ -234,8 +174,10 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
         if (!alive) return;
         setAllCats(flat);
         setTabs(selected);
-        // Default to "All Products" (null activeId)
-        setActiveId(null);
+        // Default to first tab instead of "All Products"
+        if (selected.length > 0) {
+          setActiveId(selected[0].id);
+        }
       } catch (e) {
         console.error('SubcategoryTabs: failed to load categories', e);
       }
@@ -297,63 +239,27 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
     setTabData(p => ({ ...p, [key]: { category: cat!, products: [], loading: true, loaded: false } }));
 
     (async () => {
-      const allowed = cat ? buildAllowedSet(cat) : { ids: new Set<number>(), keys: new Set<string>() };
-
-      // Find parent category (products may be tagged with parent instead of child)
-      const parent = cat ? (allCats.find(c => c.id === cat.parent_id) || null) : null;
-
-      const fetchAttempts: Record<string, any>[] = [];
-      
-      if (activeId === null && parentNode) {
-        // "All Products" mode for parent
-        fetchAttempts.push(
-          { category_id: parentNode.id, sort_by: 'newest' },
-          { sort_by: 'newest', per_page: 40 }
-        );
-      } else if (cat) {
-        // Specific subcategory mode
-        fetchAttempts.push(
-          { category_id: cat.id, sort_by: 'newest' },
-          { category: cat.name, sort_by: 'newest' }
-        );
-      } else {
-        // Fallback catch-all if we have no parent either
-        fetchAttempts.push({ sort_by: 'newest', per_page: 40 });
-      }
-
       let products: SimpleProduct[] = [];
+      try {
+        const targetId = activeId;
+        if (!targetId) return;
 
-      for (const params of fetchAttempts) {
-        try {
-          const response = await catalogService.getProducts({
-            page: 1,
-            per_page: Math.max(productsPerTab * 4, 32),
-            ...(params as any),
-          });
+        const response = await catalogService.getProducts({
+          page: 1,
+          per_page: productsPerTab,
+          category_id: targetId,
+          sort_by: 'newest',
+          group_by_sku: true as any,
+        } as any);
 
-          const cards = buildCardProductsFromResponse(response);
+        // Standard logic from products/page.tsx: use grouped_products if available
+        const rawProducts = response.grouped_products?.length
+          ? response.grouped_products.map(gp => gp.main_variant)
+          : response.products;
 
-          // Pass 1: strict category match
-          const strict = cards.filter(p => productMatchesCat(p, allowed));
-
-          if (strict.length > 0) {
-            products = strict.slice(0, productsPerTab);
-            break;
-          }
-
-          // Pass 2: heuristic
-          if (cat) {
-            const byName = cards.filter(p => productNameContainsCat(p, cat.name));
-            if (byName.length > 0) {
-              products = byName.slice(0, productsPerTab);
-              break;
-            }
-          } else {
-             // For "All Products", just take whatever we found
-             products = cards.slice(0, productsPerTab);
-             break;
-          }
-        } catch { /* try next attempt */ }
+        products = buildCardProductsFromResponse({ ...response, products: rawProducts });
+      } catch (e) {
+        console.error('SubcategoryTabs: fetch failed', e);
       }
 
       if (alive) {
@@ -363,7 +269,7 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
 
     return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId, tabs.length, allCats.length, parentNode?.id]);
+  }, [activeId, tabs.length, parentNode?.id]);
 
   const activeKey = activeId === null ? 'all' : String(activeId);
   const activeTab = tabData[activeKey];
@@ -439,23 +345,6 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
               position: 'relative'
             }}
           >
-            {/* All Products Tab */}
-            <button
-              ref={el => { tabRefs.current['all'] = el; }}
-              onClick={() => setActiveId(null)}
-              className={`text-sm sm:text-base font-medium whitespace-nowrap pb-3 transition-colors duration-300 ${
-                activeId === null 
-                  ? 'text-black' 
-                  : 'text-gray-400 hover:text-black'
-              }`}
-              style={{ 
-                fontFamily: "'Jost', sans-serif",
-                scrollSnapAlign: 'start'
-              }}
-            >
-              All Products
-            </button>
-
             {/* Sub-category Tabs */}
             {tabs.map((cat) => (
               <button
@@ -516,12 +405,6 @@ const findParentNode = (flat: CatalogCategory[], queries: string[]): CatalogCate
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
               <p className="text-gray-400 font-medium">No products found in this collection</p>
-              <button 
-                onClick={() => setActiveId(null)}
-                className="mt-4 text-xs font-bold uppercase tracking-widest text-black underline"
-              >
-                Back to All Products
-              </button>
             </div>
           )}
         </div>

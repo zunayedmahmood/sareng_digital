@@ -27,6 +27,14 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // 1. Reset gallery when images change (prevents blank screen when switching variants with fewer images)
+  useEffect(() => {
+    setActiveIndex(0);
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+    }
+  }, [images]);
+
   const safeImages = images.length > 0 
     ? images 
     : [{ id: 0, url: '/placeholder-product.png', is_primary: true }];
@@ -35,20 +43,27 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     const { scrollLeft, offsetWidth } = scrollContainerRef.current;
+    if (offsetWidth === 0) return;
     const index = Math.round(scrollLeft / offsetWidth);
-    if (index !== activeIndex) {
+    if (index !== activeIndex && index < safeImages.length) {
       setActiveIndex(index);
     }
   };
 
   const scrollToImage = (index: number) => {
+    // Set index immediately for desktop opacity transition
+    setActiveIndex(index);
+    
     if (!scrollContainerRef.current) return;
     const { offsetWidth } = scrollContainerRef.current;
+    
+    // Only use smooth behavior for mobile swipe experience
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    
     scrollContainerRef.current.scrollTo({
       left: index * offsetWidth,
-      behavior: 'smooth'
+      behavior: isMobile ? 'smooth' : 'instant' as any
     });
-    setActiveIndex(index);
   };
 
   const prevImage = () => {
@@ -65,13 +80,13 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
     <div className="flex flex-col-reverse md:flex-row gap-6">
       {/* Vertical Thumbnails (Desktop) */}
       {safeImages.length > 1 && (
-        <div className="hidden md:flex flex-col gap-3 w-20 flex-shrink-0">
+        <div className="flex flex-row md:flex-col gap-3 w-full md:w-20 flex-shrink-0 overflow-x-auto no-scrollbar pb-2 md:pb-0">
           {safeImages.map((img, index) => (
             <button
               key={img.id || index}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => setActiveIndex(index)}
-              className={`relative overflow-hidden rounded-xl bg-gray-50 border-2 transition-all duration-300 ${
+              onMouseEnter={() => scrollToImage(index)}
+              onClick={() => scrollToImage(index)}
+              className={`relative overflow-hidden rounded-xl bg-gray-50 border-2 transition-all duration-200 flex-shrink-0 w-16 md:w-full ${
                 activeIndex === index ? 'border-black' : 'border-transparent hover:border-gray-200'
               }`}
               style={{ aspectRatio: '1/1' }}
@@ -95,14 +110,14 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             {safeImages.map((img, index) => (
               <div 
                 key={img.id || index}
-                className={`snap-start flex-shrink-0 w-full h-full md:absolute md:inset-0 transition-opacity duration-500 ${
+                className={`snap-start flex-shrink-0 w-full h-full md:absolute md:inset-0 transition-opacity duration-300 ${
                   index === activeIndex ? 'md:opacity-100 z-10' : 'md:opacity-0 z-0'
                 }`}
               >
                 <img
                   src={img.url}
                   alt={`${productName} view ${index + 1}`}
-                  className="w-full h-full object-contain p-4 sm:p-8 transition-transform duration-700 md:group-hover:scale-105"
+                  className="w-full h-full object-contain p-4 sm:p-8 transition-transform duration-300 md:group-hover:scale-105"
                 />
               </div>
             ))}
@@ -140,19 +155,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             </div>
           )}
 
-          {/* Dot Indicators (Mobile) */}
-          {safeImages.length > 1 && (
-            <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-2 md:hidden z-20">
-              {safeImages.map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === activeIndex ? 'w-6 bg-[var(--gold)]' : 'w-1.5 bg-white/30'
-                  }`} 
-                />
-              ))}
-            </div>
-          )}
+
         </div>
       </div>
     </div>
