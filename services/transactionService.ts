@@ -322,9 +322,13 @@ const transactionService = {
       amount: data.amount,
       type: data.type === 'income' || data.type === 'credit' ? 'credit' : 'debit',
       account_id: data.account_id || 1, // Default cash account
+      counter_account_id: data.counter_account_id, // Required for double-entry
       description: data.description || `${data.name}${data.description_extra ? ' - ' + data.description_extra : ''}`,
       store_id: data.store_id,
       reference_type: data.reference_type || 'manual',
+      note: data.note,
+      reference_note: data.reference_note,
+      receipt_image: data.receipt_image || data.receiptImage,
       metadata: {
         category: data.category,
         comment: data.comment || data.note,

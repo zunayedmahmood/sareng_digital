@@ -83,33 +83,33 @@ One of the most frequent e-commerce data issues is missing photos for specific s
 ### 5.1 Home Page (`app/e-commerce/page.tsx`)
 - **Immersive Sections:** Every section is wrapped in `SectionReveal`, an Intersection Observer wrapper that applies a staggered fade-up animation as the user scrolls.
 - **Instagram Reels (`InstagramReelViewer.tsx`):** A custom 3D carousel using CSS `perspective: 1000px`. It embeds live social content to bridge the gap between social media and the storefront.
-- **New Arrivals Ticker:** An infinite marquee that uses hardware-accelerated CSS transforms for silky-smooth performance even on lower-end mobile devices.
+- **New Arrivals Ticker:** An infinite marquee that uses hardware-accelerated CSS transforms for silky-smooth performance.
 
 ### 5.2 Category Feed (`app/e-commerce/[slug]/page.tsx`)
+- **Dynamic Routing:** Resolves the category ID from the slug by flattening the category tree into a flat lookup map.
 - **Cache Entry Lifecycle:** Uses a complex `CacheEntry` object:
     - `rawById`: A `Map` to prevent duplicate SKUs in the local memory.
     - `cards`: The final grouped Mother products.
     - `fetchedApiPages`: Tracks pagination to prevent redundant server calls.
-- **Heuristic Filtering:** Even if the backend filtering fails, the frontend performs a secondary "Allow-Key" check to ensure products match the requested category.
 
 ### 5.3 Product Detail Page (`app/e-commerce/product/[id]/page.tsx`)
-- **Variant Resolution Engine:** Implements a regex-based parser that handles strings like `-RED-US7-EU40`. It extracts the color ("Red") and size ("US 7 / EU 40") into separate selection pills.
+- **Variant Resolution Engine:** Implements a regex-based parser (`parseVariationSuffix`) that handles strings like `-RED-US7-EU40`. It identifies tokens like `US`, `EU`, `UK`, `CM`, and `MM`.
 - **Urgency Signals:**
     - **Live Viewers:** A deterministic seed based on the Product ID shows a "viewing now" count.
     - **Inventory Bar:** A progress bar that changes color (Green → Amber → Red) based on remaining stock.
-- **Recently Viewed Strip:** A local-storage observer that maintains a history of the last 8 items viewed by the user.
+- **Sticky Buy Bar:** Bottom-anchored conversion bar for mobile users.
 
 ---
 
 ## 6. Checkout & Payment Security
 
 ### 6.1 Cart Integrity (`app/e-commerce/cart/page.tsx`)
-- **Pre-Flight Validation:** The "Proceed to Checkout" button is guarded by a `cartService.validateCart()` call. This ensures prices haven't changed and items haven't gone out of stock while in the bag.
 - **Synchronous Write:** Before navigating to checkout, the app performs a synchronous write to `localStorage` to ensure the `selected-items` state is captured before the browser unloads the page.
+- **Multi-Select Logic:** Users can selectively checkout items from their bag while leaving others for later.
 
-### 6.2 SSLCommerz Bridge (`components/ecommerce/SSLCommerzPayment.tsx`)
+### 6.2 SSLCommerz Payment Bridge (`components/ecommerce/SSLCommerzPayment.tsx`)
 - **Transition UI:** A high-security overlay with a "Secure Encryption" animation appears during the gateway redirect.
-- **Session Recovery:** Stores a `sslc_payment_intent` in `localStorage`. If a user's phone dies during payment, they can return to the site and the system will instantly check the transaction status with the bank.
+- **Intent Recovery:** Stores `sslc_payment_intent` in `localStorage`. If a user's phone dies during payment, they can return to the site and the system will instantly check the transaction status.
 
 ---
 
@@ -119,85 +119,97 @@ One of the most frequent e-commerce data issues is missing photos for specific s
 - **`AccountSidebar.tsx`**: Features a premium serif header and capsule-style navigation items.
 - **Mobile Tabs**: On screens < 1024px, the sidebar is replaced by a bottom-tab navigation bar (`ec-mobile-tabs`) for app-like usability.
 
-### 7.2 Order History & Tracking
-- **Timeline Component:** Renders a step-by-step progress bar (`Pending` → `Processing` → `Shipped` → `Delivered`).
-- **Live Tracking:** Public tracking page (`/order-tracking`) allows guest users to check status via phone number, leveraging the `guestCheckoutService.ordersByPhone` method.
+### 7.2 Wishlist Synchronization (`app/e-commerce/wishlist/page.tsx`)
+- **Event Bus:** Uses `wishlist-updated` custom events to sync state across different parts of the UI.
+- **Persistence:** Items are stored in `localStorage` allowing guest users to maintain a wishlist without an account.
 
 ---
 
-## 8. Find Stock Hardware Bridge (`app/e-commerce/find-stock/FindStockClient.tsx`)
+## 8. Catalog API & Search Logic
 
-A unique "Staff/Customer Hybrid" tool.
-- **Scanner UI:** Overrides `html5-qrcode` default styles with `scannerStyles` to achieve a sleek, borderless look.
-- **Queue System:** Implements a `scanQueueRef` to prevent UI "locking" during rapid physical scans.
-- **Distribution Matrix:** Shows a detailed scoreboard of Physical, Reserved, and Available stock for the current SKU across all branches.
+### 8.1 API Parameters
+The frontend utilizes a specific set of parameters for the `catalogService.getProducts` call:
+- `group_by_sku`: Boolean flag to enable/disable "Mother" grouping.
+- `new_arrivals`: Boolean flag to filter items created in the last 180 days.
+- `min_price` / `max_price`: Numerical ranges for price filtering.
+- `sort_by`: Supports `newest`, `price_asc`, and `price_desc`.
+
+### 8.2 Category Deterministic Palettes
+In the "All Categories" view (`app/e-commerce/categories/page.tsx`), a deterministic `PALETTE` array is used to assign background gradients to subcategory cards based on their index (`ci % PALETTE.length`), ensuring a colorful yet predictable UI.
 
 ---
 
-## 9. Design System: Design Tokens & Classes
+## 9. Find Stock Hardware Bridge (`app/e-commerce/find-stock/FindStockClient.tsx`)
+
+- **Scanner UI:** Custom-styled `html5-qrcode` integration with borderless CSS overrides.
+- **Queue System:** Implements a `scanQueueRef` to prevent data loss during rapid physical scans from hardware devices.
+- **Inventory Metrics:** Renders a scoreboard of Physical, Reserved, and Available stock for the current SKU across all branches.
+
+---
+
+## 10. Design System: Design Tokens & Classes
 
 Implemented via a hybrid of Tailwind 4 and custom CSS in `globals.css`:
 
-### 9.1 Container Classes
+### 10.1 Container & Context Classes
 - **`ec-root`**: Master container with forced `#0d0d0d` background.
 - **`ec-surface`**: Backdrop blur with a `1px` white translucent border.
 - **`ec-darkify`**: Utility class to darken standard components for the e-commerce context.
+- **`ec-eyebrow`**: Metadata label used for section headers.
 
-### 9.2 UI Interactions
-- **`tap-bounce`**: A CSS transition that scales elements down to `0.95` on click.
+### 10.2 Animation Glossary
 - **`ec-anim-fade-up`**: Default entry animation for product cards.
-- **`shimmer`**: A linear-gradient animation used for loading skeletons.
+- **`ec-anim-backdrop`**: Blur and opacity fade for modal backgrounds.
+- **`badge-bump`**: A scale transformation used for the cart count bubble.
+- **`tap-bounce`**: Interactive scale effect on button click.
 
 ---
 
-## 10. Technical Performance & Optimization
+## 11. Advanced Cart Sub-System (`components/ecommerce/cart/CartItem.tsx`)
 
+The cart sub-system handles granular state management for individual items:
+- **Quantity Handlers:** Implements `handleQuantityChange` with an internal `isUpdating` state. This prevents race conditions if a user clicks the "Plus" button rapidly.
+- **Stock Warnings:** If `quantity > maxQuantity`, a high-visibility red badge appears, and the checkout button is disabled via the `isAnyOverStock` selector in the parent sidebar.
+- **Price Calculation:** Dynamically parses unit prices and total prices, handling both string and numerical formats returned by different backend endpoints.
+
+---
+
+## 12. Security Protocols & Token Management
+
+### 12.1 Multi-Auth Security
+The system maintains a strict separation between Admin and Customer scopes:
+- **Interceptor Scoping:** The centralized `axiosInstance` checks the target URL. If it starts with `/customer` or `/checkout`, it injects the `auth_token`. Otherwise, it defaults to the Admin `authToken`.
+- **Token Expiration Handling:** If an API call returns a `401 Unauthorized`, the system automatically attempts to resolve the session by falling back to "Guest Mode" or redirecting to the login portal.
+
+### 12.2 Data Sanitization
+- **Slugification:** All user-provided search terms and category names are routed through a `slugify` utility to prevent XSS via URL parameters.
+- **Sanitized HTML:** Receipt previews and product descriptions are rendered using standard React escaping or trusted `srcDoc` iframes for the thermal printer previews.
+
+---
+
+## 13. Performance & Code Splitting
+
+- **Suspense Boundaries:** Critical for pages using `searchParams` (Checkout, Search) to avoid SSR hydration mismatches.
 - **Image Proxies:** All media is routed through `/api/proxy-image` to resolve CORS issues from external storage disks.
-- **Lazy Loading:** `SectionReveal` ensures that heavy components like the `InstagramReelViewer` are only initialized when within 10% of the viewport.
 - **Tree Shaking:** All Lucide icons are imported as named members to minimize the final JS bundle size.
 
 ---
 
-## 11. Component API Summary
+## 14. Component API Summary
 
-### 11.1 `PremiumProductCard`
-| Prop | Type | Description |
+| Component | Path | Key Prop |
 | :--- | :--- | :--- |
-| `product` | `SimpleProduct` | The Mother product object. |
-| `compact` | `boolean` | Minimal mode for related items. |
-| `animDelay` | `number` | Micro-stagger for grid entrance. |
-
-### 11.2 `SubcategoryProductTabs`
-| Prop | Type | Description |
-| :--- | :--- | :--- |
-| `parentQueries` | `string[]` | Keywords to find the root category. |
-| `tabsCount` | `number` | Max subcategories to show. |
+| `Navigation` | `@/components/ecommerce/Navigation` | `scrolled` (Internal State) |
+| `PremiumProductCard` | `@/components/ecommerce/ui/PremiumProductCard` | `product: SimpleProduct` |
+| `SubcategoryProductTabs`| `@/components/ecommerce/SubcategoryProductTabs`| `parentQueries: string[]` |
+| `SSLCommerzPayment` | `@/components/ecommerce/SSLCommerzPayment` | `totalAmount: number` |
+| `StickyAddToCart` | `@/components/ecommerce/StickyAddToCart` | `isVisible: boolean` |
 
 ---
 
-## 12. Internal Service Logic Reference
+## 15. Conclusion
 
-### 12.1 `catalogService.ts`
-- **`getProducts`**: Supports `group_by_sku`, `new_arrivals`, and `min_price` / `max_price` ranges.
-- **`getFeaturedProducts`**: Fetches a curated list with a fallback to the newest items if the "Featured" flag is sparse.
-
-### 12.2 `cartService.ts`
-- **Guest Merge:** Automatically syncs items from the browser's `localStorage` bag to the database bag upon successful login.
-
----
-
-## 13. Accessibility Standards (A11Y)
-
-Errum V2 adheres to high-end accessibility patterns:
-- **ARIA Modals:** All drawers use `aria-hidden="true"` on the background when open.
-- **Semantic HTML:** Uses `<article>` for product cards, `<aside>` for sidebars, and `<main>` for primary feeds.
-- **Color Contrast:** All gold text on black exceeds WCAG AA standards for readability.
-
----
-
-## 14. Conclusion
-
-The Errum V2 e-commerce module is a masterclass in premium digital engineering. By prioritizing high-depth data resolution (variant parsing), sophisticated grouping (Mother-Child), and a refined visual language, the system provides a seamless experience that scales across thousands of SKUs and multiple physical branches.
+The Errum V2 e-commerce module represents a pinnacle of luxury digital storefront engineering. By combining high-depth data resolution (variant parsing), sophisticated grouping (Mother-Child), and a refined visual language, the system provides a seamless experience that scales across thousands of SKUs and multiple physical branches.
 
 ---
 *Technical Documentation generated by Errum V2 Frontend Engineering team. (c) 2026 Errum Store.*
