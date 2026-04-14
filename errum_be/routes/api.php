@@ -38,6 +38,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\PriceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BusinessAnalyticsController;
+use App\Http\Controllers\StockIntelligenceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -171,8 +172,11 @@ Route::prefix('catalog')->group(function () {
         Route::post('/search', [InventoryController::class, 'searchProductAcrossStores']);
         Route::get('/low-stock-alerts', [InventoryController::class, 'getLowStockAlerts']);
         Route::get('/stock-aging', [InventoryController::class, 'getStockAging']);
+        // Stock Intelligence (best sellers, slow movers, rebalancing predictor)
+        Route::get('/intelligence', [StockIntelligenceController::class, 'index']);
     });
 });
+
 
 // ============================================
 // E-COMMERCE CUSTOMER PROFILE ROUTES
@@ -353,6 +357,12 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/orders/{orderId}/mark-as-delivered', [\App\Http\Controllers\OrderManagementController::class, 'markAsDelivered']);
         Route::post('/orders/bulk-mark-as-delivered', [\App\Http\Controllers\OrderManagementController::class, 'bulkMarkAsDelivered']);
     });
+    
+    Route::prefix('inventory')->group(function () {
+    
+    Route::get('/intelligence', [StockIntelligenceController::class, 'index']);
+    Route::get('/intelligence/batch-report', [StockIntelligenceController::class, 'batchReport']); // ← ADD THIS
+});
 
     // Store Fulfillment (Store Employee) - Dashboard & Barcode Scanning
     Route::prefix('store/fulfillment')->group(function () {
@@ -427,6 +437,8 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/holidays', [\App\Http\Controllers\AttendanceController::class, 'declareHoliday']);
             Route::get('/holidays', [\App\Http\Controllers\AttendanceController::class, 'listHolidays']);
             
+            Route::get('/schedules', [\App\Http\Controllers\AttendanceController::class, 'getSchedules']);
+
             Route::post('/schedules', [\App\Http\Controllers\AttendanceController::class, 'assignSchedule']);
             
             Route::post('/mark', [\App\Http\Controllers\AttendanceController::class, 'markAttendance']);
@@ -817,7 +829,8 @@ Route::middleware('auth:api')->group(function () {
         // Operations overview
         Route::get('/operations-today', [DashboardController::class, 'operationsToday']);
     });
-
+    
+    
     // ============================================
     // DAILY CASH SHEET ROUTES
     // Daily accounting sheet (branches + online + owner)
@@ -849,6 +862,10 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/sales/best-sellers', [ReportController::class, 'bestSellers']);
         Route::get('/sales/slow-moving', [ReportController::class, 'slowMoving']);
         Route::get('/sales/profit-margins', [ReportController::class, 'profitMargins']);
+        
+        Route::get('/daily-branch-json', [\App\Http\Controllers\DailyBranchReportController::class, 'json']);
+    Route::get('/daily-branch', [\App\Http\Controllers\DailyBranchReportController::class, 'download']);
+
         
         // Staff Reports
         Route::get('/staff/performance', [ReportController::class, 'staffPerformance']);
