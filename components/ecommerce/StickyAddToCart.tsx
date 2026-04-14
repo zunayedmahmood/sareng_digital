@@ -22,7 +22,7 @@ const StickyAddToCart: React.FC<StickyAddToCartProps> = ({
 }) => {
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[60] bg-[var(--bg-depth)] border-t border-[var(--border-strong)] p-4 transition-all duration-500 pb-[calc(1rem+env(safe-area-inset-bottom))] ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
+      className={`fixed top-0 left-0 right-0 z-[60] bg-[var(--bg-depth)] border-b border-[var(--border-strong)] p-4 transition-all duration-500 pt-[calc(1rem+env(safe-area-inset-top))] ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
         } sm:hidden shadow-[var(--shadow-lifted)]`}
     >
       <div className="flex items-center justify-between gap-4">
