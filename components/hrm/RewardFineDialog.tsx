@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Zap, AlertCircle } from 'lucide-react';
+import { X, Zap } from 'lucide-react';
 import hrmService from '@/services/hrmService';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -14,6 +14,24 @@ interface RewardFineDialogProps {
   onSuccess: () => void;
   editData?: any;
 }
+
+const rewardPresets = [
+  'Festival Bonus',
+  'Overtime Bonus',
+  'Target Meet Bonus',
+  'Performance Bonus',
+  'Attendance Bonus',
+  'Special Incentive',
+];
+
+const finePresets = [
+  'Disciplinary Fine',
+  'Cash Shortage',
+  'Damage Recovery',
+  'Absence Penalty',
+  'Late Penalty',
+  'Policy Violation',
+];
 
 export default function RewardFineDialog({ isOpen, onClose, storeId, employee, onSuccess, editData }: RewardFineDialogProps) {
   const [type, setType] = useState<'reward' | 'fine'>('reward');
@@ -114,9 +132,29 @@ export default function RewardFineDialog({ isOpen, onClose, storeId, employee, o
 
           {/* Title */}
           <div>
-            <label className="block text-muted text-[10px] uppercase tracking-widest font-600 mb-1.5">Title</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-muted text-[10px] uppercase tracking-widest font-600">Title</label>
+              <span className="text-[10px] text-muted">Choose preset or write custom</span>
+            </div>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Monthly Performance Bonus" required
               className="input-dark w-full px-4 py-2.5 rounded-xl text-sm" />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {(isReward ? rewardPresets : finePresets).map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setTitle(preset)}
+                  className="px-2.5 py-1 rounded-full text-[10px] font-700 transition-all"
+                  style={{
+                    background: title === preset ? accentBg : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${title === preset ? accentBorder : 'rgba(255,255,255,0.06)'}`,
+                    color: title === preset ? accentColor : 'rgba(255,255,255,0.65)',
+                  }}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
