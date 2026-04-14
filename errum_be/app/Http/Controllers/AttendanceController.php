@@ -36,6 +36,9 @@ class AttendanceController extends Controller
             'effective_from' => 'nullable|date',
             'timezone' => 'nullable|string|max:64',
             'notes' => 'nullable|string',
+            'late_fee_per_minute' => 'nullable|numeric|min:0',
+            'overtime_rate_per_hour' => 'nullable|numeric|min:0',
+            'grace_period_minutes' => 'nullable|integer|min:0',
         ]);
 
         $storeId = (int) $validated['store_id'];
@@ -65,6 +68,28 @@ class AttendanceController extends Controller
 
         $effectiveFrom = Carbon::parse($validated['effective_from'] ?? now(self::TIMEZONE)->toDateString())->toDateString();
 
+        $dutyMode = $validated['duty_mode'] ?? 'all_days';
+        $weeklyDays = !empty($validated['weekly_days'])
+            ? array_values(array_unique(array_map('strtolower', $validated['weekly_days'])))
+            : null;
+        $dutyDates = !empty($validated['duty_dates'])
+            ? array_values(array_unique(array_map(fn ($value) => Carbon::parse($value)->toDateString(), $validated['duty_dates'])))
+            : null;
+
+        if ($dutyMode === 'weekly_pattern' && empty($weeklyDays)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'weekly_days is required for weekly_pattern duty mode',
+            ], 422);
+        }
+
+        if ($dutyMode === 'selected_dates' && empty($dutyDates)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'duty_dates is required for selected_dates duty mode',
+            ], 422);
+        }
+
         DB::transaction(function () use ($validated, $storeId, $actor, $effectiveFrom) {
             $previous = StoreAttendancePolicy::query()
                 ->where('store_id', $storeId)
@@ -91,6 +116,9 @@ class AttendanceController extends Controller
                 'effective_to' => null,
                 'declared_by' => $actor->id,
                 'notes' => $validated['notes'] ?? null,
+                'late_fee_per_minute' => $validated['late_fee_per_minute'] ?? 0,
+                'overtime_rate_per_hour' => $validated['overtime_rate_per_hour'] ?? 0,
+                'grace_period_minutes' => $validated['grace_period_minutes'] ?? 0,
             ]);
         });
 
@@ -179,6 +207,44 @@ class AttendanceController extends Controller
         ]);
     }
 
+
+    public function getSchedules(Request $request)
+    {
+        $actor = $this->actor($request);
+
+        $validated = $request->validate([
+            'store_id' => 'required|exists:stores,id',
+            'employee_id' => 'nullable|exists:employees,id',
+            'date' => 'nullable|date',
+        ]);
+
+        $storeId = (int) $validated['store_id'];
+        $this->assertStoreAccess($actor, $storeId, true);
+
+        $date = !empty($validated['date']) ? Carbon::parse($validated['date']) : now(self::TIMEZONE);
+
+        $query = EmployeeWorkSchedule::query()
+            ->with(['employee:id,name,employee_code,store_id'])
+            ->where('store_id', $storeId)
+            ->where('is_active', true)
+            ->whereDate('effective_from', '<=', $date->toDateString())
+            ->where(function ($q) use ($date) {
+                $q->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $date->toDateString());
+            });
+
+        if (!empty($validated['employee_id'])) {
+            $query->where('employee_id', (int) $validated['employee_id']);
+        }
+
+        $rows = $query->orderBy('employee_id')->orderByDesc('effective_from')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $rows,
+        ]);
+    }
+
     public function assignSchedule(Request $request)
     {
         $actor = $this->actor($request);
@@ -190,6 +256,11 @@ class AttendanceController extends Controller
             'end_time' => 'required|date_format:H:i',
             'effective_from' => 'nullable|date',
             'effective_to' => 'nullable|date|after_or_equal:effective_from',
+            'duty_mode' => 'nullable|in:all_days,weekly_pattern,selected_dates',
+            'weekly_days' => 'nullable|array',
+            'weekly_days.*' => 'string|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'duty_dates' => 'nullable|array',
+            'duty_dates.*' => 'date',
             'notes' => 'nullable|string',
         ]);
 
@@ -206,7 +277,7 @@ class AttendanceController extends Controller
 
         $effectiveFrom = Carbon::parse($validated['effective_from'] ?? now(self::TIMEZONE)->toDateString())->toDateString();
 
-        DB::transaction(function () use ($employee, $validated, $actor, $storeId, $effectiveFrom) {
+        DB::transaction(function () use ($employee, $validated, $actor, $storeId, $effectiveFrom, $dutyMode, $weeklyDays, $dutyDates) {
             EmployeeWorkSchedule::query()
                 ->where('employee_id', $employee->id)
                 ->where('is_active', true)
@@ -223,6 +294,9 @@ class AttendanceController extends Controller
                 'end_time' => $validated['end_time'],
                 'effective_from' => $effectiveFrom,
                 'effective_to' => $validated['effective_to'] ?? null,
+                'duty_mode' => $dutyMode,
+                'weekly_days' => $dutyMode === 'weekly_pattern' ? $weeklyDays : null,
+                'duty_dates' => $dutyMode === 'selected_dates' ? $dutyDates : null,
                 'is_active' => true,
                 'assigned_by' => $actor->id,
                 'notes' => $validated['notes'] ?? null,
@@ -281,8 +355,8 @@ class AttendanceController extends Controller
 
                 $schedule = $this->scheduleForDate($employee->id, $date);
                 $policy = $this->policyForDate($storeId, $date);
-                if ($policy && $policy->mode === 'always_on_duty' && !$schedule) {
-                    throw new \RuntimeException('No active work schedule for employee #' . $employee->id . ' on ' . $date->toDateString());
+                if ($policy && $policy->mode === 'always_on_duty' && !$this->isEmployeeScheduledForDate($employee->id, $date)) {
+                    throw new \RuntimeException('Employee #' . $employee->id . ' is not scheduled for duty on ' . $date->toDateString());
                 }
 
                 $status = strtolower($entry['status']);
@@ -1450,6 +1524,32 @@ class AttendanceController extends Controller
             ->first();
     }
 
+
+    private function isEmployeeScheduledForDate(int $employeeId, Carbon $date): bool
+    {
+        $schedule = $this->scheduleForDate($employeeId, $date);
+        if (!$schedule) {
+            return false;
+        }
+
+        $mode = $schedule->duty_mode ?? 'all_days';
+        if ($mode === 'selected_dates') {
+            $dates = array_values(array_unique(array_map(
+                fn ($value) => Carbon::parse($value)->toDateString(),
+                $schedule->duty_dates ?? []
+            )));
+
+            return in_array($date->toDateString(), $dates, true);
+        }
+
+        if ($mode === 'weekly_pattern') {
+            $days = array_values(array_unique(array_map('strtolower', $schedule->weekly_days ?? [])));
+            return in_array(strtolower($date->format('l')), $days, true);
+        }
+
+        return true;
+    }
+
     private function computeAttendanceForDate(int $employeeId, int $storeId, Carbon $date, array $attendanceMap): array
     {
         $key = $employeeId . '|' . $date->toDateString();
@@ -1486,6 +1586,18 @@ class AttendanceController extends Controller
                 'out_time' => null,
                 'attendance_id' => null,
                 'source' => 'auto',
+            ];
+        }
+
+        $policy = $this->policyForDate($storeId, $date);
+        if ($policy && $policy->mode === 'always_on_duty' && !$this->isEmployeeScheduledForDate($employeeId, $date)) {
+            return [
+                'date' => $date->toDateString(),
+                'status' => 'off_day_auto',
+                'in_time' => null,
+                'out_time' => null,
+                'attendance_id' => null,
+                'source' => 'roster_off',
             ];
         }
 
@@ -1530,7 +1642,7 @@ class AttendanceController extends Controller
         }
 
         if ($policy->mode === 'always_on_duty') {
-            return $this->scheduleForDate((int) $employee->id, $date) !== null;
+            return $this->isEmployeeScheduledForDate((int) $employee->id, $date);
         }
 
         if ($policy->mode === 'fixed_day_off') {

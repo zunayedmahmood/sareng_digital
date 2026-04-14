@@ -17,6 +17,9 @@ class EmployeeWorkSchedule extends Model
         'end_time',
         'effective_from',
         'effective_to',
+        'duty_mode',
+        'weekly_days',
+        'duty_dates',
         'is_active',
         'assigned_by',
         'notes',
@@ -25,6 +28,8 @@ class EmployeeWorkSchedule extends Model
     protected $casts = [
         'effective_from' => 'date',
         'effective_to' => 'date',
+        'weekly_days' => 'array',
+        'duty_dates' => 'array',
         'is_active' => 'boolean',
     ];
 
