@@ -1018,8 +1018,11 @@ export default function LookupPage() {
       id: o.id ?? payload?.id ?? 0,
       order_number: o.order_number ?? '',
       order_type: o.order_type ?? 'unknown',
+      order_type_label: o.order_type_label ?? o.order_type ?? 'Unknown',
       status: o.status ?? 'unknown',
       payment_status: o.payment_status ?? 'unknown',
+      paid_amount: o.paid_amount ?? '0',
+      outstanding_amount: o.outstanding_amount ?? '0',
       // Keep store info so UI can show "Sold From" (some lookup endpoints only include store/store_id inside order)
       store: o.store ?? payload?.store ?? null,
       store_id: o.store_id ?? payload?.store_id ?? o?.store?.id ?? payload?.store?.id ?? null,
@@ -1893,26 +1896,18 @@ export default function LookupPage() {
       const returnRes = await productReturnService.quickComplete(returnRequest);
       const returnId = returnRes.data.id;
       const returnNumber = returnRes.data.return_number;
+      //returnValue: total value of the items being returned
+      const returnValue = parseFloat(returnRes.data.total_return_value || returnRes.data.total_refund_amount || 0);
 
-      // Step 2: Create refund
-      const refundRequest: CreateRefundRequest = {
-        return_id: returnId,
-        refund_type: 'full',
-        refund_method: 'cash',
-        internal_notes: `Full refund for exchange - Original Order: ${selectedOrderForAction.order_number}`,
-      };
-
-      const refundRes = await refundService.create(refundRequest);
-      await refundService.process(refundRes.data.id);
-      await refundService.complete(refundRes.data.id, {
-        transaction_reference: `EXCHANGE-REFUND-${Date.now()}`,
-      });
-
-      // Step 3: Create new order for replacement products
+      // Step 2: Create new order for replacement products
       const newOrderTotal = exchangeData.replacementProducts.reduce(
         (sum: number, p: any) => sum + (p.unit_price * p.quantity),
         0
       );
+
+      const exchangeBalance = Math.min(returnValue, newOrderTotal);
+      const customerExtraPayment = Math.max(0, newOrderTotal - returnValue);
+      const customerRefundDue = Math.max(0, returnValue - newOrderTotal);
 
       const newOrderData = {
         order_type: 'counter' as const,
@@ -1931,26 +1926,57 @@ export default function LookupPage() {
 
       const newOrder = await orderService.create(newOrderData);
 
-      // STEP 4a: Link the return and the new order for accounting
+      // Step 3: Settle the new order payments (Net settlement)
+      // 3a. Portions covered by return (using exchange_balance to exclude from cash sheet col)
+      if (exchangeBalance > 0) {
+        await axiosInstance.post(`/orders/${newOrder.id}/payments/simple`, {
+          payment_method_id: 1, // Cash
+          amount: exchangeBalance,
+          payment_type: 'exchange_balance',
+          auto_complete: true,
+          notes: `Exchange credit from Return #${returnNumber}`,
+        });
+      }
+
+      // 3b. Portions paid by customer in surplus
+      if (customerExtraPayment > 0) {
+        await axiosInstance.post(`/orders/${newOrder.id}/payments/simple`, {
+          payment_method_id: 1, // Cash
+          amount: customerExtraPayment,
+          payment_type: 'full',
+          auto_complete: true,
+          notes: `Surplus payment for exchange from Return #${returnNumber}`,
+        });
+      }
+
+      await orderService.complete(newOrder.id);
+
+      // Step 4: Handle Refund for residual balance (if return value > replacement value)
+      if (customerRefundDue > 0) {
+        const refundRequest: CreateRefundRequest = {
+          return_id: returnId,
+          refund_type: 'partial_amount',
+          refund_amount: customerRefundDue,
+          refund_method: 'cash',
+          internal_notes: `Net refund for exchange (Difference after replacement) - Original Order: ${selectedOrderForAction.order_number}`,
+        };
+
+        const refundRes = await refundService.create(refundRequest);
+        await refundService.process(refundRes.data.id);
+        await refundService.complete(refundRes.data.id, {
+          transaction_reference: `EXCHANGE-NET-REFUND-${Date.now()}`,
+        });
+      }
+
+      // Step 5: Link the return and the new order for accounting
       try {
         await axiosInstance.post(`/returns/${returnId}/exchange`, {
           new_order_id: newOrder.id,
-          notes: `Automatic link from lookup exchange. Original: #${selectedOrderForAction.order_number}`
+          notes: `Automatic net-settlement link from lookup. Original: #${selectedOrderForAction.order_number}`
         });
       } catch (linkErr) {
         console.warn('⚠️ Link failed (non-critical):', linkErr);
       }
-
-      // STEP 4b: Settle the payment using the subtotal as the amount paid
-      await axiosInstance.post(`/orders/${newOrder.id}/payments/simple`, {
-        payment_method_id: 1, // Cash
-        amount: newOrderTotal, // Modified to use subtotal
-        payment_type: 'full',
-        auto_complete: true,
-        notes: `Exchange settlement | Source: Return #${returnNumber}`,
-      });
-
-      await orderService.complete(newOrder.id);
 
       alert(`✅ Exchange successfully processed!\n\nReturn: #${returnNumber}\nNew Order: #${newOrder.order_number}\nStatus: PAID`);
       setShowExchangeModal(false);
