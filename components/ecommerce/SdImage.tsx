@@ -27,7 +27,7 @@ const SdImage: React.FC<SdImageProps> = ({
   const absoluteUrl = toAbsoluteAssetUrl(src);
   const finalSrc = hasError || !absoluteUrl
     ? fallbackImage
-    : useProxy
+    : useProxy && absoluteUrl.startsWith('http')
       ? `/api/proxy-image?url=${encodeURIComponent(absoluteUrl)}`
       : absoluteUrl;
 
