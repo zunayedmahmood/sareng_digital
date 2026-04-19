@@ -186,101 +186,72 @@ body {
 /* ─── Design tokens ─────────────────────────────────────── */
 @layer base {
   :root {
+    /* --- Base Backgrounds (Premium Dark Theme) --- */
+    --bg-root: var(--sd-black);
+    --bg-surface: var(--sd-onyx);
+    --bg-surface-2: var(--sd-graphite);
+    --bg-depth: #0F0F0F;
+    --bg-lifted: var(--sd-graphite-mid);
+    --ivory-ghost: var(--sd-ivory-dark);
 
-    /* --- Base Backgrounds (pure white e-commerce theme) --- */
-    --bg-root: #ffffff;
-    /* Page root — pure white */
-    --bg-surface: #ffffff;
-    /* Cards and panels — white */
-    --bg-surface-2: #f5f5f5;
-    /* Hover states, input fields — light grey */
-    --bg-depth: #f0f0f0;
-    /* Nav, footer, sidebars — light grey */
-    --bg-lifted: #f8f8f8;
-    /* Dropdowns, modals */
-    --ivory-ghost: #f5f5f5;
-
-    /* --- Brand Black (Primary - replaces cyan) --- */
-    --cyan: #111111;
-    /* Brand primary — jet black */
-    --cyan-bright: #333333;
-    /* Hover state */
+    /* --- Brand Colors (Black & Gold) --- */
+    --cyan: var(--sd-black);
+    --cyan-bright: var(--sd-graphite);
     --cyan-dim: #000000;
-    /* Active/pressed state */
-    --cyan-pale: rgba(17, 17, 17, 0.06);
-    /* Tinted surface: active tab, chip bg */
-    --cyan-glow: rgba(17, 17, 17, 0.12);
-    /* Focus ring glow */
-    --cyan-border: rgba(17, 17, 17, 0.25);
-    /* Accent borders */
+    --cyan-pale: rgba(26, 26, 26, 0.4);
+    --cyan-glow: rgba(201, 168, 76, 0.1);
+    --cyan-border: var(--sd-border-default);
 
-    /* --- Gold (Price Display) --- */
-    --gold: #111111;
-    /* Price text — black */
-    --gold-bright: #333333;
-    /* Hover */
-    --gold-dim: #000000;
-    /* Active/pressed */
-    --gold-pale: rgba(17, 17, 17, 0.06);
-    /* Gold-tinted surfaces */
-    --gold-glow: rgba(17, 17, 17, 0.10);
-    /* Glow */
-    --gold-border: rgba(17, 17, 17, 0.20);
-    /* Accent borders */
+    --gold: var(--sd-gold);
+    --gold-bright: var(--sd-gold-soft);
+    --gold-dim: #9C6B1E;
+    --gold-pale: var(--sd-gold-dim);
+    --gold-glow: var(--sd-shadow-gold);
+    --gold-border: var(--sd-border-hover);
 
     /* --- Semantic / Status --- */
     --status-success: #1a9456;
-    /* In-stock, delivered */
     --status-warning: #b87010;
-    /* Low stock — amber */
     --status-danger: #b83228;
-    /* Out of stock, error */
-    --status-info: #111111;
+    --status-info: var(--sd-info);
 
-    /* --- Typography (dark ink on white) --- */
-    --text-primary: #111111;
-    /* Primary body text — near-black */
-    --text-secondary: #555555;
-    /* Subtext, metadata */
-    --text-muted: #999999;
-    /* Placeholder, disabled, labels */
-    --text-on-accent: #ffffff;
-    /* Text placed on black buttons */
-    --ivory-muted: #cccccc;
-    /* Muted text for dark panels */
+    /* --- Typography --- */
+    --text-primary: var(--sd-ivory);
+    --text-secondary: var(--sd-text-secondary);
+    --text-muted: var(--sd-text-muted);
+    --text-on-accent: var(--sd-black);
+    --ivory-muted: var(--sd-text-muted);
 
     /* --- Borders & Dividers --- */
-    --border-default: rgba(0, 0, 0, 0.10);
-    /* Standard card borders */
-    --border-strong: rgba(0, 0, 0, 0.20);
-    /* Emphasized borders */
-    --border-cyan: rgba(0, 0, 0, 0.25);
-    --border-gold: rgba(0, 0, 0, 0.20);
+    --border-default: var(--sd-border-default);
+    --border-strong: var(--sd-border-strong);
+    --border-cyan: var(--sd-border-default);
+    --border-gold: var(--sd-border-hover);
 
     /* --- Shadows --- */
-    --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 12px rgba(0, 0, 0, 0.04);
-    --shadow-lifted: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 6px rgba(0, 0, 0, 0.05);
+    --shadow-card: var(--sd-shadow-card);
+    --shadow-lifted: var(--sd-shadow-hover);
     --shadow-cyan: 0 0 16px rgba(0, 0, 0, 0.15);
-    --shadow-gold: 0 0 14px rgba(0, 0, 0, 0.10);
+    --shadow-gold: var(--sd-shadow-gold);
 
     /* --- Radii --- */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --radius-xl: 20px;
-    --radius-pill: 999px;
+    --radius-sm: var(--sd-radius-sm);
+    --radius-md: var(--sd-radius-md);
+    --radius-lg: var(--sd-radius-lg);
+    --radius-xl: var(--sd-radius-xl);
+    --radius-pill: var(--sd-radius-pill);
 
     /* --- Transitions --- */
-    --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
-    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-out: cubic-bezier(0.0, 0.0, 0.3, 1);
-    --transition-fast: 100ms var(--ease-smooth);
-    --transition-base: 220ms var(--ease-smooth);
-    --transition-slow: 380ms var(--ease-smooth);
+    --ease-smooth: var(--sd-ease-out);
+    --ease-bounce: var(--sd-ease-spring);
+    --ease-out: var(--sd-ease-out);
+    --transition-fast: var(--sd-duration-fast) var(--ease-smooth);
+    --transition-base: var(--sd-duration-base) var(--ease-smooth);
+    --transition-slow: var(--sd-duration-slow) var(--ease-smooth);
   }
 
   .ec-root {
-    font-family: "Jost", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--sd-font-sans);
     background-color: var(--bg-root);
     color: var(--text-primary);
     position: relative;
@@ -288,7 +259,7 @@ body {
   }
 
   .ec-root :where(h1, h2, h3, h4, h5, h6, .ec-heading) {
-    font-family: "Jost", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--sd-font-sans);
     letter-spacing: -0.01em;
   }
 

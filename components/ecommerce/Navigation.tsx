@@ -61,88 +61,86 @@ const Navigation: React.FC = () => {
   return (
     <>
       {/* --- DESKTOP NAVIGATION (≥1024px) --- */}
-      <header className={`fixed top-0 left-0 right-0 z-[200] hidden lg:block transition-all duration-300 ${
+      <header className={`fixed top-0 left-0 right-0 z-[200] hidden lg:block transition-all duration-500 ${
         isScrolled 
-          ? 'bg-sd-onyx/85 backdrop-blur-xl border-b border-sd-border-default shadow-lg' 
-          : 'bg-sd-black'
+          ? 'bg-sd-black/80 backdrop-blur-2xl border-b border-sd-border-default h-20 shadow-[0_8px_32px_rgba(0,0,0,0.5)]' 
+          : 'bg-transparent h-28'
       }`}>
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-8">
-            {/* Logo */}
-            <Link href="/e-commerce" className="flex flex-col">
-              <span className="text-sd-gold font-bold tracking-[0.12em] text-xl leading-none">SARENG</span>
-              <span className="text-sd-text-secondary text-[10px] tracking-[0.05em]">DIGITAL</span>
+        <div className="container mx-auto px-10 h-full flex items-center">
+          <div className="grid grid-cols-3 w-full items-center">
+            {/* Left: Links */}
+            <nav className="flex items-center gap-10">
+               {['Products', 'Checkout', 'About'].map((link) => (
+                 <Link 
+                   key={link}
+                   href={`/e-commerce/${link.toLowerCase()}`}
+                   className="text-[11px] font-bold tracking-[0.25em] uppercase text-sd-text-secondary hover:text-sd-gold transition-colors"
+                 >
+                   {link}
+                 </Link>
+               ))}
+            </nav>
+
+            {/* Center: Logo */}
+            <Link href="/e-commerce" className="flex flex-col items-center group">
+              <span className="text-sd-gold font-display italic text-3xl leading-none transition-transform group-hover:scale-110 duration-700">Sareng</span>
+              <span className="text-sd-ivory text-[8px] tracking-[0.6em] uppercase mt-1 opacity-60">Digital Boutique</span>
             </Link>
 
-            {/* Search Bar */}
-            <form 
-              onSubmit={(e) => {
-                e.preventDefault();
-                const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement).value;
-                if (q.trim()) router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
-              }}
-              className="flex-1 max-w-lg relative group"
-            >
-              <input 
-                name="q"
-                type="text" 
-                placeholder="Search premium accessories..."
-                className="w-full bg-sd-onyx border border-sd-border-default rounded-full py-2.5 px-6 pl-12 text-sm text-sd-text-primary focus:outline-none focus:border-sd-border-hover transition-colors placeholder:text-sd-text-muted"
-              />
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-sd-gold" />
-            </form>
-
-            {/* Icons */}
-            <div className="flex items-center gap-6">
-              <Link href="/e-commerce/wishlist" className="text-sd-text-primary hover:text-sd-gold transition-colors p-2">
-                <Heart className="w-5 h-5" />
-              </Link>
-              <button 
-                onClick={() => setIsCartOpen(true)}
-                className="text-sd-text-primary hover:text-sd-gold transition-colors p-2 relative"
+            {/* Right: Actions */}
+            <div className="flex items-center justify-end gap-8">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement).value;
+                  if (q.trim()) router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
+                }}
+                className="relative group"
               >
-                <ShoppingBag className="w-5 h-5" />
-                {cartBadge}
-              </button>
-              <Link href="/e-commerce/my-account" className="text-sd-text-primary hover:text-sd-gold transition-colors p-2">
-                <User className="w-5 h-5" />
-              </Link>
+                <input 
+                  name="q"
+                  type="text" 
+                  placeholder="Search..."
+                  className="w-48 bg-transparent border-b border-sd-border-default py-1 px-2 pl-8 text-xs text-sd-text-primary focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted focus:w-64"
+                />
+                <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-sd-gold/50 group-focus-within:text-sd-gold transition-colors" />
+              </form>
+
+              <div className="flex items-center gap-5 border-l border-sd-border-default pl-8">
+                <Link href="/e-commerce/wishlist" className="text-sd-text-primary hover:text-sd-gold transition-all p-2 hover:-translate-y-0.5">
+                  <Heart className="w-5 h-5" />
+                </Link>
+                <button 
+                  onClick={() => setIsCartOpen(true)}
+                  className="text-sd-text-primary hover:text-sd-gold transition-all p-2 relative hover:-translate-y-0.5"
+                >
+                  <ShoppingBag className="w-5 h-5" />
+                  {cartBadge}
+                </button>
+                <Link href="/e-commerce/my-account" className="text-sd-text-primary hover:text-sd-gold transition-all p-2 hover:-translate-y-0.5">
+                  <User className="w-5 h-5" />
+                </Link>
+              </div>
             </div>
-          </div>
-
-          {/* Category Pills */}
-          <div className="flex items-center gap-3 mt-6 overflow-x-auto pb-1 scrollbar-none">
-            {CATEGORIES.map((cat) => (
-              <Link 
-                key={cat.slug} 
-                href={cat.slug === 'all' ? '/e-commerce/products' : `/e-commerce/${cat.slug}`}
-                className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                  pathname === `/e-commerce/${cat.slug}` || (cat.slug === 'all' && pathname === '/e-commerce/products')
-                    ? 'bg-sd-gold-dim border-sd-border-hover text-sd-gold'
-                    : 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover hover:text-sd-gold'
-                }`}
-              >
-                {cat.name}
-              </Link>
-            ))}
           </div>
         </div>
       </header>
 
       {/* --- MOBILE TOP BAR (<1024px) --- */}
-      <div className={`fixed top-0 left-0 right-0 h-12 z-[200] flex lg:hidden items-center justify-between px-4 transition-all ${
-        isScrolled ? 'bg-sd-onyx/85 backdrop-blur-xl border-b border-sd-border-default' : 'bg-transparent'
+      <div className={`fixed top-0 left-0 right-0 h-16 z-[200] flex lg:hidden items-center justify-between px-6 transition-all duration-300 ${
+        isScrolled ? 'bg-sd-onyx/90 backdrop-blur-xl border-b border-sd-border-default' : 'bg-transparent'
       }`}>
         <button onClick={() => setIsDrawerOpen(true)} className="p-2 -ml-2 text-sd-text-primary">
-          <Menu className="w-5 h-5" />
+          <Menu className="w-6 h-6" />
         </button>
         
-        <Link href="/e-commerce" className="flex items-center gap-2">
-          <span className="text-sd-gold font-bold tracking-[0.08em] text-base">SARENG DIGITAL</span>
+        <Link href="/e-commerce" className="flex flex-col items-center">
+          <span className="text-sd-gold font-display italic text-2xl leading-none">Sareng</span>
+          <span className="text-[7px] tracking-[0.4em] text-sd-ivory opacity-50">DIGITAL</span>
         </Link>
 
         <button onClick={() => setIsCartOpen(true)} className="p-2 -mr-2 text-sd-text-primary relative">
-          <ShoppingBag className="w-5 h-5" />
+          <ShoppingBag className="w-6 h-6" />
           {cartBadge}
         </button>
       </div>

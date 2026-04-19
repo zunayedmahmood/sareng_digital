@@ -25,23 +25,22 @@ const VariantPicker: React.FC<VariantPickerProps> = ({
 }) => {
   if (variants.length <= 1) return null;
 
-  // Group by color if applicable, otherwise just show label list
   const colors = Array.from(new Set(variants.map(v => v.color).filter(Boolean)));
   const sizes = Array.from(new Set(variants.map(v => v.size).filter(Boolean)));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12 pt-4">
       {/* Colors Section */}
       {colors.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase">Select Color</h4>
+            <h4 className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">The Palette</h4>
             {selectedVariant?.color && (
-              <span className="text-sd-ivory text-xs font-medium">{selectedVariant.color}</span>
+              <span className="text-sd-ivory/60 text-[10px] font-bold tracking-widest uppercase">{selectedVariant.color}</span>
             )}
           </div>
-          <div className="flex flex-wrap gap-3">
-             {colors.map((color) => {
+          <div className="flex flex-wrap gap-4">
+             {colors.map((color: any) => {
                const isActive = selectedVariant?.color === color;
                return (
                  <button
@@ -50,19 +49,20 @@ const VariantPicker: React.FC<VariantPickerProps> = ({
                      const match = variants.find(v => v.color === color);
                      if (match) onVariantChange(match);
                    }}
-                   className={`relative h-10 px-4 rounded-full border text-xs font-bold transition-all ${
+                   className={`relative h-12 px-6 rounded-full border text-[10px] font-bold tracking-widest uppercase transition-all duration-500 overflow-hidden ${
                      isActive 
-                     ? 'border-sd-gold bg-sd-gold-dim text-sd-gold' 
-                     : 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover'
+                     ? 'border-sd-gold text-sd-black' 
+                     : 'border-white/5 text-sd-text-muted hover:border-white/20 hover:text-sd-ivory'
                    }`}
                  >
-                   {color}
                    {isActive && (
                      <motion.div 
                         layoutId="color-active"
-                        className="absolute inset-0 border-2 border-sd-gold rounded-full"
+                        className="absolute inset-0 bg-sd-gold"
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                      />
                    )}
+                   <span className="relative z-10">{color}</span>
                  </button>
                );
              })}
@@ -72,15 +72,15 @@ const VariantPicker: React.FC<VariantPickerProps> = ({
 
       {/* Sizes Section */}
       {sizes.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h4 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase">Select Size</h4>
+            <h4 className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">The Dimensions</h4>
             {selectedVariant?.size && (
-              <span className="text-sd-ivory text-xs font-medium">{selectedVariant.size}</span>
+              <span className="text-sd-ivory/60 text-[10px] font-bold tracking-widest uppercase">{selectedVariant.size}</span>
             )}
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-             {sizes.map((size) => {
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+             {sizes.map((size: any) => {
                const variant = variants.find(v => v.size === size && (selectedVariant?.color ? v.color === selectedVariant.color : true));
                const isAvailable = variant?.in_stock;
                const isActive = selectedVariant?.size === size;
@@ -90,17 +90,26 @@ const VariantPicker: React.FC<VariantPickerProps> = ({
                    key={size}
                    disabled={!isAvailable}
                    onClick={() => variant && onVariantChange(variant)}
-                   className={`h-12 flex items-center justify-center rounded-lg border text-xs font-bold transition-all relative ${
+                   className={`h-14 flex items-center justify-center rounded-2xl border text-[11px] font-bold tracking-widest transition-all duration-500 relative overflow-hidden ${
                      isActive 
-                     ? 'border-sd-gold bg-sd-gold-dim text-sd-gold' 
+                     ? 'border-sd-gold text-sd-black' 
                      : isAvailable 
-                        ? 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover'
-                        : 'border-sd-border-light text-sd-text-muted opacity-40 cursor-not-allowed'
+                        ? 'border-white/5 text-sd-text-muted hover:border-sd-gold/30 hover:text-sd-ivory'
+                        : 'border-white/5 text-sd-text-muted/20 cursor-not-allowed'
                    }`}
                  >
-                   {size}
+                   {isActive && (
+                     <motion.div 
+                        layoutId="size-active"
+                        className="absolute inset-0 bg-sd-gold"
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                     />
+                   )}
+                   <span className="relative z-10">{size}</span>
                    {!isAvailable && (
-                     <div className="absolute inset-0 bg-sd-black/10 origin-center rotate-45 h-px w-full" />
+                     <div className="absolute inset-0 opacity-20 pointer-events-none flex items-center justify-center">
+                        <div className="w-full h-[1px] bg-sd-gold rotate-45" />
+                     </div>
                    )}
                  </button>
                );
@@ -111,20 +120,27 @@ const VariantPicker: React.FC<VariantPickerProps> = ({
 
       {/* Fallback for simple labels */}
       {colors.length === 0 && sizes.length === 0 && variants.length > 1 && (
-        <div className="space-y-4">
-           <h4 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase">Options</h4>
-           <div className="flex flex-col gap-2">
+        <div className="space-y-6">
+           <h4 className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Selection Options</h4>
+           <div className="flex flex-col gap-3">
              {variants.map((v) => (
                <button
                  key={v.id}
                  onClick={() => onVariantChange(v)}
-                 className={`p-4 rounded-xl border text-sm font-bold text-left transition-all ${
+                 className={`relative p-5 rounded-[1.5rem] border text-xs font-bold text-left tracking-widest transition-all duration-500 overflow-hidden uppercase ${
                    selectedVariant?.id === v.id 
-                   ? 'border-sd-gold bg-sd-gold-dim text-sd-gold' 
-                   : 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover'
+                   ? 'border-sd-gold text-sd-black' 
+                   : 'border-white/5 text-sd-text-muted hover:border-sd-gold/30 hover:text-sd-ivory'
                  }`}
                >
-                 {v.option_label || `Option ${v.id}`}
+                 {selectedVariant?.id === v.id && (
+                   <motion.div 
+                      layoutId="option-active"
+                      className="absolute inset-0 bg-sd-gold"
+                      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                   />
+                 )}
+                 <span className="relative z-10">{v.option_label || `Option ${v.id}`}</span>
                </button>
              ))}
            </div>

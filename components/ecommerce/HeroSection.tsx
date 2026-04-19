@@ -30,7 +30,6 @@ const HeroSection: React.FC = () => {
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
   useEffect(() => {
-    // Simulate API fetch
     setData(getHeroContent());
 
     const handleScroll = () => {
@@ -44,40 +43,58 @@ const HeroSection: React.FC = () => {
   if (!data) return <div className="h-[90vh] bg-sd-onyx sd-skeleton" />;
 
   return (
-    <section className="relative h-screen lg:h-[90vh] lg:max-h-[700px] w-full overflow-hidden flex items-center">
-      {/* Background Image with Overlay */}
+    <section className="relative h-screen lg:h-[95vh] w-full overflow-hidden flex items-center bg-sd-black">
+      {/* Background Layer with Depth */}
       <div className="absolute inset-0 z-0">
-        <SdImage 
-          src={data.imageUrl} 
-          alt="Hero Product"
-          fill
-          priority
-          context="hero"
-          className="object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-sd-black/30 via-sd-black/85 to-sd-black z-10" />
+        <motion.div 
+          initial={{ scale: 1.1, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 2, ease: "easeOut" }}
+          className="absolute inset-0"
+        >
+          <SdImage 
+            src={data.imageUrl} 
+            alt="Hero Product"
+            fill
+            priority
+            context="hero"
+            className="object-cover"
+          />
+        </motion.div>
+        
+        {/* Premium Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-r from-sd-black via-sd-black/60 to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-sd-black via-transparent to-sd-black/20 z-10" />
+        
+        {/* Grain/Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] z-10 pointer-events-none mix-blend-overlay bg-[url('/noise.png')]" />
+        
+        {/* Subtle Gold Glow */}
+        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-sd-gold/10 blur-[120px] rounded-full z-10 pointer-events-none" />
       </div>
 
-      <div className="container mx-auto px-6 relative z-20">
-        <div className="max-w-2xl text-center lg:text-left">
-          <motion.span 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-block text-sd-gold text-[10px] tracking-[0.4em] uppercase mb-4"
+      <div className="container mx-auto px-6 lg:px-12 relative z-20">
+        <div className="max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="flex items-center gap-4 mb-8"
           >
-            NEW ARRIVALS — 2026
-          </motion.span>
+            <div className="h-[1px] w-12 bg-sd-gold" />
+            <span className="text-sd-gold text-[11px] font-bold tracking-[0.5em] uppercase">
+              Exclusive Boutique 2026
+            </span>
+          </motion.div>
           
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl lg:text-6xl font-bold text-sd-ivory leading-tight mb-6"
+            transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="text-5xl md:text-7xl lg:text-[100px] font-bold text-sd-ivory leading-[0.9] tracking-tight mb-10"
           >
-            {/* The instructions mention using display font for italic wordmark feel */}
             {data.heading.split(' ').map((word, i) => (
-               <span key={i} className={i % 3 === 2 ? 'font-display italic font-normal' : ''}>
+               <span key={i} className={`${i % 3 === 2 ? 'font-display italic font-normal text-sd-gold block lg:inline-block' : 'block lg:inline-block md:mr-4'}`}>
                  {word}{' '}
                </span>
             ))}
@@ -86,34 +103,48 @@ const HeroSection: React.FC = () => {
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-sd-text-secondary text-base lg:text-lg mb-10 max-w-lg mx-auto lg:mx-0"
+            transition={{ duration: 1, delay: 0.5 }}
+            className="text-sd-text-secondary text-lg md:text-xl mb-12 max-w-xl leading-relaxed"
           >
             {data.subline}
           </motion.p>
 
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.7 }}
+            className="flex flex-wrap items-center gap-6"
           >
             <Link 
               href={data.ctaHref}
-              className="group bg-sd-gold text-sd-black px-8 py-4 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-sd-gold-soft transition-all transform active:scale-95"
+              className="group relative overflow-hidden bg-sd-gold text-sd-black px-10 py-5 rounded-full font-bold text-sm tracking-[0.1em] uppercase flex items-center gap-3 transition-transform hover:scale-105 active:scale-95"
             >
-              {data.ctaText}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <span className="relative z-10">{data.ctaText}</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
+              <div className="absolute inset-0 bg-sd-ivory translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
             </Link>
             
             <Link 
               href="/e-commerce/categories"
-              className="bg-sd-onyx/50 border border-sd-border-default text-sd-ivory px-8 py-4 rounded-full font-bold text-sm tracking-wide hidden sm:block hover:bg-sd-onyx hover:border-sd-border-hover transition-all"
+              className="group flex items-center gap-3 text-sd-ivory hover:text-sd-gold transition-colors duration-300"
             >
-              View Collections
+              <span className="text-sm font-bold tracking-[0.1em] uppercase">The Collection</span>
+              <div className="w-8 h-[1px] bg-sd-ivory/30 group-hover:bg-sd-gold group-hover:w-12 transition-all duration-300" />
             </Link>
           </motion.div>
         </div>
+      </div>
+
+      {/* Side Decorative Text (Editorial Style) */}
+      <div className="absolute right-10 bottom-24 hidden xl:block z-20 pointer-events-none">
+        <motion.div
+           initial={{ opacity: 0, rotate: 90, x: 20 }}
+           animate={{ opacity: 0.1, rotate: 90, x: 0 }}
+           transition={{ duration: 1.5, delay: 1 }}
+           className="text-sd-ivory font-display text-[120px] origin-right italic leading-none whitespace-nowrap"
+        >
+          Sareng Digital
+        </motion.div>
       </div>
 
       {/* Scroll Indicator */}
@@ -123,15 +154,10 @@ const HeroSection: React.FC = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
+            className="absolute bottom-10 left-10 z-20 flex items-center gap-4"
           >
-            <span className="text-sd-text-muted text-[10px] tracking-widest uppercase">Scroll</span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <ChevronDown className="w-5 h-5 text-sd-gold" />
-            </motion.div>
+            <div className="h-10 w-[1px] bg-sd-gold animate-bounce" />
+            <span className="text-sd-text-muted text-[10px] tracking-[0.4em] uppercase vertical-text">Scroll To Discover</span>
           </motion.div>
         )}
       </AnimatePresence>

@@ -60,14 +60,13 @@ export default function CheckoutClient() {
   const [shippingCharge, setShippingCharge] = useState(60);
 
   // --- Authentication ---
-  const isAuthenticated = () => !!localStorage.getItem('auth_token');
+  const isAuthenticated = () => typeof window !== 'undefined' && !!localStorage.getItem('auth_token');
 
   // --- Effects ---
   useEffect(() => {
     const init = async () => {
       setIsLoading(true);
       try {
-        // Load items
         const selectedIdsStr = localStorage.getItem('checkout-selected-items');
         if (!selectedIdsStr) {
           router.push('/e-commerce');
@@ -82,7 +81,6 @@ export default function CheckoutClient() {
         }
         setSelectedItems(items);
 
-        // Load addresses for auth users
         if (isAuthenticated()) {
           const res = await checkoutService.getAddresses();
           setAddresses(res.addresses);
@@ -90,7 +88,6 @@ export default function CheckoutClient() {
           else if (res.addresses.length > 0) setSelectedAddressId(res.addresses[0].id!);
         }
 
-        // Load payment methods
         const methods = await checkoutService.getPaymentMethods();
         setPaymentMethods(methods);
         if (methods.length > 0) setSelectedPaymentCode(methods.find(m => m.code === 'cash')?.code || methods[0].code);
@@ -151,8 +148,6 @@ export default function CheckoutClient() {
       };
 
       const result = await checkoutService.createOrderFromCart(orderData);
-      
-      // Cleanup
       localStorage.removeItem('checkout-selected-items');
       router.push(`/e-commerce/order-confirmation/${result.order.order_number}`);
     } catch (err: any) {
@@ -162,7 +157,6 @@ export default function CheckoutClient() {
     }
   };
 
-  // --- Summary Calculations ---
   const subtotal = selectedItems.reduce((acc, it) => acc + (it.unit_price * it.quantity), 0);
   const discount = appliedCoupon?.discount || 0;
   const total = subtotal + shippingCharge - discount;
@@ -170,175 +164,204 @@ export default function CheckoutClient() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-sd-black flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-sd-gold" />
       </div>
     );
   }
 
   return (
-    <div className="bg-sd-black min-h-screen pb-32">
+    <div className="bg-[#0A0A0A] min-h-screen pb-32">
       <CheckoutHeader step={currentStep} />
 
-      <main className="container mx-auto px-6 py-12 lg:py-20">
-        <div className="flex flex-col lg:flex-row gap-16 lg:gap-24">
+      <main className="container mx-auto px-6 py-12 lg:py-24">
+        <div className="flex flex-col lg:flex-row gap-20 lg:gap-32">
           
           {/* Left: Input Areas */}
-          <div className="flex-1 space-y-16">
+          <div className="flex-1 space-y-24">
             
             {/* Step 1: Shipping */}
-            <section className={currentStep !== 'shipping' ? 'opacity-40 grayscale pointer-events-none' : ''}>
-               <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-sd-gold/10 flex items-center justify-center text-sd-gold border border-sd-gold/20">
-                      <MapPin className="w-5 h-5" />
+            <section className={`transition-all duration-700 ${currentStep !== 'shipping' ? 'opacity-20 pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
+               <div className="flex items-center justify-between mb-12">
+                  <div className="flex items-center gap-6">
+                    <div className="w-12 h-12 rounded-full border border-sd-gold/30 flex items-center justify-center text-sd-gold font-display italic text-xl">1</div>
+                    <div>
+                      <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase block mb-1">Destination</span>
+                      <h2 className="text-3xl font-bold text-sd-ivory font-display italic">Shipping Address</h2>
                     </div>
-                    <h2 className="text-2xl font-bold text-sd-ivory font-display italic">Shipping Details</h2>
                   </div>
                   {isAuthenticated() && !showAddressForm && (
                     <button 
                       onClick={() => setShowAddressForm(true)}
-                      className="text-sd-gold text-[10px] font-bold tracking-widest uppercase flex items-center gap-2 hover:text-white transition-colors"
+                      className="group flex items-center gap-3 text-sd-gold text-[10px] font-bold tracking-[0.2em] uppercase hover:text-sd-ivory transition-all"
                     >
-                      <Plus className="w-3 h-3" /> Add Address
+                      <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90" /> New Address
                     </button>
                   )}
                </div>
 
-               {showAddressForm ? (
-                 <ShippingForm 
-                   formData={addressForm}
-                   onChange={(f,v) => setAddressForm({...addressForm, [f]: v})}
-                   onCancel={() => setShowAddressForm(false)}
-                   onSave={async () => {
-                     // Local temp save or actual save logic
-                     const res = await checkoutService.createAddress(addressForm);
-                     setAddresses([...addresses, res.address]);
-                     setSelectedAddressId(res.address.id!);
-                     setShowAddressForm(false);
-                   }}
-                   isProcessing={isProcessing}
-                 />
-               ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {addresses.map((addr) => (
-                      <AddressCard 
-                        key={addr.id} 
-                        address={addr} 
-                        selected={selectedAddressId === addr.id}
-                        onSelect={setSelectedAddressId}
-                        onEdit={() => {}}
-                        onDelete={() => {}}
-                      />
-                    ))}
-                    {addresses.length === 0 && !showAddressForm && (
-                      <button 
-                         onClick={() => setShowAddressForm(true)}
-                         className="h-44 rounded-2xl border-2 border-dashed border-sd-border-default flex flex-col items-center justify-center gap-4 text-sd-text-muted hover:border-sd-gold hover:text-sd-gold transition-all"
-                      >
-                         <Plus className="w-8 h-8" />
-                         <span className="text-[10px] font-bold tracking-widest uppercase">Add New Delivery Address</span>
-                      </button>
-                    )}
-                 </div>
-               )}
+               <AnimatePresence mode="wait">
+                 {showAddressForm ? (
+                   <motion.div 
+                     initial={{ opacity: 0, y: 20 }}
+                     animate={{ opacity: 1, y: 0 }}
+                     exit={{ opacity: 0, y: -20 }}
+                   >
+                     <ShippingForm 
+                       formData={addressForm}
+                       onChange={(f,v) => setAddressForm({...addressForm, [f]: v})}
+                       onCancel={() => setShowAddressForm(false)}
+                       onSave={async () => {
+                         const res = await checkoutService.createAddress(addressForm);
+                         setAddresses([...addresses, res.address]);
+                         setSelectedAddressId(res.address.id!);
+                         setShowAddressForm(false);
+                       }}
+                       isProcessing={isProcessing}
+                     />
+                   </motion.div>
+                 ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {addresses.map((addr) => (
+                        <AddressCard 
+                          key={addr.id} 
+                          address={addr} 
+                          selected={selectedAddressId === addr.id}
+                          onSelect={setSelectedAddressId}
+                          onEdit={() => {}}
+                          onDelete={() => {}}
+                        />
+                      ))}
+                      {addresses.length === 0 && !showAddressForm && (
+                        <button 
+                           onClick={() => setShowAddressForm(true)}
+                           className="h-56 rounded-[2.5rem] border border-white/5 bg-white/[0.02] flex flex-col items-center justify-center gap-6 text-sd-text-muted hover:border-sd-gold/30 hover:text-sd-gold transition-all duration-500 group"
+                        >
+                           <div className="w-12 h-12 rounded-full border border-sd-border-default flex items-center justify-center group-hover:border-sd-gold/30 transition-colors">
+                             <Plus className="w-6 h-6" />
+                           </div>
+                           <span className="text-[10px] font-bold tracking-[0.3em] uppercase">Add New Delivery Details</span>
+                        </button>
+                      )}
+                   </div>
+                 )}
+               </AnimatePresence>
 
                {currentStep === 'shipping' && (
-                 <div className="mt-12 flex justify-end">
+                 <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   className="mt-16 flex justify-end"
+                 >
                     <button 
                       onClick={() => setCurrentStep('payment')}
                       disabled={!selectedAddressId}
-                      className="bg-sd-ivory text-sd-black px-12 py-4 rounded-full font-bold text-sm tracking-widest uppercase flex items-center gap-3 hover:bg-sd-gold transition-all shadow-xl shadow-sd-gold/10"
+                      className="group relative overflow-hidden bg-sd-ivory text-sd-black px-14 py-5 rounded-full font-bold text-xs tracking-[0.2em] uppercase flex items-center gap-4 transition-all hover:bg-sd-gold shadow-2xl active:scale-95 disabled:opacity-20"
                     >
-                      Continue to Payment
-                      <ArrowRight className="w-4 h-4" />
+                      Continue Selection
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
-                 </div>
+                 </motion.div>
                )}
             </section>
 
             {/* Step 2: Payment */}
-            <section className={currentStep !== 'payment' ? 'opacity-40 grayscale pointer-events-none' : ''}>
-               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-10 h-10 rounded-full bg-sd-gold/10 flex items-center justify-center text-sd-gold border border-sd-gold/20">
-                    <CreditCard className="w-5 h-5" />
+            <section className={`transition-all duration-700 ${currentStep !== 'payment' ? 'opacity-20 pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
+               <div className="flex items-center gap-6 mb-12">
+                  <div className="w-12 h-12 rounded-full border border-sd-gold/30 flex items-center justify-center text-sd-gold font-display italic text-xl">2</div>
+                  <div>
+                    <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase block mb-1">Transaction</span>
+                    <h2 className="text-3xl font-bold text-sd-ivory font-display italic">Payment Method</h2>
                   </div>
-                  <h2 className="text-2xl font-bold text-sd-ivory font-display italic">Payment Method</h2>
                </div>
 
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {paymentMethods.map((method) => (
                     <button
                       key={method.code}
                       onClick={() => setSelectedPaymentCode(method.code)}
-                      className={`p-6 rounded-2xl border text-left transition-all relative ${
+                      className={`group p-8 rounded-[2rem] border text-left transition-all duration-500 relative overflow-hidden ${
                         selectedPaymentCode === method.code 
-                        ? 'border-sd-gold bg-sd-gold-dim shadow-lg' 
-                        : 'border-sd-border-default bg-sd-onyx hover:border-sd-border-hover'
+                        ? 'border-sd-gold/50 bg-sd-gold/5 shadow-[0_0_30px_rgba(201,168,76,0.1)]' 
+                        : 'border-white/5 bg-white/[0.02] hover:border-white/10'
                       }`}
                     >
-                      <h4 className="text-sd-ivory font-bold mb-2">{method.name}</h4>
-                      <p className="text-[10px] text-sd-text-secondary leading-relaxed uppercase tracking-widest">
-                        {method.description || 'Secure and fast payment'}
-                      </p>
-                      {selectedPaymentCode === method.code && (
-                        <CheckCircle className="absolute top-4 right-4 w-5 h-5 text-sd-gold" />
-                      )}
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className={`font-bold transition-colors ${selectedPaymentCode === method.code ? 'text-sd-gold' : 'text-sd-ivory'}`}>{method.name}</h4>
+                          <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${selectedPaymentCode === method.code ? 'border-sd-gold bg-sd-gold' : 'border-white/10'}`}>
+                            {selectedPaymentCode === method.code && <CheckCircle className="w-3.5 h-3.5 text-sd-black" />}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-sd-text-muted leading-relaxed uppercase tracking-[0.2em]">
+                          {method.description || 'Processed via our secure luxury gateway'}
+                        </p>
+                      </div>
                     </button>
                   ))}
                </div>
 
                {currentStep === 'payment' && (
-                 <div className="mt-12 flex justify-between items-center">
+                 <motion.div 
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   className="mt-16 flex justify-between items-center"
+                 >
                     <button 
                       onClick={() => setCurrentStep('shipping')}
-                      className="text-sd-text-muted text-[10px] font-bold tracking-widest uppercase hover:text-white transition-colors"
+                      className="text-sd-text-muted text-[10px] font-bold tracking-[0.3em] uppercase hover:text-white transition-colors"
                     >
-                      Go back to Shipping
+                      Back to Shipping
                     </button>
                     <button 
                       onClick={() => setCurrentStep('review')}
-                      className="bg-sd-ivory text-sd-black px-12 py-4 rounded-full font-bold text-sm tracking-widest uppercase flex items-center gap-3 hover:bg-sd-gold transition-all shadow-xl shadow-sd-gold/10"
+                      className="group relative overflow-hidden bg-sd-ivory text-sd-black px-14 py-5 rounded-full font-bold text-xs tracking-[0.2em] uppercase flex items-center gap-4 transition-all hover:bg-sd-gold shadow-2xl active:scale-95"
                     >
-                      Review Order
-                      <ArrowRight className="w-4 h-4" />
+                      Final Review
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
-                 </div>
+                 </motion.div>
                )}
             </section>
 
             {/* Step 3: Review */}
-            <section className={currentStep !== 'review' ? 'opacity-40 grayscale pointer-events-none' : ''}>
-               <div className="flex items-center gap-4 mb-8">
-                  <div className="w-10 h-10 rounded-full bg-sd-gold/10 flex items-center justify-center text-sd-gold border border-sd-gold/20">
-                    <ShoppingBag className="w-5 h-5" />
+            <section className={`transition-all duration-700 ${currentStep !== 'review' ? 'opacity-20 pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
+               <div className="flex items-center gap-6 mb-12">
+                  <div className="w-12 h-12 rounded-full border border-sd-gold/30 flex items-center justify-center text-sd-gold font-display italic text-xl">3</div>
+                  <div>
+                    <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase block mb-1">Confirmation</span>
+                    <h2 className="text-3xl font-bold text-sd-ivory font-display italic">Review & Complete</h2>
                   </div>
-                  <h2 className="text-2xl font-bold text-sd-ivory font-display italic">Review & Confirm</h2>
                </div>
 
-               <div className="bg-sd-onyx border border-sd-border-default rounded-2xl p-8 space-y-6">
-                  <p className="text-sd-text-secondary text-sm leading-relaxed">
-                    By clicking "Complete Purchase", you agree to our Terms of Service and Privacy Policy. A confirmation email and SMS will be sent once the order is placed.
-                  </p>
-                  
-                  {currentStep === 'review' && (
-                    <button 
-                      onClick={handlePlaceOrder}
-                      disabled={isProcessing}
-                      className="w-full bg-sd-gold text-sd-black py-5 rounded-full font-bold text-sm tracking-[0.3em] uppercase flex items-center justify-center gap-3 hover:bg-sd-gold-soft transition-all shadow-2xl shadow-sd-gold/20 transform active:scale-[0.98]"
-                    >
-                      {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Complete Luxury Purchase'}
-                    </button>
-                  )}
+               <div className="relative rounded-[2.5rem] overflow-hidden border border-white/5 bg-white/[0.02] p-10 lg:p-16">
+                  <div className="max-w-xl">
+                    <h3 className="text-2xl font-display italic text-sd-ivory mb-6">Masterful Completion</h3>
+                    <p className="text-sd-text-muted text-sm leading-relaxed mb-12 font-light">
+                      By completing this purchase, you are acquiring masterfully crafted digital accessories. A formal confirmation dossier will be dispatched to your inbox momentarily.
+                    </p>
+                    
+                    {currentStep === 'review' && (
+                      <button 
+                        onClick={handlePlaceOrder}
+                        disabled={isProcessing}
+                        className="group relative overflow-hidden w-full bg-sd-gold text-sd-black py-6 rounded-full font-bold text-xs tracking-[0.4em] uppercase flex items-center justify-center gap-4 hover:bg-sd-gold-soft transition-all shadow-3xl transform active:scale-[0.98] disabled:opacity-30"
+                      >
+                        <div className="relative z-10 flex items-center gap-4">
+                          {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : <>Complete Luxury Acquisition <ArrowRight className="w-4 h-4" /></>}
+                        </div>
+                      </button>
+                    )}
+                  </div>
                </div>
 
                {currentStep === 'review' && (
-                 <div className="mt-8">
+                 <div className="mt-12">
                    <button 
                      onClick={() => setCurrentStep('payment')}
-                     className="text-sd-text-muted text-[10px] font-bold tracking-widest uppercase hover:text-white transition-colors"
+                     className="text-sd-text-muted text-[10px] font-bold tracking-[0.3em] uppercase hover:text-white transition-colors"
                    >
-                     Go back to Payment
+                     Adjust Payment Method
                    </button>
                  </div>
                )}
@@ -346,29 +369,31 @@ export default function CheckoutClient() {
           </div>
 
           {/* Right: Summary */}
-          <div className="w-full lg:w-96">
-            <CheckoutOrderSummary 
-              items={selectedItems.map(it => ({
-                id: it.id,
-                name: it.product.name,
-                quantity: it.quantity,
-                price: it.unit_price,
-                total: it.unit_price * it.quantity,
-                variant_options: it.variant_options,
-                product_image: it.product.images?.[0]?.url
-              }))}
-              subtotal={subtotal}
-              shipping={shippingCharge}
-              discount={discount}
-              total={total}
-              couponCode={couponCode}
-              onCouponChange={setCouponCode}
-              onApplyCoupon={handleApplyCoupon}
-              isApplyingCoupon={isApplyingCoupon}
-              couponError={couponError}
-              couponSuccess={couponSuccess}
-            />
-          </div>
+          <aside className="w-full lg:w-[26rem]">
+            <div className="lg:sticky lg:top-32">
+              <CheckoutOrderSummary 
+                items={selectedItems.map(it => ({
+                  id: it.id,
+                  name: it.product.name,
+                  quantity: it.quantity,
+                  price: it.unit_price,
+                  total: it.unit_price * it.quantity,
+                  variant_options: it.variant_options,
+                  product_image: it.product.images?.[0]?.url
+                }))}
+                subtotal={subtotal}
+                shipping={shippingCharge}
+                discount={discount}
+                total={total}
+                couponCode={couponCode}
+                onCouponChange={setCouponCode}
+                onApplyCoupon={handleApplyCoupon}
+                isApplyingCoupon={isApplyingCoupon}
+                couponError={couponError}
+                couponSuccess={couponSuccess}
+              />
+            </div>
+          </aside>
 
         </div>
       </main>

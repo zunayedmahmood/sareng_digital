@@ -16,61 +16,70 @@ const CATEGORIES = [
 
 const FeaturedCategories: React.FC = () => {
   return (
-    <section className="py-12 lg:py-20 bg-sd-black">
+    <section className="py-20 lg:py-32 bg-sd-black overflow-hidden">
       <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl lg:text-2xl font-bold text-sd-ivory tracking-tight">
-            Shop by <span className="font-display italic font-normal">Category</span>
-          </h2>
-          <Link href="/e-commerce/categories" className="text-sd-gold text-xs font-bold tracking-widest uppercase hover:text-sd-gold-soft transition-colors">
-            See All →
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-16 gap-6">
+          <div>
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              className="text-sd-gold text-[10px] tracking-[0.5em] uppercase mb-4 block"
+            >
+              Curated Collections
+            </motion.span>
+            <h2 className="text-3xl lg:text-5xl font-bold text-sd-ivory leading-tight">
+              Mastery is a <span className="font-display italic font-normal">never-ending exploration</span>
+            </h2>
+          </div>
+          <Link href="/e-commerce/categories" className="group flex items-center gap-3 text-sd-gold text-xs font-bold tracking-[0.2em] uppercase hover:text-sd-gold-soft transition-colors">
+            Explore All <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
           </Link>
         </div>
 
-        <div className="flex overflow-x-auto gap-4 lg:grid lg:grid-cols-5 lg:overflow-visible pb-4 scrollbar-none">
+        <div className="flex overflow-x-auto gap-6 lg:grid lg:grid-cols-5 lg:overflow-visible pb-8 snap-x scrollbar-none">
           {CATEGORIES.map((cat, index) => (
             <motion.div
               key={cat.slug}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.05 }}
-              className="flex-shrink-0 w-[160px] lg:w-full group"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-shrink-0 w-[260px] lg:w-full snap-center group"
             >
-              <Link href={`/e-commerce/${cat.slug}`} className="block relative aspect-square lg:aspect-[4/3] rounded-2xl overflow-hidden border border-sd-border-default hover:border-sd-gold transition-colors">
+              <Link href={`/e-commerce/${cat.slug}`} className="block relative aspect-[3/4] rounded-3xl overflow-hidden border border-white/5 group-hover:border-sd-gold/30 transition-all duration-700">
                 {/* Background Image */}
                 <SdImage 
                   src={cat.image} 
                   alt={cat.name}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                 />
                 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-sd-black/90 via-sd-black/20 to-transparent" />
+                {/* Gradient Scrim */}
+                <div className="absolute inset-0 bg-gradient-to-t from-sd-black via-sd-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-700" />
                 
-                {/* Content */}
-                <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                  <div className="self-end w-8 h-8 rounded-full border border-sd-gold/30 flex items-center justify-center bg-sd-black/20 backdrop-blur-sm">
-                    <cat.icon className="w-4 h-4 text-sd-gold" />
+                {/* Content Overlay */}
+                <div className="absolute inset-0 p-8 flex flex-col justify-end">
+                  <div className="flex flex-col gap-2">
+                     <div className="w-0 group-hover:w-12 h-[1px] bg-sd-gold transition-all duration-700 ease-in-out mb-2" />
+                     <div className="flex items-center justify-between">
+                        <span className="text-xl font-bold text-sd-ivory tracking-wide group-hover:text-sd-gold transition-colors duration-500">
+                          {cat.name}
+                        </span>
+                        <div className="w-10 h-10 rounded-full border border-sd-gold/0 group-hover:border-sd-gold/40 flex items-center justify-center bg-white/5 backdrop-blur-md opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                          <cat.icon className="w-4 h-4 text-sd-gold" />
+                        </div>
+                     </div>
                   </div>
-                  <span className="text-sm font-bold text-sd-ivory group-hover:text-sd-gold transition-colors uppercase tracking-wide">
-                    {cat.name}
-                  </span>
+                </div>
+
+                {/* Glassy detail box top right */}
+                <div className="absolute top-6 right-6 px-3 py-1.5 rounded-full bg-sd-black/30 backdrop-blur-md border border-white/10 text-[9px] font-bold tracking-widest text-sd-ivory/60 uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                  Browse
                 </div>
               </Link>
             </motion.div>
           ))}
-          
-          {/* Mobile "See All" Card */}
-          <div className="flex-shrink-0 w-[140px] lg:hidden flex items-center justify-center">
-             <Link href="/e-commerce/categories" className="flex flex-col items-center gap-3 text-sd-text-muted hover:text-sd-gold transition-colors">
-                <div className="w-12 h-12 rounded-full border border-sd-border-default flex items-center justify-center">
-                  <ArrowRight className="w-5 h-5" />
-                </div>
-                <span className="text-[10px] font-bold tracking-widest uppercase">All Categories</span>
-             </Link>
-          </div>
         </div>
       </div>
     </section>

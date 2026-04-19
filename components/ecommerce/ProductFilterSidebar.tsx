@@ -40,31 +40,31 @@ const ProductFilterSidebar: React.FC<ProductFilterSidebarProps> = ({
   onClose,
 }) => {
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-12">
       {/* Categories */}
       <section>
-        <h3 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase mb-6 flex items-center justify-between">
-          Categories
-          <ChevronDown className="w-3 h-3 opacity-50" />
-        </h3>
-        <ul className="space-y-4">
+        <div className="flex flex-col gap-1 mb-8">
+          <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Collections</span>
+          <div className="h-[1px] w-8 bg-sd-gold/30" />
+        </div>
+        <ul className="space-y-5">
           <li>
             <button 
               onClick={() => onCategoryChange('all')}
-              className={`text-sm transition-all flex items-center gap-2 ${activeCategory === 'all' ? 'text-sd-gold font-bold' : 'text-sd-text-secondary hover:text-sd-ivory'}`}
+              className={`group flex items-center justify-between w-full text-xs tracking-widest uppercase transition-all duration-300 ${activeCategory === 'all' ? 'text-sd-ivory font-bold' : 'text-sd-text-muted hover:text-sd-gold'}`}
             >
-              {activeCategory === 'all' && <Check className="w-3 h-3" />}
-              All Products
+              All Boutiques
+              <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${activeCategory === 'all' ? 'bg-sd-gold shadow-[0_0_8px_rgba(201,168,76,0.5)]' : 'bg-transparent border border-white/10 group-hover:border-sd-gold'}`} />
             </button>
           </li>
           {categories.map((cat) => (
             <li key={cat.id}>
               <button 
                 onClick={() => onCategoryChange(String(cat.id))}
-                className={`text-sm transition-all flex items-center gap-2 text-left ${activeCategory === String(cat.id) ? 'text-sd-gold font-bold' : 'text-sd-text-secondary hover:text-sd-ivory'}`}
+                className={`group flex items-center justify-between w-full text-xs tracking-widest uppercase transition-all duration-300 text-left ${activeCategory === String(cat.id) ? 'text-sd-ivory font-bold' : 'text-sd-text-muted hover:text-sd-gold'}`}
               >
-                {activeCategory === String(cat.id) && <Check className="w-3 h-3" />}
                 {cat.name}
+                <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${activeCategory === String(cat.id) ? 'bg-sd-gold shadow-[0_0_8px_rgba(201,168,76,0.5)]' : 'bg-transparent border border-white/10 group-hover:border-sd-gold'}`} />
               </button>
             </li>
           ))}
@@ -73,18 +73,19 @@ const ProductFilterSidebar: React.FC<ProductFilterSidebarProps> = ({
 
       {/* Price Range */}
       <section>
-        <h3 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase mb-6">
-          Price Range
-        </h3>
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1 mb-8">
+          <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Investment</span>
+          <div className="h-[1px] w-8 bg-sd-gold/30" />
+        </div>
+        <div className="flex flex-col gap-2">
           {PRICE_RANGES.map((range) => (
             <button
               key={range.value}
               onClick={() => onPriceChange(range.value)}
-              className={`text-sm py-2 px-4 rounded-lg border text-left transition-all ${
+              className={`text-[11px] py-3 px-5 rounded-full border text-left tracking-wider transition-all duration-500 ${
                 priceRange === range.value 
-                  ? 'border-sd-gold bg-sd-gold-dim text-sd-gold' 
-                  : 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover'
+                  ? 'border-sd-gold/50 bg-sd-gold/5 text-sd-gold shadow-inner' 
+                  : 'border-white/5 text-sd-text-muted hover:border-sd-gold/30 hover:text-sd-ivory'
               }`}
             >
               {range.label}
@@ -95,26 +96,33 @@ const ProductFilterSidebar: React.FC<ProductFilterSidebarProps> = ({
 
       {/* Sorting */}
       <section>
-        <h3 className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase mb-6">
-          Sort By
-        </h3>
-        <select 
-          value={sortBy}
-          onChange={(e) => onSortChange(e.target.value)}
-          className="w-full bg-sd-onyer border border-sd-border-default rounded-lg px-4 py-3 text-sm text-sd-text-primary focus:outline-none focus:border-sd-gold transition-colors appearance-none cursor-pointer"
-        >
+        <div className="flex flex-col gap-1 mb-8">
+          <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Order By</span>
+          <div className="h-[1px] w-8 bg-sd-gold/30" />
+        </div>
+        <div className="grid grid-cols-1 gap-2">
           {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <button
+              key={opt.value}
+              onClick={() => onSortChange(opt.value)}
+              className={`text-[11px] py-3 px-5 rounded-full border text-left tracking-wider transition-all duration-500 ${
+                sortBy === opt.value 
+                  ? 'border-sd-gold/50 bg-sd-gold/5 text-sd-gold' 
+                  : 'border-white/5 text-sd-text-muted hover:border-sd-gold/30 hover:text-sd-ivory'
+              }`}
+            >
+              {opt.label}
+            </button>
           ))}
-        </select>
+        </div>
       </section>
 
       {onClose && (
         <button 
           onClick={onClose}
-          className="lg:hidden w-full bg-sd-ivory text-sd-black py-4 rounded-xl font-bold text-sm tracking-widest uppercase mt-4"
+          className="lg:hidden w-full bg-sd-gold text-sd-black py-4 rounded-full font-bold text-xs tracking-widest uppercase mt-6 shadow-2xl active:scale-95"
         >
-          See Results
+          View Collection
         </button>
       )}
     </div>
