@@ -3,7 +3,7 @@
 import React from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { CartProvider } from './e-commerce/CartContext';
+import { CartProvider } from './CartContext';
 import QZTrayLoader from '@/components/QzTrayLoader';
 import ReceiptPreviewModalHost from '@/components/ReceiptPreviewModalHost';
 import GlobalToastHost from '@/components/GlobalToastHost';

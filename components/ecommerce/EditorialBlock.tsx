@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/motion';
+
 import { motion } from 'framer-motion';
 import SdImage from './SdImage';
 
