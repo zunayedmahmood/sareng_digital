@@ -1,236 +1,142 @@
 'use client';
 
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Search as SearchIcon, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronDown, ArrowRight } from 'lucide-react';
+import SdImage from './SdImage';
 
-import catalogService, { type CatalogCategory } from '@/services/catalogService';
+interface HeroData {
+  imageUrl: string;
+  heading: string;
+  subline: string;
+  ctaText: string;
+  ctaHref: string;
+}
 
-const HERO_IMAGE_PATH = '/e-commerce-hero.jpg';
+// Mock function representing future CMS fetch
+const getHeroContent = (): HeroData => {
+  return {
+    imageUrl: '/images/hero-earbuds.jpg', // Ensure this exists or use placeholder
+    heading: 'Redefining the Art of Digital Lifestyle',
+    subline: 'Premium tech accessories curated for those who value both performance and personality.',
+    ctaText: 'Shop Now',
+    ctaHref: '/e-commerce/products',
+  };
+};
 
-export default function HeroSection() {
-  const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const [query, setQuery] = useState('');
-  const [bgUrl, setBgUrl] = useState<string>(HERO_IMAGE_PATH);
-  const [topCategories, setTopCategories] = useState<CatalogCategory[]>([]);
+const HeroSection: React.FC = () => {
+  const [data, setData] = useState<HeroData | null>(null);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
   useEffect(() => {
-    setBgUrl(HERO_IMAGE_PATH);
+    // Simulate API fetch
+    setData(getHeroContent());
+
+    const handleScroll = () => {
+      if (window.scrollY > 100) setShowScrollIndicator(false);
+      else setShowScrollIndicator(true);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    let alive = true;
-    catalogService.getCategories().then((tree) => {
-      const flat: CatalogCategory[] = [];
-      const walk = (list: CatalogCategory[]) =>
-        list.forEach((c) => {
-          flat.push(c);
-          if (c.children?.length) walk(c.children);
-        });
-      walk(tree);
-
-      const parents = flat
-        .filter((c) => (c.parent_id === null || c.parent_id === undefined) && c.name)
-        .sort((a, b) => Number(b.product_count || 0) - Number(a.product_count || 0))
-        .slice(0, 8);
-
-      if (!alive) return;
-      setTopCategories(parents);
-    }).catch(() => { });
-    return () => { alive = false; };
-  }, []);
-
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
-  };
-
-  const clear = () => {
-    setQuery('');
-    inputRef.current?.focus();
-  };
+  if (!data) return <div className="h-[90vh] bg-sd-onyx sd-skeleton" />;
 
   return (
-    <section style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      {/* Background image */}
-      <div style={{ position: 'absolute', inset: 0 }}>
-        {bgUrl && (
-          <img
-            src={bgUrl}
-            alt="Hero background"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-            onError={() => setBgUrl('')}
-          />
-        )}
-        {/* Dark overlay */}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.30)' }} />
+    <section className="relative h-screen lg:h-[90vh] lg:max-h-[700px] w-full overflow-hidden flex items-center">
+      {/* Background Image with Overlay */}
+      <div className="absolute inset-0 z-0">
+        <SdImage 
+          src={data.imageUrl} 
+          alt="Hero Product"
+          fill
+          priority
+          context="hero"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-sd-black/30 via-sd-black/85 to-sd-black z-10" />
       </div>
 
-      {/* Content */}
-      <div className="ec-container" style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px 20px 60px' }}>
-        <div style={{ maxWidth: '700px', width: '100%', margin: '0 auto', textAlign: 'center' }}>
+      <div className="container mx-auto px-6 relative z-20">
+        <div className="max-w-2xl text-center lg:text-left">
+          <motion.span 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-block text-sd-gold text-[10px] tracking-[0.4em] uppercase mb-4"
+          >
+            NEW ARRIVALS — 2026
+          </motion.span>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-4xl lg:text-6xl font-bold text-sd-ivory leading-tight mb-6"
+          >
+            {/* The instructions mention using display font for italic wordmark feel */}
+            {data.heading.split(' ').map((word, i) => (
+               <span key={i} className={i % 3 === 2 ? 'font-display italic font-normal' : ''}>
+                 {word}{' '}
+               </span>
+            ))}
+          </motion.h1>
 
-          {/* Search bar — prominent at top like reference */}
-          <form onSubmit={onSubmit} style={{ marginBottom: '32px' }}>
-            <div style={{
-              position: 'relative',
-              background: 'rgba(255,255,255,0.95)',
-              borderRadius: '4px',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.20)',
-              display: 'flex',
-              alignItems: 'center',
-              overflow: 'hidden',
-            }}>
-              <SearchIcon style={{ position: 'absolute', left: '16px', width: '18px', height: '18px', color: '#999999', pointerEvents: 'none', flexShrink: 0 }} />
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search products, collections..."
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  padding: '16px 120px 16px 48px',
-                  fontSize: '15px',
-                  color: '#111111',
-                  fontFamily: "'Jost', sans-serif",
-                  outline: 'none',
-                  border: 'none',
-                }}
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={clear}
-                  style={{ position: 'absolute', right: '100px', padding: '8px', color: '#999999', background: 'none', border: 'none', cursor: 'pointer' }}
-                >
-                  <X style={{ width: '16px', height: '16px' }} />
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={!query.trim()}
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  padding: '8px 20px',
-                  background: '#111111',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  fontFamily: "'Jost', sans-serif",
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  cursor: query.trim() ? 'pointer' : 'not-allowed',
-                  opacity: query.trim() ? 1 : 0.5,
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                Search
-              </button>
-            </div>
-          </form>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            className="text-sd-text-secondary text-base lg:text-lg mb-10 max-w-lg mx-auto lg:mx-0"
+          >
+            {data.subline}
+          </motion.p>
 
-          {/* Quick category chips */}
-          {topCategories.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginBottom: '40px' }}>
-              {topCategories.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/e-commerce/${encodeURIComponent(c.slug || c.name)}`}
-                  style={{
-                    borderRadius: '4px',
-                    padding: '6px 16px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    color: '#ffffff',
-                    background: 'rgba(255,255,255,0.12)',
-                    backdropFilter: 'blur(4px)',
-                    textDecoration: 'none',
-                    transition: 'background 0.15s, border-color 0.15s',
-                    fontFamily: "'Jost', sans-serif",
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.25)'; (e.currentTarget as HTMLElement).style.borderColor = '#ffffff'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.12)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.6)'; }}
-                >
-                  {c.name}
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Hero text */}
-          <h1 style={{
-            fontFamily: "'Jost', sans-serif",
-            fontSize: 'clamp(32px, 6vw, 64px)',
-            fontWeight: 800,
-            color: '#ffffff',
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
-            marginBottom: '16px',
-            textShadow: '0 2px 16px rgba(0,0,0,0.3)',
-          }}>
-            Refining the Art of <em style={{ fontStyle: 'italic', fontWeight: 400 }}>Lifestyle</em>
-          </h1>
-          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', lineHeight: 1.6, maxWidth: '520px', margin: '0 auto 36px', fontFamily: "'Jost', sans-serif" }}>
-
-          </p>
-
-          {/* CTAs */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-            <Link href="/e-commerce/products" style={{
-              padding: '14px 32px',
-              background: '#111111',
-              color: '#ffffff',
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: 700,
-              fontFamily: "'Jost', sans-serif",
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              textDecoration: 'none',
-              transition: 'opacity 0.2s',
-            }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.opacity = '0.85'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.opacity = '1'}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+            className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
+          >
+            <Link 
+              href={data.ctaHref}
+              className="group bg-sd-gold text-sd-black px-8 py-4 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-sd-gold-soft transition-all transform active:scale-95"
             >
-              Shop Now
+              {data.ctaText}
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
+            
+            <Link 
               href="/e-commerce/categories"
-              style={{
-                padding: '14px 32px',
-                background: 'rgba(255,255,255,0.15)',
-                color: '#ffffff',
-                border: '1px solid rgba(255,255,255,0.6)',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 700,
-                fontFamily: "'Jost', sans-serif",
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                textDecoration: 'none',
-                backdropFilter: 'blur(4px)',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.25)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.15)'}
+              className="bg-sd-onyx/50 border border-sd-border-default text-sd-ivory px-8 py-4 rounded-full font-bold text-sm tracking-wide hidden sm:block hover:bg-sd-onyx hover:border-sd-border-hover transition-all"
             >
-              Collections
+              View Collections
             </Link>
-          </div>
+          </motion.div>
         </div>
       </div>
+
+      {/* Scroll Indicator */}
+      <AnimatePresence>
+        {showScrollIndicator && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
+          >
+            <span className="text-sd-text-muted text-[10px] tracking-widest uppercase">Scroll</span>
+            <motion.div
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ChevronDown className="w-5 h-5 text-sd-gold" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
-}
+};
+
+export default HeroSection;

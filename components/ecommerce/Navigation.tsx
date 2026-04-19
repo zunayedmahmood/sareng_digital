@@ -1,235 +1,246 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingCart, Search, User, ChevronDown, LogOut, Heart, Package, Menu, X, Home, Sparkles } from 'lucide-react';
-import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
-import catalogService, { CatalogCategory } from '@/services/catalogService';
-import cartService from '@/services/cartService';
-import { useCart } from '@/app/e-commerce/CartContext';
-import GlobalCategorySidebar from './category/GlobalCategorySidebar';
+import { usePathname, useRouter } from 'next/navigation';
+import { 
+  Menu, 
+  Search, 
+  ShoppingBag, 
+  Heart, 
+  User, 
+  Home, 
+  Store,
+  X,
+  ChevronRight
+} from 'lucide-react';
+import { useCart } from '@/app/CartContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
+const CATEGORIES = [
+  { name: 'All', slug: 'all' },
+  { name: 'Earbuds', slug: 'earbuds' },
+  { name: 'Mice', slug: 'mice' },
+  { name: 'Keyboards', slug: 'keyboards' },
+  { name: 'Pendrives', slug: 'pendrives', isNew: true },
+  { name: 'Accessories', slug: 'accessories' },
+];
 
-const slugify = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-
-const catSlug = (c: { name: string; slug?: string }) =>
-  slugify(c.name);
-
-const Navbar = () => {
+const Navigation: React.FC = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { customer, isAuthenticated, logout } = useCustomerAuth();
-  const { setIsCartOpen } = useCart();
-
-  const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [cartCount, setCartCount] = useState(0);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  const [showUser, setShowUser] = useState(false);
-  const [showCats, setShowCats] = useState(false);
-  const [expandedCats, setExpandedCats] = useState<Set<number>>(new Set());
-  const [scrolled, setScrolled] = useState(false);
-
-  const userRef = useRef<HTMLDivElement>(null);
-  const catsRef = useRef<HTMLDivElement>(null);
-  const { isCartOpen } = useCart();
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [isCategorySidebarOpen, setIsCategorySidebarOpen] = useState(false);
+  const { cart, setIsCartOpen } = useCart();
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
-    const handleToggle = (e: any) => setIsFiltersOpen(!!e.detail?.open);
-    window.addEventListener('mobile-sidebar-toggle', handleToggle);
-    return () => window.removeEventListener('mobile-sidebar-toggle', handleToggle);
-  }, []);
-
-  /* Scroll shadow */
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  /* Categories */
-  useEffect(() => {
-    catalogService.getCategories().then(setCategories).catch(() => { });
-  }, []);
-
-  /* Cart */
-  const refreshCartCount = () =>
-    cartService
-      .getCartSummary()
-      .then((s) => setCartCount(Number((s as any)?.total_items || 0)))
-      .catch(() => setCartCount(0));
-
-  useEffect(() => {
-    refreshCartCount();
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    const h = () => refreshCartCount();
-    window.addEventListener('cart-updated', h);
-    window.addEventListener('customer-auth-changed', h);
-    return () => {
-      window.removeEventListener('cart-updated', h);
-      window.removeEventListener('customer-auth-changed', h);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 60);
     };
-  }, [isAuthenticated]);
-
-  /* Click outside */
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (userRef.current && !userRef.current.contains(e.target as Node)) setShowUser(false);
-      if (catsRef.current && !catsRef.current.contains(e.target as Node)) setShowCats(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  /* Close mobile on route change */
+  // Close drawer on route change
   useEffect(() => {
-    setMobileOpen(false);
-    setIsClosing(false);
-    setShowCats(false);
-    setShowUser(false);
+    setIsDrawerOpen(false);
   }, [pathname]);
 
-  const closeMobileMenu = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setMobileOpen(false);
-      setIsClosing(false);
-    }, 350);
-  };
-
-  const handleLogout = async () => {
-    setShowUser(false);
-    try { await logout(); router.push('/e-commerce'); } catch { }
-  };
-
-  const isActive = (href: string) => pathname === href;
-
-  // Mobile bottom tab check
-  const isHomePage = pathname === '/e-commerce';
-  const isSearchPage = pathname === '/e-commerce/search';
-  const isNewArrival = pathname.includes('/e-commerce/products') || pathname.includes('/e-commerce/new');
-  const isAccountPage = pathname.includes('/e-commerce/my-account') || pathname.includes('/e-commerce/login');
+  const cartBadge = cartCount > 0 && (
+    <motion.span 
+      key={cartCount}
+      initial={{ scale: 1.4 }}
+      animate={{ scale: 1 }}
+      className="absolute -top-1 -right-1 bg-sd-gold text-sd-black text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center"
+    >
+      {cartCount}
+    </motion.span>
+  );
 
   return (
     <>
+      {/* --- DESKTOP NAVIGATION (≥1024px) --- */}
+      <header className={`fixed top-0 left-0 right-0 z-[200] hidden lg:block transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-sd-onyx/85 backdrop-blur-xl border-b border-sd-border-default shadow-lg' 
+          : 'bg-sd-black'
+      }`}>
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between gap-8">
+            {/* Logo */}
+            <Link href="/e-commerce" className="flex flex-col">
+              <span className="text-sd-gold font-bold tracking-[0.12em] text-xl leading-none">SARENG</span>
+              <span className="text-sd-text-secondary text-[10px] tracking-[0.05em]">DIGITAL</span>
+            </Link>
 
-    {/* ── Mobile Bottom Tab Bar ─────────────────────────────────── */}
-      <nav
-        className="flex items-stretch"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: (isCartOpen || isFiltersOpen || isCategorySidebarOpen) ? -1 : 10000,
-          opacity: (isCartOpen || isFiltersOpen || isCategorySidebarOpen) ? 0 : 1,
-          pointerEvents: (isCartOpen || isFiltersOpen || isCategorySidebarOpen) ? 'none' : 'auto',
-          visibility: (isCartOpen || isFiltersOpen || isCategorySidebarOpen) ? 'hidden' : 'visible',
-          transform: (isCartOpen || isFiltersOpen || isCategorySidebarOpen) ? 'translateY(100%)' : 'translateY(0)',
-          transition: 'all 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
-          background: '#ffffff',
-          borderTop: '1px solid rgba(0,0,0,0.10)',
-          height: '64px',
-          boxShadow: '0 -4px 16px rgba(0,0,0,0.12)',
-        }}
-      >
-        {/* Brand/Home */}
-        <Link href="/e-commerce"
-          style={{ flex: 1.2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px', textDecoration: 'none', color: '#111111' }}
-        >
-          <img src="/logo.png" alt="" style={{ height: '22px', width: 'auto' }} />
-          <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: "'Jost', sans-serif", letterSpacing: '0.04em' }}>ERRUM</span>
-        </Link>
+            {/* Search Bar */}
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement).value;
+                if (q.trim()) router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
+              }}
+              className="flex-1 max-w-lg relative group"
+            >
+              <input 
+                name="q"
+                type="text" 
+                placeholder="Search premium accessories..."
+                className="w-full bg-sd-onyx border border-sd-border-default rounded-full py-2.5 px-6 pl-12 text-sm text-sd-text-primary focus:outline-none focus:border-sd-border-hover transition-colors placeholder:text-sd-text-muted"
+              />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-sd-gold" />
+            </form>
 
-        {/* Search */}
-        <Link href="/e-commerce/search"
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px', textDecoration: 'none', color: isSearchPage ? '#111111' : '#777777', transition: 'color 0.15s' }}
-        >
-          <Search style={{ width: '22px', height: '22px', strokeWidth: isSearchPage ? 2.5 : 2 }} />
-          <span style={{ fontSize: '13px', fontWeight: isSearchPage ? 800 : 700 }}>Search</span>
-        </Link>
-
-        {/* New Arrivals / Center */}
-        <Link href="/e-commerce/products"
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px', textDecoration: 'none', color: '#111111', transition: 'color 0.15s', position: 'relative' }}
-        >
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            background: '#111111',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: '-24px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            flexShrink: 0,
-          }}>
-            <Sparkles style={{ width: '22px', height: '22px', color: '#ffffff' }} />
+            {/* Icons */}
+            <div className="flex items-center gap-6">
+              <Link href="/e-commerce/wishlist" className="text-sd-text-primary hover:text-sd-gold transition-colors p-2">
+                <Heart className="w-5 h-5" />
+              </Link>
+              <button 
+                onClick={() => setIsCartOpen(true)}
+                className="text-sd-text-primary hover:text-sd-gold transition-colors p-2 relative"
+              >
+                <ShoppingBag className="w-5 h-5" />
+                {cartBadge}
+              </button>
+              <Link href="/e-commerce/my-account" className="text-sd-text-primary hover:text-sd-gold transition-colors p-2">
+                <User className="w-5 h-5" />
+              </Link>
+            </div>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: isNewArrival ? 800 : 700, color: isNewArrival ? '#111111' : '#777777' }}>New</span>
+
+          {/* Category Pills */}
+          <div className="flex items-center gap-3 mt-6 overflow-x-auto pb-1 scrollbar-none">
+            {CATEGORIES.map((cat) => (
+              <Link 
+                key={cat.slug} 
+                href={cat.slug === 'all' ? '/e-commerce/products' : `/e-commerce/${cat.slug}`}
+                className={`px-4 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                  pathname === `/e-commerce/${cat.slug}` || (cat.slug === 'all' && pathname === '/e-commerce/products')
+                    ? 'bg-sd-gold-dim border-sd-border-hover text-sd-gold'
+                    : 'border-sd-border-default text-sd-text-secondary hover:border-sd-border-hover hover:text-sd-gold'
+                }`}
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* --- MOBILE TOP BAR (<1024px) --- */}
+      <div className={`fixed top-0 left-0 right-0 h-12 z-[200] flex lg:hidden items-center justify-between px-4 transition-all ${
+        isScrolled ? 'bg-sd-onyx/85 backdrop-blur-xl border-b border-sd-border-default' : 'bg-transparent'
+      }`}>
+        <button onClick={() => setIsDrawerOpen(true)} className="p-2 -ml-2 text-sd-text-primary">
+          <Menu className="w-5 h-5" />
+        </button>
+        
+        <Link href="/e-commerce" className="flex items-center gap-2">
+          <span className="text-sd-gold font-bold tracking-[0.08em] text-base">SARENG DIGITAL</span>
         </Link>
 
-        {/* Cart */}
-        <button
-          onClick={() => setIsCartOpen(true)}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px', background: 'none', border: 'none', cursor: 'pointer', color: '#777777', position: 'relative', transition: 'color 0.15s' }}
-        >
-          <div style={{ position: 'relative' }}>
-            <ShoppingCart style={{ width: '22px', height: '22px', strokeWidth: 2 }} />
-            {cartCount > 0 && (
-              <span style={{
-                position: 'absolute',
-                top: '-6px',
-                right: '-8px',
-                display: 'flex',
-                height: '18px',
-                minWidth: '18px',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '999px',
-                background: '#111111',
-                color: '#ffffff',
-                fontSize: '10px',
-                fontWeight: 800,
-                padding: '0 4px',
-                border: '1.5px solid #ffffff',
-              }}>
-                {cartCount > 99 ? '99+' : cartCount}
-              </span>
-            )}
-          </div>
-          <span style={{ fontSize: '13px', fontWeight: 700 }}>Cart</span>
+        <button onClick={() => setIsCartOpen(true)} className="p-2 -mr-2 text-sd-text-primary relative">
+          <ShoppingBag className="w-5 h-5" />
+          {cartBadge}
         </button>
+      </div>
 
-        {/* Categories */}
-        <button
-          onClick={() => setIsCategorySidebarOpen(true)}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px', background: 'none', border: 'none', cursor: 'pointer', color: '#777777', position: 'relative', transition: 'color 0.15s' }}
-        >
-          <Menu style={{ width: '22px', height: '22px', strokeWidth: 2 }} />
-          <span style={{ fontSize: '13px', fontWeight: 700 }}>Categories</span>
-        </button>
+      {/* --- MOBILE BOTTOM NAVIGATION --- */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-sd-onyx border-t border-sd-border-default z-[200] lg:hidden flex items-center justify-around pb-safe">
+        {[
+          { icon: Home, label: 'Home', href: '/e-commerce' },
+          { icon: Store, label: 'Shop', href: '/e-commerce/products' },
+          { icon: Search, label: 'Search', href: '/e-commerce/search' },
+          { icon: Heart, label: 'Wishlist', href: '/e-commerce/wishlist' },
+          { icon: User, label: 'Account', href: '/e-commerce/my-account' },
+        ].map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link 
+              key={item.href} 
+              href={item.href}
+              className={`flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${
+                isActive ? 'text-sd-gold' : 'text-sd-text-muted hover:text-sd-text-secondary'
+              }`}
+            >
+              <div className="relative">
+                <item.icon className="w-[22px] h-[22px]" />
+                {isActive && <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-sd-gold rounded-full" />}
+              </div>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </Link>
+          );
+        })}
       </nav>
 
-      <GlobalCategorySidebar 
-        categories={categories} 
-        isOpen={isCategorySidebarOpen} 
-        onClose={() => setIsCategorySidebarOpen(false)} 
-      />
+      {/* --- MOBILE CATEGORY DRAWER --- */}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDrawerOpen(false)}
+              className="fixed inset-0 bg-sd-black/60 backdrop-blur-sm z-[300]"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="fixed top-0 left-0 bottom-0 w-[280px] bg-sd-onyx z-[301] shadow-2xl flex flex-col pt-safe"
+            >
+              <div className="p-6 flex items-center justify-between border-b border-sd-border-default">
+                <div className="flex flex-col">
+                  <span className="text-sd-gold font-bold tracking-[0.1em] text-lg leading-none">SARENG</span>
+                  <span className="text-sd-text-secondary text-[9px] tracking-[0.05em]">DIGITAL</span>
+                </div>
+                <button onClick={() => setIsDrawerOpen(false)} className="text-sd-text-secondary p-2 -mr-2">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto py-6 px-4">
+                <div className="space-y-4">
+                  {CATEGORIES.map((cat) => (
+                    <Link 
+                      key={cat.slug} 
+                      href={cat.slug === 'all' ? '/e-commerce/products' : `/e-commerce/${cat.slug}`}
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-sd-black/40 group transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Geometric Icon placeholder */}
+                        <div className="w-8 h-8 rounded-full border border-sd-border-default flex items-center justify-center text-sd-gold font-mono text-[10px] group-hover:border-sd-gold transition-colors">
+                          {cat.name.charAt(0)}
+                        </div>
+                        <span className="text-sm font-medium text-sd-text-primary group-hover:text-sd-gold transition-colors">
+                          {cat.name}
+                        </span>
+                        {cat.isNew && (
+                          <span className="text-[10px] bg-sd-gold-dim text-sd-gold px-1.5 py-0.5 rounded uppercase tracking-wider font-bold">New</span>
+                        )}
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-sd-text-muted" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-sd-border-default space-y-4">
+                <Link href="/e-commerce/about" className="block text-sm text-sd-text-secondary hover:text-sd-gold transition-colors underline-offset-4 hover:underline">About Sareng</Link>
+                <div className="flex gap-4">
+                   {/* Social links placeholder */}
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };
 
-export default Navbar;
+export default Navigation;
