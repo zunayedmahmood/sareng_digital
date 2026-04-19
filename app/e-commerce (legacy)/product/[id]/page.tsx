@@ -17,7 +17,7 @@ import PremiumProductCard from '@/components/ecommerce/ui/PremiumProductCard';
 import { usePromotion } from '@/contexts/PromotionContext';
 
 
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import Navigation from '@/components/ecommerce/Navigation';
 import { getBaseProductName, getColorLabel, getSizeLabel } from '@/lib/productNameUtils';
 import { adaptCatalogGroupedProducts, groupProductsByMother } from '@/lib/ecommerceProductGrouping';

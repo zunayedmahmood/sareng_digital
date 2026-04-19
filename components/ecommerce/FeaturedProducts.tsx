@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import catalogService, { SimpleProduct } from '@/services/catalogService';
 import { getCardNewestSortKey } from '@/lib/ecommerceCardUtils';
 import { getBaseProductName } from '@/lib/productNameUtils';

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import CartSidebar from './CartSidebar';
 
 export default function GlobalCartSidebar() {

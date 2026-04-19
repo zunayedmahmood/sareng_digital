@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { X, Plus, Minus, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import cartService from '@/services/cartService';
-import { useCart } from '../../../app/e-commerce/CartContext';
+import { useCart } from '../../../app/CartContext';
 import { usePromotion } from '@/contexts/PromotionContext';
 
 interface CartItemProps {

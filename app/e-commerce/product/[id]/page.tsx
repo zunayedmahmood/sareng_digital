@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Loader2, ChevronLeft, ArrowRight, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import catalogService, { 
   Product, 
   ProductDetailResponse, 

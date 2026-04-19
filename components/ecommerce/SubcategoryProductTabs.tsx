@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import catalogService, { CatalogCategory, SimpleProduct } from '@/services/catalogService';
 import { buildCardProductsFromResponse } from '@/lib/ecommerceCardUtils';
 import PremiumProductCard from '@/components/ecommerce/ui/PremiumProductCard';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import { fireToast } from '@/lib/globalToast';
 
 /* ─── helpers ────────────────────────────────────────────────────────────── */

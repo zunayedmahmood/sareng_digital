@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/ecommerce/Navigation';
 import CategorySidebar from '@/components/ecommerce/category/CategorySidebar';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import catalogService, {
   CatalogCategory,
   Product,

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { X, Loader2, ShoppingCart, ShoppingBag } from 'lucide-react';
-import { useCart } from '../../../app/e-commerce/CartContext';
+import { useCart } from '../../../app/CartContext';
 import { useRouter } from 'next/navigation';
 import CartItem from './CartItem';
 import checkoutService from '../../../services/checkoutService';

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 
 import Navigation from '@/components/ecommerce/Navigation';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import catalogService, {
   SimpleProduct,
   PaginationMeta

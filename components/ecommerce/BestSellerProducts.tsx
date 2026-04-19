@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Heart, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import CartSidebar from './cart/CartSidebar';
 import { wishlistUtils } from '@/lib/wishlistUtils';
 import { fireToast } from '@/lib/globalToast';

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Heart, X, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { wishlistUtils, WishlistItem } from '@/lib/wishlistUtils';
-import { useCart } from '@/app/e-commerce/CartContext';
+import { useCart } from '@/app/CartContext';
 import Navigation from '@/components/ecommerce/Navigation';
 import CartSidebar from '@/components/ecommerce/cart/CartSidebar';
 
