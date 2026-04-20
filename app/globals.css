@@ -1,4 +1,51 @@
+@import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700&display=swap");
+
+@theme {
+  /* --- Brand Palette Mapping --- */
+  --color-sd-black: var(--sd-black);
+  --color-sd-onyx: var(--sd-onyx);
+  --color-sd-graphite: var(--sd-graphite);
+  --color-sd-gold: var(--sd-gold);
+  --color-sd-gold-soft: var(--sd-gold-soft);
+  --color-sd-ivory: var(--sd-ivory);
+  --color-sd-ivory-dark: var(--sd-ivory-dark);
+
+  /* --- Semantic Colors --- */
+  --color-sd-success: var(--sd-success);
+  --color-sd-warning: var(--sd-warning);
+  --color-sd-danger: var(--sd-danger);
+  --color-sd-info: var(--sd-info);
+
+  /* --- Text Colors --- */
+  --color-sd-text-primary: var(--sd-text-primary);
+  --color-sd-text-secondary: var(--sd-text-secondary);
+  --color-sd-text-muted: var(--sd-text-muted);
+  --color-sd-text-on-light: var(--sd-text-on-light);
+  --color-sd-text-gold: var(--sd-text-gold);
+
+  /* --- Border Colors --- */
+  --color-sd-border-default: var(--sd-border-default);
+  --color-sd-border-hover: var(--sd-border-hover);
+  --color-sd-border-strong: var(--sd-border-strong);
+  --color-sd-border-light: var(--sd-border-light);
+
+  /* --- Radii --- */
+  --radius-sd-sm: var(--sd-radius-sm);
+  --radius-sd-md: var(--sd-radius-md);
+  --radius-sd-lg: var(--sd-radius-lg);
+  --radius-sd-xl: var(--sd-radius-xl);
+  --radius-sd-pill: var(--sd-radius-pill);
+
+  /* --- Typography --- */
+  --font-sans: var(--sd-font-sans);
+  --font-display: var(--sd-font-display);
+
+  /* --- Shadows --- */
+  --shadow-sd-card: var(--sd-shadow-card);
+  --shadow-sd-hover: var(--sd-shadow-hover);
+  --shadow-sd-gold: var(--sd-shadow-gold);
+}
 
 :root {
   /* === PRIMARY PALETTE === */
@@ -15,7 +62,7 @@
 
   /* === TEXT === */
   --sd-text-primary:    #F5F3EF;        /* On dark backgrounds */
-  --sd-text-secondary:  rgba(245,243,239,0.6);
+  --sd-text-secondary:  rgba(245,243,239,0.5);
   --sd-text-muted:      rgba(245,243,239,0.35);
   --sd-text-on-light:   #0A0A0A;        /* On ivory/white backgrounds */
   --sd-text-gold:       #C9A84C;
@@ -62,9 +109,8 @@
   --sd-shadow-gold:   0 0 24px rgba(201,168,76,0.2);
 
   /* === TYPOGRAPHY === */
-  /* These will be assigned via next/font in layout.tsx but defined here for CSS usage */
-  --sd-font-sans:   'Inter', 'Segoe UI', system-ui, sans-serif;
-  --sd-font-display:'Playfair Display', Georgia, serif;
+  --sd-font-sans:   "Inter", "Segoe UI", system-ui, sans-serif;
+  --sd-font-display: "Playfair Display", Georgia, serif;
 
   /* === Z-INDEX SCALE === */
   --sd-z-base:      1;
