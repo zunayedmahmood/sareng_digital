@@ -50,8 +50,8 @@ const PendrivesFeature: React.FC = () => {
                  className="w-full h-full"
                >
                  <SdImage 
-                   src="https://images.unsplash.com/photo-1590422996025-a7b0bed58d7d?q=80&w=1000" 
-                   alt="Character Pendrives"
+                   src="/images/themed_earbuds.png" 
+                   alt="Character Storage"
                    fill
                    className="object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-1000"
                  />

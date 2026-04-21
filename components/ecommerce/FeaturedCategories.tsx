@@ -7,11 +7,11 @@ import { Mouse, Headset, Keyboard, HardDrive, Triangle } from 'lucide-react';
 import SdImage from './SdImage';
 
 const CATEGORIES = [
-  { name: 'Earbuds', slug: 'earbuds', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1000', icon: Headset },
-  { name: 'Mice', slug: 'mice', image: 'https://images.unsplash.com/photo-1527864550417-7fd91751a46a?q=80&w=1000', icon: Mouse },
+  { name: 'Earbuds', slug: 'earbuds', image: '/images/pokemon_themed_earbuds.png', icon: Headset },
+  { name: 'Mice', slug: 'mice', image: '/images/cat_mouse.png', icon: Mouse },
   { name: 'Keyboards', slug: 'keyboards', image: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?q=80&w=1000', icon: Keyboard },
   { name: 'Pendrives', slug: 'pendrives', image: 'https://images.unsplash.com/photo-1590422996025-a7b0bed58d7d?q=80&w=1000', icon: HardDrive },
-  { name: 'Accessories', slug: 'accessories', image: 'https://images.unsplash.com/photo-1544006659-f0b21f04cb1d?q=80&w=1000', icon: Triangle },
+  { name: 'Accessories', slug: 'accessories', image: '/images/duck_themed_earbuds.png', icon: Triangle },
 ];
 
 const FeaturedCategories: React.FC = () => {
@@ -53,6 +53,7 @@ const FeaturedCategories: React.FC = () => {
                     src={cat.image} 
                     alt={cat.name}
                     fill
+                    useProxy={false} // Direct load to bypass proxy issues
                     className="object-cover grayscale-[0.5] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000 ease-out"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-sd-ivory/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />

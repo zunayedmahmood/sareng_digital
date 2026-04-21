@@ -27,7 +27,7 @@ export default function EcommerceHomePage() {
       <EditorialBlock 
         title="Precision Redefined for the Digital Age"
         subtitle="Our collection combines hyper-responsive sensors with ergonomic character-driven designs that stand out on any desk. Crafted for the aesthetic enthusiast."
-        imageUrl="/images/product_images/mouse_themed_mouse.png"
+        imageUrl="/images/mouse_themed_mouse.png"
         ctaHref="/e-commerce/mice"
       />
 
@@ -48,7 +48,7 @@ export default function EcommerceHomePage() {
         reverse
         title="Your Sound, Your Identity"
         subtitle="Experience audio clarity wrapped in designs that speak to your passions. Our limited boutique earbuds are as unique as your curated playlist."
-        imageUrl="/images/product_images/pokemon_themed_earbuds.png"
+        imageUrl="/images/pokemon_themed_earbuds.png"
         ctaHref="/e-commerce/earbuds"
         ctaText="Shop Audio"
       />

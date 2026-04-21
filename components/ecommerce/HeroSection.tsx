@@ -17,9 +17,9 @@ interface HeroData {
 // Mock function representing future CMS fetch
 const getHeroContent = (): HeroData => {
   return {
-    imageUrl: 'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?q=80&w=2070', // Minimalist premium tech setup
+    imageUrl: '/images/mouse_themed_mouse.png', // Premium local product asset
     heading: 'The New Standard of Digital Craft',
-    subline: 'Precision peripherals curated for the modern minimalist. Imported quality, boutique experience.',
+    subline: 'Precision peripherals curated for the modern minimalist. Limited imports, boutique experience.',
     ctaText: 'Explore Boutique',
     ctaHref: '/e-commerce/products',
   };
