@@ -52,13 +52,14 @@ const HeroSection: React.FC = () => {
           transition={{ duration: 2, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          <SdImage 
-            src={data.imageUrl} 
-            alt="Hero Product"
-            fill
-            priority
-            context="hero"
-            className="object-cover"
+          {/* Using a direct img tag to bypass any complex SdImage/Next-Image issues for debugging */}
+          <img 
+            src="/images/mouse_themed_mouse.png" 
+            alt="The New Standard of Digital Craft"
+            className="w-full h-full object-cover"
+            loading="eager"
+            onLoad={(e) => console.log('Direct Hero Image Loaded')}
+            onError={(e) => console.error('Direct Hero Image Failed', e)}
           />
         </motion.div>
         
