@@ -17,57 +17,52 @@ const MOCK_REELS = [
 
 const InstagramReelViewer: React.FC<InstagramReelViewerProps> = ({ reels = MOCK_REELS }) => {
   return (
-    <section className="py-16 lg:py-24 bg-sd-black">
-      <div className="container mx-auto px-6">
+    <section className="py-24 lg:py-32 bg-sd-ivory overflow-hidden">
+      <div className="container mx-auto px-6 lg:px-12">
         {/* Header */}
-        <div className="flex flex-col items-center mb-12">
-          <div className="flex items-center gap-3 text-sd-gold mb-4">
+        <div className="flex flex-col items-center mb-16">
+          <div className="flex items-center gap-4 text-sd-black mb-6">
             <Instagram className="w-5 h-5" />
-            <span className="text-[10px] font-bold tracking-[0.3em] uppercase">FOLLOW US @SARENGDIGITAL</span>
+            <span className="text-[10px] font-bold tracking-[0.5em] uppercase">The Culture @SARENGDIGITAL</span>
           </div>
           
-          <div className="w-full h-px bg-sd-gold/30 max-w-xs mx-auto mb-8" />
+          <div className="w-24 h-1 bg-sd-gold/30 mb-8 rounded-full" />
           
-          <h2 className="text-2xl lg:text-3xl font-bold text-sd-ivory text-center">
-            Culture in <span className="font-display italic font-normal">Motion</span>
+          <h2 className="text-4xl lg:text-5xl font-bold text-sd-black text-center tracking-tight leading-tight">
+            Our Culture in <span className="font-display italic font-normal text-sd-gold">Motion</span>
           </h2>
         </div>
 
         {/* Reels Container */}
-        <div className="flex overflow-x-auto gap-6 pb-8 scrollbar-none snap-x snap-mandatory lg:grid lg:grid-cols-3 lg:overflow-visible">
+        <div className="flex overflow-x-auto gap-8 pb-12 scrollbar-none snap-x snap-mandatory lg:grid lg:grid-cols-3 lg:overflow-visible">
           {reels.map((url, index) => (
             <motion.div 
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="flex-shrink-0 w-[280px] sm:w-[320px] lg:w-full snap-center"
+              transition={{ duration: 0.8, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="flex-shrink-0 w-[300px] sm:w-[340px] lg:w-full snap-center group"
             >
-              <div className="aspect-[9/16] bg-sd-onyx rounded-2xl overflow-hidden border border-sd-border-default relative group hover:border-sd-gold transition-colors">
-                 {/* 
-                    Using a simple iframe for now as requested. 
-                    In a real app, I'd use the Instagram embed script or a library.
-                    Since we want 9:16 ratio consistently.
-                 */}
+              <div className="aspect-[9/16] bg-sd-white rounded-[40px] overflow-hidden border border-sd-black/5 relative shadow-sd-card group-hover:shadow-sd-hover group-hover:-translate-y-2 transition-all duration-700">
                  <iframe 
                     src={`${url}embed`}
-                    className="w-full h-full border-none"
+                    className="w-full h-full border-none grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700"
                     loading="lazy"
                     title={`Instagram Reel ${index + 1}`}
                  />
                  
                  {/* Shimmer Placeholder behind iframe */}
-                 <div className="absolute inset-0 z-[-1] sd-skeleton" />
+                 <div className="absolute inset-0 z-[-1] bg-sd-black/5 sd-skeleton" />
               </div>
             </motion.div>
           ))}
         </div>
 
         {/* Mobile indicators */}
-        <div className="flex justify-center gap-2 mt-4 lg:hidden">
+        <div className="flex justify-center gap-3 lg:hidden">
            {reels.map((_, i) => (
-             <div key={i} className="w-1.5 h-1.5 rounded-full bg-sd-border-strong" />
+             <div key={i} className="w-2 h-2 rounded-full bg-sd-black/10" />
            ))}
         </div>
       </div>

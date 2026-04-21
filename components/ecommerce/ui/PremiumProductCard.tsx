@@ -77,70 +77,70 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onOpen?.(product)}
-      className="group relative bg-sd-onyx border border-white/5 rounded-2xl overflow-hidden hover:border-sd-gold/30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all duration-700 cursor-pointer flex flex-col h-full"
+      className="group relative bg-sd-white border border-sd-border-default rounded-[30px] overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full shadow-sd-card hover:shadow-sd-hover hover:-translate-y-2"
     >
-      {/* Upper Glow Effect on Hover */}
-      <div className={`absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-sd-gold/40 to-transparent transition-opacity duration-700 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
-
       {/* Image Area */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-[#0A0A0A]">
+      <div className="relative aspect-[4/5] overflow-hidden bg-sd-ivory-dark/20">
         <SdImage 
           src={isHovered && secondaryImage ? secondaryImage : primaryImage}
           alt={product.name}
           fill
-          className={`object-cover transition-all duration-1000 ease-out ${isHovered ? 'scale-110 opacity-70' : 'scale-100 opacity-100'}`}
+          className={`object-cover transition-all duration-1000 ease-out ${isHovered ? 'scale-110 opacity-90' : 'scale-100 opacity-100'}`}
           context="card"
         />
 
-        {/* Badges - Floating Style */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+        {/* Badges - Refined Floating Style */}
+        <div className="absolute top-5 left-5 flex flex-col gap-2 z-10">
           {isNew && (
-            <span className="bg-sd-gold/10 backdrop-blur-md text-sd-gold text-[9px] font-bold px-2 py-1 rounded-sm border border-sd-gold/20 tracking-[0.2em] uppercase">New</span>
+            <span className="bg-sd-black text-sd-white text-[8px] font-bold px-3 py-1.5 rounded-full tracking-[0.2em] uppercase shadow-sm">New</span>
           )}
           {salePromo && (
-            <span className="bg-sd-danger/10 backdrop-blur-md text-sd-danger text-[9px] font-bold px-2 py-1 rounded-sm border border-sd-danger/20 tracking-[0.2em] uppercase">Sale</span>
+            <span className="bg-sd-gold text-sd-black text-[8px] font-bold px-3 py-1.5 rounded-full tracking-[0.2em] uppercase shadow-sm">-{salePercent}%</span>
           )}
         </div>
 
-        {/* Heart Icon - Refined Glassmorphism */}
+        {/* Wishlist Button */}
         <button 
           onClick={handleWishlist}
-          className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-sd-black/20 backdrop-blur-md border border-white/5 flex items-center justify-center text-sd-ivory hover:text-sd-gold hover:border-sd-gold/30 transition-all transform active:scale-125"
+          className="absolute top-5 right-5 z-10 w-10 h-10 rounded-full bg-sd-white/90 backdrop-blur-md border border-sd-black/5 flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all shadow-sm"
         >
-          <Heart className={`w-4 h-4 transition-colors ${isWishlisted ? 'fill-sd-gold text-sd-gold' : 'text-sd-ivory/60'}`} />
+          <Heart className={`w-4 h-4 transition-colors ${isWishlisted ? 'fill-sd-gold text-sd-gold border-none' : 'text-sd-black'}`} />
         </button>
 
         {/* Sold Out Overlay */}
         {isSoldOut && (
-          <div className="absolute inset-0 bg-sd-black/80 flex flex-col items-center justify-center z-20">
-            <span className="text-sd-gold text-[10px] font-bold tracking-[0.3em] uppercase mb-1">Unavailable</span>
-            <div className="w-12 h-[1px] bg-sd-gold/30" />
+          <div className="absolute inset-0 bg-sd-ivory/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+            <span className="text-sd-black text-[10px] font-bold tracking-[0.4em] uppercase mb-1">Archived</span>
+            <div className="w-10 h-[1px] bg-sd-black/20" />
           </div>
         )}
 
         {/* Quick Add Overlay (Desktop) */}
         {!isSoldOut && (
-          <div className="absolute inset-0 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none flex items-center justify-center">
+          <div className="absolute inset-x-5 bottom-5 z-20 opacity-0 lg:group-hover:opacity-100 translate-y-4 lg:group-hover:translate-y-0 transition-all duration-500 flex items-center justify-center">
             <button 
               onClick={handleQuickAdd}
-              className="pointer-auto bg-sd-ivory text-sd-black px-6 py-3 rounded-full font-bold text-[10px] tracking-[0.2em] uppercase flex items-center gap-2 hover:bg-sd-gold transition-colors shadow-2xl active:scale-95 pointer-events-auto"
+              className="w-full bg-sd-black text-sd-white py-4 rounded-full font-bold text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:bg-sd-gold hover:text-sd-black transition-all shadow-xl"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Quick Add
+              <Plus className="w-4 h-4" />
+              Quick Acquisition
             </button>
           </div>
         )}
       </div>
 
       {/* Info Area */}
-      <div className="p-5 flex flex-col flex-1 gap-3">
-        <div className="flex flex-col gap-1.5">
+      <div className="p-6 flex flex-col flex-1 gap-4">
+        <div className="flex flex-col gap-2">
           {product.category && (
-            <span className="text-sd-gold/50 text-[9px] uppercase tracking-[0.3em] font-bold">
-              {typeof product.category === 'object' ? product.category.name : ''}
-            </span>
+            <div className="flex items-center gap-2">
+               <div className="w-1.5 h-1.5 rounded-full bg-sd-gold" />
+               <span className="text-sd-black/40 text-[9px] uppercase tracking-[0.3em] font-bold">
+                 {typeof product.category === 'object' ? product.category.name : ''}
+               </span>
+            </div>
           )}
-          <h3 className={`text-sd-ivory text-base leading-snug line-clamp-2 min-h-[3rem] transition-all duration-500 ${isHovered ? 'font-display italic text-sd-gold tracking-wide' : 'font-semibold tracking-normal'}`}>
+          <h3 className={`text-sd-black text-lg leading-[1.3] line-clamp-2 min-h-[3.5rem] transition-all duration-500 ${isHovered ? 'text-sd-gold' : 'font-bold'}`}>
             {product.display_name || product.name}
           </h3>
         </div>
@@ -149,14 +149,14 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
            <div className="flex flex-col">
               {salePromo ? (
                 <div className="flex flex-col">
-                  <Price amount={originalPrice} className="text-sd-text-muted text-[10px] line-through mb-0.5" />
-                  <Price amount={discountedPrice!} className="text-sd-gold font-bold text-lg leading-none" />
+                  <Price amount={originalPrice} className="text-sd-black/30 text-[10px] line-through mb-1" />
+                  <Price amount={discountedPrice!} className="text-sd-black font-bold text-xl leading-none tracking-tight" />
                 </div>
               ) : (
-                <div className="flex items-center gap-1">
-                  <Price amount={minPrice} className="text-sd-gold font-bold text-lg leading-none" />
+                <div className="flex items-center gap-1.5">
+                  <Price amount={minPrice} className="text-sd-black font-bold text-xl leading-none tracking-tight" />
                   {hasPriceRange && (
-                    <span className="text-sd-gold font-bold text-lg leading-none">
+                    <span className="text-sd-black font-bold text-xl leading-none">
                       – <Price amount={maxPrice} showSymbol={false} />
                     </span>
                   )}
@@ -168,9 +168,9 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
            {!isSoldOut && (
              <button 
                onClick={handleQuickAdd}
-               className="lg:hidden w-10 h-10 rounded-xl bg-sd-graphite border border-white/5 flex items-center justify-center text-sd-gold active:scale-90 transition-transform shadow-lg"
+               className="lg:hidden w-12 h-12 rounded-2xl bg-sd-ivory border border-sd-black/5 flex items-center justify-center text-sd-black active:scale-90 transition-all shadow-sm"
              >
-               <ShoppingBag className="w-4 h-4" />
+               <ShoppingBag className="w-5 h-5" />
              </button>
            )}
         </div>

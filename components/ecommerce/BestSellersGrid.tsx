@@ -29,12 +29,12 @@ const BestSellersGrid: React.FC = () => {
 
   if (isLoading) {
     return (
-      <section className="py-20 bg-sd-black">
-        <div className="container mx-auto px-6">
-          <div className="h-10 w-64 bg-sd-onyx sd-skeleton rounded mb-12 mx-auto" />
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="py-20 bg-sd-ivory">
+        <div className="container mx-auto px-6 lg:px-12">
+          <div className="h-10 w-64 bg-sd-black/5 sd-skeleton rounded mb-12 mx-auto" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="aspect-[3/4] bg-sd-onyx sd-skeleton rounded-xl" />
+              <div key={i} className="aspect-[3/4] bg-sd-black/5 sd-skeleton rounded-[30px]" />
             ))}
           </div>
         </div>
@@ -45,17 +45,17 @@ const BestSellersGrid: React.FC = () => {
   if (products.length === 0) return null;
 
   return (
-    <section className="py-20 lg:py-32 bg-sd-black">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <span className="text-sd-gold text-[10px] font-bold tracking-[0.5em] uppercase mb-4 block">TREINDING NOW</span>
-          <h2 className="text-4xl lg:text-5xl font-bold text-sd-ivory leading-tight">
-            Our Best <span className="font-display italic font-normal text-sd-gold">Sellers</span>
+    <section className="py-24 lg:py-40 bg-sd-ivory">
+      <div className="container mx-auto px-6 lg:px-12">
+        <div className="text-center mb-20 max-w-2xl mx-auto">
+          <span className="text-sd-black text-[10px] font-bold tracking-[0.5em] uppercase mb-4 block">TRENDING DROPS</span>
+          <h2 className="text-4xl lg:text-6xl font-bold text-sd-black leading-tight tracking-tight">
+            Our Most <span className="font-display italic font-normal text-sd-gold">Acquired</span> Designs
           </h2>
-          <div className="w-24 h-1 bg-sd-gold/20 mx-auto mt-8 rounded-full" />
+          <div className="w-20 h-1 bg-sd-gold/30 mx-auto mt-10 rounded-full" />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 lg:gap-10">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10 lg:gap-12">
           {products.map((product, index) => (
             <PremiumProductCard 
               key={product.id}
@@ -66,12 +66,12 @@ const BestSellersGrid: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-20 text-center">
+        <div className="mt-24 text-center">
            <button 
              onClick={() => window.location.href = '/e-commerce/products'}
-             className="px-12 py-4 rounded-full border border-sd-gold text-sd-gold font-bold text-sm tracking-widest uppercase hover:bg-sd-gold hover:text-sd-black transition-all transform active:scale-95 shadow-sd-gold/10 shadow-lg"
+             className="group px-14 py-6 rounded-full bg-sd-black text-sd-white font-bold text-xs tracking-[0.2em] uppercase hover:bg-sd-gold hover:text-sd-black transition-all shadow-sd-card hover:shadow-sd-hover active:scale-95"
            >
-             Discover More Drops
+             Explore Full Repository
            </button>
         </div>
       </div>

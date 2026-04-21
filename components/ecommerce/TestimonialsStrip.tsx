@@ -13,22 +13,22 @@ const TESTIMONIALS = [
 
 const TestimonialsStrip: React.FC = () => {
   return (
-    <div className="bg-sd-gold py-6 lg:py-8 overflow-hidden border-y border-sd-gold/20 flex relative">
+    <div className="bg-sd-ivory-dark/30 py-10 lg:py-12 overflow-hidden border-y border-sd-border-default flex relative">
       <motion.div 
         animate={{ x: ["0%", "-100%"] }}
         transition={{ 
-          duration: 40, 
+          duration: 50, 
           repeat: Infinity, 
           ease: "linear" 
         }}
-        className="flex items-center gap-12 whitespace-nowrap"
+        className="flex items-center gap-16 whitespace-nowrap"
       >
         {[...TESTIMONIALS, ...TESTIMONIALS].map((text, i) => (
-          <div key={i} className="flex items-center gap-12">
-            <span className="text-sd-black text-sm lg:text-base font-bold tracking-tight uppercase">
+          <div key={i} className="flex items-center gap-16">
+            <span className="text-sd-black text-sm lg:text-lg font-bold tracking-[0.1em] uppercase opacity-80">
               {text}
             </span>
-            <div className="w-2 h-2 rounded-full bg-sd-black" />
+            <div className="w-3 h-[1px] bg-sd-gold" />
           </div>
         ))}
       </motion.div>

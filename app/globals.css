@@ -61,17 +61,17 @@
   --sd-white:        #FFFFFF;
 
   /* === TEXT === */
-  --sd-text-primary:    #F5F3EF;        /* On dark backgrounds */
-  --sd-text-secondary:  rgba(245,243,239,0.5);
-  --sd-text-muted:      rgba(245,243,239,0.35);
-  --sd-text-on-light:   #0A0A0A;        /* On ivory/white backgrounds */
+  --sd-text-primary:    #0A0A0A;        /* On Ivory/White backgrounds */
+  --sd-text-secondary:  rgba(10, 10, 10, 0.65);
+  --sd-text-muted:      rgba(10, 10, 10, 0.4);
+  --sd-text-on-dark:    #F5F3EF;        /* On dark backgrounds */
   --sd-text-gold:       #C9A84C;
 
   /* === BORDERS === */
-  --sd-border-default:  rgba(201,168,76,0.15);
-  --sd-border-hover:    rgba(201,168,76,0.35);
-  --sd-border-strong:   rgba(201,168,76,0.6);
-  --sd-border-light:    rgba(245,243,239,0.08);
+  --sd-border-default:  rgba(10, 10, 10, 0.08);
+  --sd-border-hover:    rgba(201, 168, 76, 0.35);
+  --sd-border-strong:   rgba(10, 10, 10, 0.2);
+  --sd-border-light:    rgba(255, 255, 255, 0.1);
 
   /* === SEMANTIC === */
   --sd-success:   #3D9970;
@@ -104,9 +104,9 @@
   --sd-duration-slower: 700ms;
 
   /* === SHADOWS === */
-  --sd-shadow-card:   0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
-  --sd-shadow-hover:  0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--sd-border-hover);
-  --sd-shadow-gold:   0 0 24px rgba(201,168,76,0.2);
+  --sd-shadow-card:   0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --sd-shadow-hover:  0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
+  --sd-shadow-gold:   0 0 24px rgba(201, 168, 76, 0.15);
 
   /* === TYPOGRAPHY === */
   --sd-font-sans:   "Inter", "Segoe UI", system-ui, sans-serif;
@@ -123,7 +123,7 @@
 }
 
 body {
-  background-color: var(--sd-black);
+  background-color: var(--sd-ivory);
   color: var(--sd-text-primary);
   font-family: var(--sd-font-sans);
   font-size: 16px;
@@ -232,20 +232,20 @@ body {
 /* ─── Design tokens ─────────────────────────────────────── */
 @layer base {
   :root {
-    /* --- Base Backgrounds (Premium Dark Theme) --- */
-    --bg-root: var(--sd-black);
-    --bg-surface: var(--sd-onyx);
-    --bg-surface-2: var(--sd-graphite);
-    --bg-depth: #0F0F0F;
-    --bg-lifted: var(--sd-graphite-mid);
-    --ivory-ghost: var(--sd-ivory-dark);
+    /* --- Base Backgrounds (Premium Ivory Theme) --- */
+    --bg-root: var(--sd-ivory);
+    --bg-surface: var(--sd-white);
+    --bg-surface-2: var(--sd-ivory-dark);
+    --bg-depth: #F9F9F9;
+    --bg-lifted: var(--sd-white);
+    --ivory-ghost: rgba(245, 243, 239, 0.5);
 
     /* --- Brand Colors (Black & Gold) --- */
     --cyan: var(--sd-black);
-    --cyan-bright: var(--sd-graphite);
+    --cyan-bright: var(--sd-onyx);
     --cyan-dim: #000000;
-    --cyan-pale: rgba(26, 26, 26, 0.4);
-    --cyan-glow: rgba(201, 168, 76, 0.1);
+    --cyan-pale: rgba(10, 10, 10, 0.05);
+    --cyan-glow: rgba(10, 10, 10, 0.1);
     --cyan-border: var(--sd-border-default);
 
     --gold: var(--sd-gold);
@@ -262,10 +262,10 @@ body {
     --status-info: var(--sd-info);
 
     /* --- Typography --- */
-    --text-primary: var(--sd-ivory);
+    --text-primary: var(--sd-black);
     --text-secondary: var(--sd-text-secondary);
     --text-muted: var(--sd-text-muted);
-    --text-on-accent: var(--sd-black);
+    --text-on-accent: var(--sd-white);
     --ivory-muted: var(--sd-text-muted);
 
     /* --- Borders & Dividers --- */
@@ -277,7 +277,7 @@ body {
     /* --- Shadows --- */
     --shadow-card: var(--sd-shadow-card);
     --shadow-lifted: var(--sd-shadow-hover);
-    --shadow-cyan: 0 0 16px rgba(0, 0, 0, 0.15);
+    --shadow-cyan: 0 4px 12px rgba(0, 0, 0, 0.05);
     --shadow-gold: var(--sd-shadow-gold);
 
     /* --- Radii --- */

@@ -13,62 +13,57 @@ import { Search } from 'lucide-react';
 
 export default function EcommerceHomePage() {
   return (
-    <div className="flex flex-col bg-sd-black">
+    <div className="flex flex-col bg-sd-ivory min-h-screen">
       {/* 1. Hero Section */}
       <HeroSection />
 
-      {/* 2. Mobile Floating Search Bar (Visible on scroll) */}
-      <div className="lg:hidden sticky top-12 z-[150] px-4 py-3 bg-sd-black/80 backdrop-blur-md border-b border-sd-border-default">
-         <div className="relative group">
-            <input 
-              type="text" 
-              placeholder="Search accessories..."
-              className="w-full bg-sd-onyx border border-sd-border-default rounded-full py-2 px-10 text-xs text-sd-text-primary focus:outline-none focus:border-sd-gold transition-colors"
-            />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-sd-gold" />
-         </div>
-      </div>
-
-      {/* 3. Featured Categories Strip */}
+      {/* 2. Featured Categories Strip */}
       <FeaturedCategories />
 
-      {/* 4. New Arrivals Horizontal Scroll */}
+      {/* 3. New Arrivals Horizontal Scroll */}
       <NewArrivalsScroll />
+
+      {/* 4. Editorial Block 1 - Mouse Feature */}
+      <EditorialBlock 
+        title="Precision Redefined for the Digital Age"
+        subtitle="Our collection combines hyper-responsive sensors with ergonomic character-driven designs that stand out on any desk. Crafted for the aesthetic enthusiast."
+        imageUrl="/images/product_images/mouse_themed_mouse.png"
+        ctaHref="/e-commerce/mice"
+      />
 
       {/* 5. Instagram Reels Viewer */}
       <InstagramReelViewer />
 
-      {/* 6. Editorial Block 1 */}
-      <EditorialBlock 
-        title="Precision Redefined for the Digital Age"
-        subtitle="Our mice collection combines hyper-responsive sensors with ergonomic character-driven designs that stand out on any desk."
-        imageUrl="/images/editorial-mice.jpg"
-        ctaHref="/e-commerce/mice"
-      />
-
-      {/* 7. Pendrives Feature Section */}
+      {/* 6. Pendrives Feature Section */}
       <PendrivesFeature />
 
-      {/* 8. Best Sellers Grid */}
+      {/* 7. Best Sellers Grid */}
       <BestSellersGrid />
 
-      {/* 9. Testimonials Strip */}
+      {/* 8. Testimonials Strip */}
       <TestimonialsStrip />
 
-      {/* 10. Secondary Editorial Block */}
+      {/* 9. Secondary Editorial Block - Audio Feature */}
       <EditorialBlock 
         reverse
         title="Your Sound, Your Identity"
-        subtitle="Experience audio clarity wrapped in designs that speak to your passions. Our limited edition earbuds are as unique as your playlist."
-        imageUrl="/images/editorial-earbuds.jpg"
+        subtitle="Experience audio clarity wrapped in designs that speak to your passions. Our limited boutique earbuds are as unique as your curated playlist."
+        imageUrl="/images/product_images/pokemon_themed_earbuds.png"
         ctaHref="/e-commerce/earbuds"
         ctaText="Shop Audio"
       />
 
+      {/* 10. Social Proof Divider */}
+      <div className="py-20 bg-sd-ivory flex items-center justify-center">
+         <div className="h-px w-24 bg-sd-black/10" />
+         <div className="mx-8 font-display italic text-2xl text-sd-black/20">Boutique Imports. Bangladesh.</div>
+         <div className="h-px w-24 bg-sd-black/10" />
+      </div>
+
       {/* SEO hidden content */}
       <section className="sr-only">
-        <h1>Sareng Digital - Premium Tech Accessories in Bangladesh</h1>
-        <p>Discover the best earbuds, gaming mice, mechanical keyboards, and character-driven pendrives at Sareng Digital. High-quality peripherals for enthusiasts.</p>
+        <h1>Sareng Digital - Premium Tech Boutique in Bangladesh</h1>
+        <p>Discover the best earbuds, gaming mice, mechanical keyboards, and character-driven pendrives at Sareng Digital. High-quality boutique imports for enthusiasts.</p>
       </section>
     </div>
   );

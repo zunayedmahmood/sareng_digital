@@ -46,32 +46,32 @@ const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="bg-sd-onyx border-t border-sd-border-default pt-16 pb-8 lg:pb-12">
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
+    <footer className="bg-sd-ivory-dark/40 border-t border-sd-border-default pt-24 pb-12 lg:pb-20">
+      <div className="container mx-auto px-6 lg:px-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-16 mb-20">
           {/* Logo & Tagline */}
-          <div className="lg:col-span-2 space-y-6">
-            <Link href="/e-commerce" className="flex flex-col">
-              <span className="text-sd-gold font-bold tracking-[0.15em] text-2xl leading-none">SARENG</span>
-              <span className="text-sd-text-secondary text-xs tracking-[0.08em]">DIGITAL</span>
+          <div className="lg:col-span-2 space-y-8">
+            <Link href="/e-commerce" className="flex flex-col group">
+              <span className="text-sd-black font-display italic text-3xl leading-none transition-transform group-hover:translate-x-1 duration-500">Sareng</span>
+              <span className="text-sd-black text-[10px] tracking-[0.4em] uppercase mt-1 opacity-60">Digital Boutique</span>
             </Link>
-            <p className="text-sd-text-secondary text-sm max-w-sm leading-relaxed">
-              Curated premium tech accessories for those who value both performance and personality. From character-driven earbuds to precision peripherals.
+            <p className="text-sd-text-secondary text-base max-w-sm leading-relaxed font-medium">
+              Curated premium tech accessories for those who value both performance and personality. Boutique imports for the modern desk.
             </p>
           </div>
 
           {/* Links Sections */}
           {sections.map((section) => (
             <div key={section.title}>
-              <h3 className="text-sd-gold text-[11px] font-bold tracking-[0.3em] uppercase mb-6">
+              <h3 className="text-sd-black text-[10px] font-bold tracking-[0.3em] uppercase mb-8">
                 {section.title}
               </h3>
-              <ul className="space-y-4">
+              <ul className="space-y-5">
                 {section.links.map((link) => (
                   <li key={link.label}>
                     <Link 
                       href={link.href}
-                      className="text-sd-text-secondary text-sm hover:text-sd-gold transition-all hover:translate-x-1 inline-block"
+                      className="text-sd-text-secondary text-sm font-medium hover:text-sd-black transition-all hover:translate-x-1 inline-block"
                     >
                       {link.label}
                     </Link>
@@ -82,19 +82,19 @@ const Footer: React.FC = () => {
           ))}
         </div>
 
-        <div className="pt-8 border-t border-sd-border-default flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="pt-12 border-t border-sd-border-default flex flex-col md:flex-row items-center justify-between gap-10">
           {/* Copyright */}
-          <div className="text-sd-text-muted text-xs">
-            © {year} SARENG DIGITAL. All rights reserved.
+          <div className="text-sd-text-muted text-[10px] font-bold tracking-[0.1em] uppercase">
+            © {year} SARENG DIGITAL. BD PREMIUM BOUTIQUE.
           </div>
 
           {/* Social Icons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             {socialIcons.map(({ Icon, href, label }) => (
               <a 
                 key={label} 
                 href={href} 
-                className="w-10 h-10 rounded-full border border-sd-border-default flex items-center justify-center text-sd-text-secondary hover:text-sd-gold hover:border-sd-gold transition-all hover:shadow-sd-gold group"
+                className="w-12 h-12 rounded-full border border-sd-black/10 flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white hover:border-sd-black transition-all group"
                 aria-label={label}
               >
                 <Icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -102,10 +102,10 @@ const Footer: React.FC = () => {
             ))}
           </div>
 
-          {/* Payment Badges or Legal bits */}
-          <div className="flex items-center gap-3">
-             <div className="px-3 py-1.5 border border-sd-border-light rounded bg-sd-black/30">
-               <span className="text-[10px] font-bold text-sd-text-muted tracking-widest uppercase">SSLCOMMERZ</span>
+          {/* Secure Payment */}
+          <div className="flex items-center gap-4">
+             <div className="px-4 py-2 border border-sd-black/5 rounded-full bg-sd-white/60 backdrop-blur-sm">
+               <span className="text-[10px] font-bold text-sd-black/40 tracking-widest uppercase">Verified Secure Payment</span>
              </div>
           </div>
         </div>
