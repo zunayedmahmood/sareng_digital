@@ -282,19 +282,44 @@ const SubcategoryProductTabs: React.FC<SubcategoryProductTabsProps> = ({
   /* ── skeleton ── */
   if (loadingCats) {
     return (
-      <section style={{ background: '#ffffff', padding: '48px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-        <div className="ec-container">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '32px' }}>
-            <div style={{ height: '1px', width: '48px', background: '#e0e0e0' }} />
-            <div style={{ height: '24px', width: '180px', background: '#f0f0f0', borderRadius: '4px' }} />
-            <div style={{ height: '1px', width: '48px', background: '#e0e0e0' }} />
-          </div>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', overflowX: 'auto' }}>
-            {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: '36px', width: '80px', background: '#f0f0f0', borderRadius: '4px', flexShrink: 0 }} />)}
+      <section className="py-24 lg:py-32 border-t border-sd-border-default/50 bg-sd-ivory">
+        <div className="container mx-auto px-6 lg:px-12">
+          <div className="flex flex-col gap-6 mb-16 animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="h-2 w-24 bg-sd-gold/20" />
+              <div className="h-[1px] flex-1 bg-sd-border-default/30" />
+            </div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+              <div>
+                <div className="h-12 w-64 lg:h-16 lg:w-96 bg-sd-ivory-dark/40 mb-6" />
+                <div className="h-4 w-48 bg-sd-ivory-dark/40" />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="h-10 w-24 bg-sd-ivory-dark/20 border border-sd-border-default/30" />
+                ))}
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-    /* ── main ── */
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[4/5] bg-sd-ivory-dark/40 mb-4 border border-sd-border-default" />
+                <div className="h-4 bg-sd-ivory-dark/40 w-3/4 mb-2" />
+                <div className="h-4 bg-sd-ivory-dark/40 w-1/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!loadingCats && hideIfNotFound && tabs.length === 0) {
+    return null;
+  }
+
+  /* ── main ── */
   return (
     <section className="py-24 lg:py-32 border-t border-sd-border-default/50 bg-sd-ivory">
       <div className="container mx-auto px-6 lg:px-12">

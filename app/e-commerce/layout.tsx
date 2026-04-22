@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { CustomerAuthProvider } from '@/contexts/CustomerAuthContext';
 
 import { PromotionProvider } from '@/contexts/PromotionContext';
+import { CartProvider } from './CartContext';
 import Footer from '@/components/ecommerce/Footer';
 import ScrollToTopOnRouteChange from '@/components/ecommerce/ScrollToTopOnRouteChange';
 import GlobalCartSidebar from '@/components/ecommerce/cart/GlobalCartSidebar';
@@ -13,29 +14,31 @@ export default function EcommerceLayout({ children }: { children: React.ReactNod
   return (
     <CustomerAuthProvider>
       <PromotionProvider>
-        <Suspense fallback={null}>
-          <ScrollToTopOnRouteChange />
-        </Suspense>
+        <CartProvider>
+          <Suspense fallback={null}>
+            <ScrollToTopOnRouteChange />
+          </Suspense>
 
-        <GlobalCartSidebar />
+          <GlobalCartSidebar />
 
-        {/* Clean white e-commerce layout */}
-        <div
-          className="ec-root"
-          style={{
-            minHeight: '100vh',
-            backgroundColor: '#ffffff',
-            position: 'relative',
-          }}
-        >
-          {/* All page content */}
-          <div style={{ position: 'relative', zIndex: 10 }}>
-            {children}
+          {/* Clean white e-commerce layout */}
+          <div
+            className="ec-root"
+            style={{
+              minHeight: '100vh',
+              backgroundColor: '#ffffff',
+              position: 'relative',
+            }}
+          >
+            {/* All page content */}
+            <div style={{ position: 'relative', zIndex: 10 }}>
+              {children}
+            </div>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <Footer />
+            </div>
           </div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <Footer />
-          </div>
-        </div>
+        </CartProvider>
       </PromotionProvider>
     </CustomerAuthProvider>
   );
