@@ -16,7 +16,7 @@ interface HeroData {
 
 const getHeroContent = (): HeroData => {
   return {
-    imageUrl: '/images/product_images/duck_themed_earbuds.png',
+    imageUrl: '/images/mouse_themed_mouse.png',
     heading: 'The Art of Character Driven Audio',
     subline: 'An anthology of sound. Precision acoustic engineering meets playful geometric form.',
     ctaText: 'View Collection',
