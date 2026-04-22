@@ -1,70 +1,107 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import Navigation from '@/components/ecommerce/Navigation';
 import HeroSection from '@/components/ecommerce/HeroSection';
-import FeaturedCategories from '@/components/ecommerce/FeaturedCategories';
-import NewArrivalsScroll from '@/components/ecommerce/NewArrivalsScroll';
-import InstagramReelViewer from '@/components/ecommerce/InstagramReelViewer';
-import PendrivesFeature from '@/components/ecommerce/PendrivesFeature';
-import EditorialBlock from '@/components/ecommerce/EditorialBlock';
-import BestSellersGrid from '@/components/ecommerce/BestSellersGrid';
-import TestimonialsStrip from '@/components/ecommerce/TestimonialsStrip';
-import { Search } from 'lucide-react';
+import Footer from '@/components/ecommerce/Footer';
+import dynamic from 'next/dynamic';
 
-export default function EcommerceHomePage() {
+const CollectionTiles = dynamic(() => import('@/components/ecommerce/CollectionTiles'), {
+  loading: () => <div style={{ minHeight: '400px', margin: '40px 0' }} className="w-full bg-[var(--bg-surface-2)] animate-pulse rounded-2xl" />
+});
+const NewArrivals = dynamic(() => import('@/components/ecommerce/NewArrivals'), {
+  loading: () => <div style={{ minHeight: '600px', margin: '40px 0' }} className="w-full bg-[var(--bg-surface-2)] animate-pulse rounded-2xl" />
+});
+const SubcategoryProductTabs = dynamic(() => import('@/components/ecommerce/SubcategoryProductTabs'), {
+  loading: () => <div style={{ minHeight: '800px', margin: '40px 0' }} className="w-full bg-[var(--bg-surface-2)] animate-pulse rounded-2xl" />
+});
+const InstagramReelViewer = dynamic(() => import('@/components/ecommerce/InstagramReelViewer'), {
+  ssr: false,
+  loading: () => <div style={{ minHeight: '760px', margin: '40px 0' }} className="w-full bg-[var(--bg-surface-2)] animate-pulse rounded-2xl" />
+});
+import SectionReveal from '@/components/ecommerce/SectionReveal';
+import catalogService, { CatalogCategory } from '@/services/catalogService';
+
+const CUSTOM_SECTIONS: Record<string, { eyebrow: string; subtitle: string; queries: string[] }> = {
+  'sneakers': {
+    eyebrow: "Sneakers",
+    subtitle: "Explore sneaker collections—highs, lows, and everything in between.",
+    queries: ['sneakers', 'sneaker']
+  },
+  'clothing': {
+    eyebrow: "Clothing",
+    subtitle: "Browse tees, hoodies, jackets and more.",
+    queries: ['clothing', 'apparel']
+  },
+  'backpacks': {
+    eyebrow: "Backpacks",
+    subtitle: "From daily carry to travel-ready packs.",
+    queries: ['backpack', 'backpacks', 'bagpack', 'bagpacks']
+  },
+  'fashion-accessories': {
+    eyebrow: "Fashion Accessories",
+    subtitle: "Caps, socks, belts, and the finishing touches.",
+    queries: ['fashion accessories', 'fashion accessory', 'fashion-accessories']
+  }
+};
+
+export default function HomePage() {
+  const [categories, setCategories] = useState<CatalogCategory[]>([]);
+
+  useEffect(() => {
+    catalogService.getCategories()
+      .then(tree => {
+        const top = tree.filter(c => !c.parent_id);
+        setCategories(top.sort((a, b) => (b.product_count || 0) - (a.product_count || 0)));
+      })
+      .catch(console.error);
+  }, []);
+
   return (
-    <div className="flex flex-col bg-sd-ivory min-h-screen">
-      {/* 1. Hero Section */}
-      <HeroSection />
+    <div className="ec-root min-h-screen bg-sd-ivory ec-grain">
+      <Navigation />
 
-      {/* 2. Featured Categories Strip */}
-      <FeaturedCategories />
+      <main>
+        {/* 1. Hero Gallery Spread */}
+        <HeroSection />
 
-      {/* 3. New Arrivals Horizontal Scroll */}
-      <NewArrivalsScroll />
+        {/* 2. Collection Index */}
+        <SectionReveal>
+          <CollectionTiles categories={categories} />
+        </SectionReveal>
 
-      {/* 4. Editorial Block 1 - Mouse Feature */}
-      <EditorialBlock 
-        title="Precision Redefined for the Digital Age"
-        subtitle="Our collection combines hyper-responsive sensors with ergonomic character-driven designs that stand out on any desk. Crafted for the aesthetic enthusiast."
-        imageUrl="/images/mouse_themed_mouse.png"
-        ctaHref="/e-commerce/mice"
-      />
+        {/* 3. Social Artifacts (Instagram) */}
+        <SectionReveal threshold={0.05}>
+          <InstagramReelViewer />
+        </SectionReveal>
 
-      {/* 5. Instagram Reels Viewer */}
-      <InstagramReelViewer />
+        {/* 4. Newly Cataloged (New Arrivals) */}
+        <SectionReveal>
+          <NewArrivals limit={20} />
+        </SectionReveal>
 
-      {/* 6. Pendrives Feature Section */}
-      <PendrivesFeature />
+        {/* 5. Departmental Archives (Category Tabs) */}
+        <div className="space-y-48 pb-48">
+          {categories.map((cat) => {
+            const slug = (cat.slug || cat.name).toLowerCase();
+            const custom = CUSTOM_SECTIONS[slug] ||
+              Object.values(CUSTOM_SECTIONS).find(s => s.queries.includes(slug));
 
-      {/* 7. Best Sellers Grid */}
-      <BestSellersGrid />
+            return (
+              <SectionReveal key={cat.id} threshold={0.1}>
+                <SubcategoryProductTabs
+                  category={cat}
+                  parentQueries={custom ? custom.queries : [slug]}
+                  eyebrow={custom ? custom.eyebrow : cat.name}
+                  subtitle={custom ? custom.subtitle : `Premium selections from our ${cat.name} archive.`}
+                />
+              </SectionReveal>
+            );
+          })}
+        </div>
+      </main>
 
-      {/* 8. Testimonials Strip */}
-      <TestimonialsStrip />
-
-      {/* 9. Secondary Editorial Block - Audio Feature */}
-      <EditorialBlock 
-        reverse
-        title="Your Sound, Your Identity"
-        subtitle="Experience audio clarity wrapped in designs that speak to your passions. Our limited boutique earbuds are as unique as your curated playlist."
-        imageUrl="/images/pokemon_themed_earbuds.png"
-        ctaHref="/e-commerce/earbuds"
-        ctaText="Shop Audio"
-      />
-
-      {/* 10. Social Proof Divider */}
-      <div className="py-20 bg-sd-ivory flex items-center justify-center">
-         <div className="h-px w-24 bg-sd-black/10" />
-         <div className="mx-8 font-display italic text-2xl text-sd-black/20">Boutique Imports. Bangladesh.</div>
-         <div className="h-px w-24 bg-sd-black/10" />
-      </div>
-
-      {/* SEO hidden content */}
-      <section className="sr-only">
-        <h1>Sareng Digital - Premium Tech Boutique in Bangladesh</h1>
-        <p>Discover the best earbuds, gaming mice, mechanical keyboards, and character-driven pendrives at Sareng Digital. High-quality boutique imports for enthusiasts.</p>
-      </section>
+      <Footer />
     </div>
   );
 }

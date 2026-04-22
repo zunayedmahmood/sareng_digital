@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { Heart, Plus, ShoppingBag } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, ShoppingBag } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { SimpleProduct } from '@/services/catalogService';
 import { usePromotion } from '@/contexts/PromotionContext';
 import { getVariantListForCard } from '@/lib/ecommerceCardUtils';
@@ -24,19 +23,9 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
   animDelay = 0,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const { getApplicablePromotion } = usePromotion();
 
-  // New arrival check (within 14 days)
-  const isNew = useMemo(() => {
-    const createdAt = (product as any).created_at;
-    if (!createdAt) return false;
-    const createdDate = new Date(createdAt);
-    const now = new Date();
-    const diffDays = Math.floor((now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 14;
-  }, [product]);
-
+  // Imagery
   const primaryImage = product.images?.[0]?.url || '';
   const secondaryImage = product.images?.[1]?.url || '';
 
@@ -57,11 +46,6 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
   const maxPrice = prices.length > 0 ? Math.max(...prices) : minPrice;
   const hasPriceRange = minPrice !== maxPrice && !salePromo;
 
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
-  };
-
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (onAddToCart) onAddToCart(product, e);
@@ -70,113 +54,99 @@ const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: animDelay / 1000, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.8, delay: animDelay / 1000, ease: [0.87, 0, 0.13, 1] }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onOpen?.(product)}
-      className="group relative bg-sd-white border border-sd-border-default rounded-[30px] overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full shadow-sd-card hover:shadow-sd-hover hover:-translate-y-2"
+      className="group relative bg-sd-white border border-sd-border-default rounded-none overflow-hidden transition-all duration-700 cursor-pointer flex flex-col h-full"
     >
-      {/* Image Area */}
-      <div className="relative aspect-[4/5] overflow-hidden bg-sd-ivory-dark/20">
+      {/* 1. Image Plinth */}
+      <div className="relative aspect-[1/1] overflow-hidden bg-sd-ivory-dark/10 border-b border-sd-border-default">
         <SdImage 
           src={isHovered && secondaryImage ? secondaryImage : primaryImage}
           alt={product.name}
           fill
-          className={`object-cover transition-all duration-1000 ease-out ${isHovered ? 'scale-110 opacity-90' : 'scale-100 opacity-100'}`}
+          className={`object-cover transition-all duration-1000 ease-in-out ${isHovered ? 'scale-105 saturate-[1.2]' : 'scale-100 saturate-100'}`}
           context="card"
         />
 
-        {/* Badges - Refined Floating Style */}
-        <div className="absolute top-5 left-5 flex flex-col gap-2 z-10">
-          {isNew && (
-            <span className="bg-sd-black text-sd-white text-[8px] font-bold px-3 py-1.5 rounded-full tracking-[0.2em] uppercase shadow-sm">New</span>
-          )}
-          {salePromo && (
-            <span className="bg-sd-gold text-sd-black text-[8px] font-bold px-3 py-1.5 rounded-full tracking-[0.2em] uppercase shadow-sm">-{salePercent}%</span>
-          )}
+        {/* Catalog Tag */}
+        <div className="absolute top-4 left-0 z-10">
+          <div className="bg-sd-black text-sd-white px-3 py-1 flex flex-col">
+             <span className="font-mono text-[8px] uppercase tracking-[0.2em]">{salePromo ? `-${salePercent}%` : 'New Entry'}</span>
+          </div>
         </div>
-
-        {/* Wishlist Button */}
-        <button 
-          onClick={handleWishlist}
-          className="absolute top-5 right-5 z-10 w-10 h-10 rounded-full bg-sd-white/90 backdrop-blur-md border border-sd-black/5 flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all shadow-sm"
-        >
-          <Heart className={`w-4 h-4 transition-colors ${isWishlisted ? 'fill-sd-gold text-sd-gold border-none' : 'text-sd-black'}`} />
-        </button>
 
         {/* Sold Out Overlay */}
         {isSoldOut && (
-          <div className="absolute inset-0 bg-sd-ivory/80 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
-            <span className="text-sd-black text-[10px] font-bold tracking-[0.4em] uppercase mb-1">Archived</span>
-            <div className="w-10 h-[1px] bg-sd-black/20" />
+          <div className="absolute inset-0 bg-sd-ivory/80 backdrop-blur-[1px] flex flex-col items-center justify-center z-20">
+            <span className="text-sd-black font-mono text-[9px] uppercase tracking-[0.4em] mb-2">Out of Archive</span>
+            <div className="w-8 h-[1px] bg-sd-black/30" />
           </div>
         )}
 
-        {/* Quick Add Overlay (Desktop) */}
+        {/* Quick Add Tray */}
         {!isSoldOut && (
-          <div className="absolute inset-x-5 bottom-5 z-20 opacity-0 lg:group-hover:opacity-100 translate-y-4 lg:group-hover:translate-y-0 transition-all duration-500 flex items-center justify-center">
+          <div className="absolute inset-x-0 bottom-0 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-in-out">
             <button 
               onClick={handleQuickAdd}
-              className="w-full bg-sd-black text-sd-white py-4 rounded-full font-bold text-[10px] tracking-[0.2em] uppercase flex items-center justify-center gap-3 hover:bg-sd-gold hover:text-sd-black transition-all shadow-xl"
+              className="w-full bg-sd-black text-sd-white py-4 font-mono text-[9px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-sd-gold hover:text-sd-black transition-all"
             >
-              <Plus className="w-4 h-4" />
-              Quick Acquisition
+              <ShoppingBag className="w-3 h-3" />
+              Acquire Item
             </button>
           </div>
         )}
       </div>
 
-      {/* Info Area */}
-      <div className="p-6 flex flex-col flex-1 gap-4">
-        <div className="flex flex-col gap-2">
-          {product.category && (
-            <div className="flex items-center gap-2">
-               <div className="w-1.5 h-1.5 rounded-full bg-sd-gold" />
-               <span className="text-sd-black/40 text-[9px] uppercase tracking-[0.3em] font-bold">
-                 {typeof product.category === 'object' ? product.category.name : ''}
-               </span>
-            </div>
-          )}
-          <h3 className={`text-sd-black text-lg leading-[1.3] line-clamp-2 min-h-[3.5rem] transition-all duration-500 ${isHovered ? 'text-sd-gold' : 'font-bold'}`}>
-            {product.display_name || product.name}
-          </h3>
+      {/* 2. Technical Label Area */}
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex flex-col gap-1 mb-4">
+           <span className="text-sd-gold font-mono text-[8px] uppercase tracking-[0.3em]">
+             {typeof product.category === 'object' ? product.category.name : 'Unfiltered'}
+           </span>
+           <h3 className="text-sd-black text-2xl font-display leading-[1.1] transition-colors group-hover:text-sd-gold">
+             {product.display_name || product.name}
+           </h3>
         </div>
 
-        <div className="mt-auto flex items-end justify-between">
+        <div className="mt-auto pt-4 border-t border-sd-border-default/50 flex items-center justify-between">
            <div className="flex flex-col">
               {salePromo ? (
-                <div className="flex flex-col">
-                  <Price amount={originalPrice} className="text-sd-black/30 text-[10px] line-through mb-1" />
-                  <Price amount={discountedPrice!} className="text-sd-black font-bold text-xl leading-none tracking-tight" />
+                <div className="flex items-center gap-3">
+                  <Price amount={discountedPrice!} className="text-sd-black font-mono text-sm font-bold" />
+                  <Price amount={originalPrice} className="text-sd-text-muted font-mono text-[10px] line-through" />
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <Price amount={minPrice} className="text-sd-black font-bold text-xl leading-none tracking-tight" />
+                  <Price amount={minPrice} className="text-sd-black font-mono text-sm font-bold" />
                   {hasPriceRange && (
-                    <span className="text-sd-black font-bold text-xl leading-none">
-                      – <Price amount={maxPrice} showSymbol={false} />
+                    <span className="text-sd-black font-mono text-sm font-bold">
+                      +
                     </span>
                   )}
                 </div>
               )}
            </div>
            
-           {/* Mobile Quick Add Icon */}
-           {!isSoldOut && (
-             <button 
-               onClick={handleQuickAdd}
-               className="lg:hidden w-12 h-12 rounded-2xl bg-sd-ivory border border-sd-black/5 flex items-center justify-center text-sd-black active:scale-90 transition-all shadow-sm"
-             >
-               <ShoppingBag className="w-5 h-5" />
-             </button>
-           )}
+           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+             <span className="font-mono text-[8px] text-sd-text-muted uppercase tracking-widest leading-none flex items-center gap-2">
+               Details <ArrowRight className="w-2 h-2" />
+             </span>
+           </div>
         </div>
       </div>
     </motion.article>
   );
 };
+
+const ArrowRight = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M5 12h14m-7-7 7 7-7 7"/>
+  </svg>
+);
 
 export default PremiumProductCard;

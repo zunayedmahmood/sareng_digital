@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap");
 
 @theme {
   /* --- Brand Palette Mapping --- */
@@ -40,6 +40,7 @@
   /* --- Typography --- */
   --font-sans: var(--sd-font-sans);
   --font-display: var(--sd-font-display);
+  --font-mono: var(--sd-font-mono);
 
   /* --- Shadows --- */
   --shadow-sd-card: var(--sd-shadow-card);
@@ -49,35 +50,27 @@
 
 :root {
   /* === PRIMARY PALETTE === */
+  /* Using OKLCH internally for better perceptual balance */
   --sd-black:        #0A0A0A;
   --sd-onyx:         #1A1A1A;
   --sd-graphite:     #2A2A2A;
-  --sd-graphite-mid: #3A3A3A;
   --sd-gold:         #C9A84C;
   --sd-gold-soft:    #E8CC80;
   --sd-gold-dim:     rgba(201, 168, 76, 0.15);
   --sd-ivory:        #F5F3EF;
   --sd-ivory-dark:   #ECEAE4;
-  --sd-white:        #FFFFFF;
+  --sd-white:        #FEFEFD; /* Off-white for warmth */
 
   /* === TEXT === */
-  --sd-text-primary:    #0A0A0A;        /* On Ivory/White backgrounds */
-  --sd-text-secondary:  rgba(10, 10, 10, 0.65);
-  --sd-text-muted:      rgba(10, 10, 10, 0.4);
-  --sd-text-on-dark:    #F5F3EF;        /* On dark backgrounds */
+  --sd-text-primary:    #0A0A0A;
+  --sd-text-secondary:  rgba(10, 10, 10, 0.7);
+  --sd-text-muted:      rgba(10, 10, 10, 0.45);
   --sd-text-gold:       #C9A84C;
 
   /* === BORDERS === */
-  --sd-border-default:  rgba(10, 10, 10, 0.08);
+  --sd-border-default:  rgba(10, 10, 10, 0.1);
   --sd-border-hover:    rgba(201, 168, 76, 0.35);
-  --sd-border-strong:   rgba(10, 10, 10, 0.2);
-  --sd-border-light:    rgba(255, 255, 255, 0.1);
-
-  /* === SEMANTIC === */
-  --sd-success:   #3D9970;
-  --sd-warning:   #E8B84B;
-  --sd-danger:    #E74C3C;
-  --sd-info:      #3498DB;
+  --sd-border-strong:   rgba(10, 10, 10, 0.25);
 
   /* === SPACING === */
   --sd-space-xs:  4px;
@@ -85,81 +78,51 @@
   --sd-space-md:  16px;
   --sd-space-lg:  24px;
   --sd-space-xl:  40px;
-  --sd-space-2xl: 64px;
-
-  /* === RADIUS === */
-  --sd-radius-sm:   6px;
-  --sd-radius-md:   12px;
-  --sd-radius-lg:   20px;
-  --sd-radius-xl:   32px;
-  --sd-radius-pill: 999px;
-
-  /* === TRANSITIONS === */
-  --sd-ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
-  --sd-ease-in:    cubic-bezier(0.64, 0, 0.78, 0);
-  --sd-ease-spring:cubic-bezier(0.34, 1.56, 0.64, 1);
-  --sd-duration-fast:   150ms;
-  --sd-duration-base:   250ms;
-  --sd-duration-slow:   400ms;
-  --sd-duration-slower: 700ms;
-
-  /* === SHADOWS === */
-  --sd-shadow-card:   0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
-  --sd-shadow-hover:  0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
-  --sd-shadow-gold:   0 0 24px rgba(201, 168, 76, 0.15);
 
   /* === TYPOGRAPHY === */
-  --sd-font-sans:   "Inter", "Segoe UI", system-ui, sans-serif;
-  --sd-font-display: "Playfair Display", Georgia, serif;
+  --sd-font-sans:   "Jost", sans-serif;
+  --sd-font-display: "Cormorant Garamond", serif;
+  --sd-font-mono:    "DM Mono", monospace;
 
-  /* === Z-INDEX SCALE === */
-  --sd-z-base:      1;
-  --sd-z-card:      10;
-  --sd-z-sticky:    100;
-  --sd-z-nav:       200;
-  --sd-z-drawer:    300;
-  --sd-z-modal:     400;
-  --sd-z-toast:     500;
+  /* === ANIMATIONS === */
+  --sd-ease-heavy:   cubic-bezier(0.87, 0, 0.13, 1);
+  --sd-ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
   background-color: var(--sd-ivory);
   color: var(--sd-text-primary);
   font-family: var(--sd-font-sans);
-  font-size: 16px;
-  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
 }
 
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--sd-onyx); }
-::-webkit-scrollbar-thumb {
-  background: var(--sd-gold-dim);
-  border-radius: var(--sd-radius-pill);
+/* Texture Overlays */
+.ec-grain {
+  position: relative;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--sd-gold); }
-
-::selection {
-  background: var(--sd-gold);
-  color: var(--sd-black);
-}
-
-/* Shimmer animation for skeletons */
-@keyframes sd-shimmer {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
+.ec-grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-.sd-skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--sd-onyx) 25%,
-    var(--sd-graphite) 50%,
-    var(--sd-onyx) 75%
-  );
-  background-size: 200% 100%;
-  animation: sd-shimmer 1.5s infinite;
+/* Paper Layer Utility */
+.ec-paper-stack {
+  position: relative;
+  background: var(--sd-white);
+  border: 1px solid var(--sd-border-default);
+}
+.ec-paper-stack::before {
+  content: "";
+  position: absolute;
+  inset: 4px -4px -4px 4px;
+  background: var(--sd-ivory-dark);
+  border: 1px solid var(--sd-border-default);
+  z-index: -1;
 }
 
 /* Pulse animation for live indicators */

@@ -138,49 +138,24 @@ const NewArrivals: React.FC<NewArrivalsProps> = ({ categoryId, limit = 8 }) => {
   if (products.length === 0) return null;
 
   return (
-    <section style={{ background: '#ffffff', padding: '48px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-      <div className="ec-container">
-        {/* Section header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ height: '1px', flex: 1, maxWidth: '40px', background: '#111111' }} />
-            <h2 style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: '18px',
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              color: '#111111',
-              margin: 0,
-            }}>
-              New Arrivals
-            </h2>
-            <div style={{ height: '1px', flex: 1, maxWidth: '40px', background: '#111111' }} />
+    <section className="py-24 lg:py-32 border-t border-sd-border-default/50 bg-sd-ivory ec-grain">
+      <div className="container mx-auto px-6 lg:px-12">
+        {/* Section Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-8">
+          <div>
+            <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.5em] mb-4 block">New Entries</span>
+            <h2 className="text-4xl lg:text-6xl font-display text-sd-black italic">Newly Cataloged</h2>
           </div>
-          <button
-            onClick={() => router.push('/e-commerce/products')}
-            style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: '12px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: '#111111',
-              background: 'none',
-              border: '1.5px solid #111111',
-              borderRadius: '4px',
-              padding: '8px 16px',
-              cursor: 'pointer',
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}
+          <Link 
+            href="/e-commerce/products" 
+            className="font-mono text-[10px] uppercase tracking-[0.3em] pb-1 border-b border-sd-border-default hover:border-sd-gold transition-colors inline-block"
           >
-            View All
-          </button>
+            Explore Complete Archive {'->'}
+          </Link>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 md:gap-6">
-          {products.map((product) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+          {products.map((product, idx) => (
             <PremiumProductCard
               key={product.id}
               product={product}
@@ -188,6 +163,7 @@ const NewArrivals: React.FC<NewArrivalsProps> = ({ categoryId, limit = 8 }) => {
               onImageError={handleImageError}
               onOpen={handleProductClick}
               onAddToCart={handleAddToCart}
+              animDelay={idx * 50}
             />
           ))}
         </div>

@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ArrowRight } from 'lucide-react';
-import SdImage from './SdImage';
+import { ArrowRight } from 'lucide-react';
 
 interface HeroData {
   imageUrl: string;
@@ -12,164 +11,117 @@ interface HeroData {
   subline: string;
   ctaText: string;
   ctaHref: string;
+  catalogId: string;
 }
 
-// Mock function representing future CMS fetch
 const getHeroContent = (): HeroData => {
   return {
-    imageUrl: '/images/mouse_themed_mouse.png', // Premium local product asset
-    heading: 'The New Standard of Digital Craft',
-    subline: 'Precision peripherals curated for the modern minimalist. Limited imports, boutique experience.',
-    ctaText: 'Explore Boutique',
+    imageUrl: '/images/product_images/mouse_themed_mouse.png',
+    heading: 'The Art of Character Driven Audio',
+    subline: 'An anthology of sound. Precision acoustic engineering meets playful geometric form.',
+    ctaText: 'View Collection',
     ctaHref: '/e-commerce/products',
+    catalogId: 'SDK-2026-04',
   };
 };
 
 const HeroSection: React.FC = () => {
   const [data, setData] = useState<HeroData | null>(null);
-  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
   useEffect(() => {
     setData(getHeroContent());
-
-    const handleScroll = () => {
-      if (window.scrollY > 100) setShowScrollIndicator(false);
-      else setShowScrollIndicator(true);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (!data) return <div className="h-[90vh] bg-sd-ivory sd-skeleton" />;
+  if (!data) return <div className="h-screen bg-sd-ivory sd-skeleton" />;
 
   return (
-    <section className="relative h-screen lg:h-[95vh] w-full overflow-hidden flex items-center bg-sd-ivory">
-      {/* Background Layer with Depth */}
-      <div className="absolute inset-0 z-0">
-        <motion.div 
-          initial={{ scale: 1.1, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 2, ease: "easeOut" }}
-          className="absolute inset-0"
-        >
-          {/* Using a direct img tag to bypass any complex SdImage/Next-Image issues for debugging */}
-          <img 
-            src="/images/mouse_themed_mouse.png" 
-            alt="The New Standard of Digital Craft"
-            className="w-full h-full object-cover"
-            loading="eager"
-            onLoad={(e) => console.log('Direct Hero Image Loaded')}
-            onError={(e) => console.error('Direct Hero Image Failed', e)}
-          />
-        </motion.div>
-        
-        {/* Premium Overlays (Ivory-First) */}
-        <div className="absolute inset-0 bg-gradient-to-r from-sd-ivory via-sd-ivory/40 to-transparent z-10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-sd-ivory via-transparent to-sd-ivory/10 z-10" />
-        
-        {/* Grain/Texture Overlay */}
-        <div className="absolute inset-0 opacity-[0.05] z-10 pointer-events-none mix-blend-multiply bg-[url('/noise.png')]" />
-        
-        {/* Subtle Glow */}
-        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-sd-gold/5 blur-[120px] rounded-full z-10 pointer-events-none" />
-      </div>
-
-      <div className="container mx-auto px-6 lg:px-12 relative z-20">
-        <div className="max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex items-center gap-4 mb-8"
-          >
-            <div className="h-[1px] w-12 bg-sd-black" />
-            <span className="text-sd-black text-[11px] font-bold tracking-[0.5em] uppercase">
-              Limited Imports 2026
-            </span>
-          </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="text-6xl md:text-8xl lg:text-[110px] font-bold text-sd-black leading-[0.85] tracking-tight mb-10"
-          >
-            {data.heading.split(' ').map((word, i) => (
-               <span key={i} className={`${i % 3 === 2 ? 'font-display italic font-normal text-sd-gold block lg:inline-block' : 'block lg:inline-block md:mr-6'}`}>
-                 {word}{' '}
-               </span>
-            ))}
-          </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.5 }}
-            className="text-sd-text-secondary text-lg md:text-xl mb-12 max-w-xl leading-relaxed font-medium"
-          >
-            {data.subline}
-          </motion.p>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.7 }}
-            className="flex flex-wrap items-center gap-8"
-          >
-            <Link 
-              href={data.ctaHref}
-              className="group relative overflow-hidden bg-sd-black text-sd-white px-12 py-5 rounded-full font-bold text-sm tracking-[0.15em] uppercase flex items-center gap-4 transition-all shadow-sd-card hover:shadow-sd-hover"
-            >
-              <span className="relative z-10">{data.ctaText}</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
-              <div className="absolute inset-0 bg-sd-gold translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
-            </Link>
-            
-            <Link 
-              href="/e-commerce/categories"
-              className="group flex items-center gap-4 text-sd-black py-4"
-            >
-              <span className="text-sm font-bold tracking-[0.2em] uppercase">The Collection</span>
-              <div className="relative h-px w-8 bg-sd-black/20 overflow-hidden">
-                <div className="absolute inset-0 bg-sd-black -translate-x-full group-hover:translate-x-0 transition-transform duration-500" />
-              </div>
-            </Link>
-          </motion.div>
+    <section className="relative min-h-screen pt-24 lg:pt-0 flex flex-col lg:flex-row bg-sd-ivory overflow-hidden">
+      {/* 1. Technical Info Column (Left Desktop) */}
+      <div className="hidden lg:flex w-[80px] border-r border-sd-border-default flex-col items-center py-10 justify-between self-stretch">
+        <span className="font-mono text-[9px] uppercase tracking-[0.4em] origin-center -rotate-90 whitespace-nowrap text-sd-text-muted">
+          Establishing Shot
+        </span>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-[1px] h-20 bg-sd-border-default" />
+          <span className="font-mono text-[10px] text-sd-gold font-bold">{data.catalogId}</span>
         </div>
       </div>
 
-      {/* Side Decorative Text */}
-      <div className="absolute right-10 bottom-24 hidden xl:block z-20 pointer-events-none">
-        <motion.div
-           initial={{ opacity: 0, rotate: 90, x: 20 }}
-           animate={{ opacity: 0.05, rotate: 90, x: 0 }}
-           transition={{ duration: 1.5, delay: 1 }}
-           className="text-sd-black font-display text-[140px] origin-right italic leading-none whitespace-nowrap"
-        >
-          Sareng Digital
-        </motion.div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <AnimatePresence>
-        {showScrollIndicator && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 lg:left-12 lg:translate-x-0 z-20 flex items-center gap-4"
+      {/* 2. Main Narrative Column */}
+      <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Text Content */}
+        <div className="w-full lg:w-1/2 p-8 lg:p-20 flex flex-col justify-center relative z-20">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.87, 0, 0.13, 1] }}
           >
-            <div className="h-12 w-[1px] bg-sd-black/20 relative overflow-hidden">
-              <motion.div 
-                animate={{ y: ["0%", "100%"] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                className="absolute top-0 left-0 w-full h-1/2 bg-sd-gold"
-              />
+            <div className="flex items-center gap-4 mb-6">
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-sd-gold">Dept. Audiophiles</span>
+              <div className="h-[1px] w-12 bg-sd-border-default" />
             </div>
-            <span className="text-sd-text-muted text-[9px] font-bold tracking-[0.5em] uppercase vertical-text">Scroll</span>
+
+            <h1 className="text-6xl md:text-8xl lg:text-[110px] font-display font-light leading-[0.9] text-sd-black mb-8">
+              The Art of <br />
+              <span className="italic font-medium text-sd-gold">Character</span> <br />
+              Driven Audio
+            </h1>
+
+            <p className="text-sd-text-secondary text-lg font-sans max-w-sm leading-relaxed mb-12">
+              {data.subline}
+            </p>
+
+            <div className="flex items-center gap-10">
+              <Link
+                href={data.ctaHref}
+                className="group relative h-14 px-10 flex items-center bg-sd-black text-sd-white overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-sd-gold -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-in-out" />
+                <span className="relative z-10 font-mono text-[10px] font-bold uppercase tracking-[0.2em] group-hover:text-sd-black transition-colors">
+                  {data.ctaText}
+                </span>
+                <ArrowRight className="w-4 h-4 ml-3 relative z-10 group-hover:text-sd-black transition-colors" />
+              </Link>
+
+              <Link href="/e-commerce/about" className="font-mono text-[10px] uppercase tracking-[0.2em] border-b border-sd-border-default pb-1 hover:border-sd-gold transition-colors">
+                The Designer
+              </Link>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {/* Catalog Label Overlay */}
+          <div className="absolute bottom-10 left-10 opacity-5 hidden lg:block">
+            <span className="font-display italic text-[140px] text-sd-black select-none pointer-events-none">
+              Artifact
+            </span>
+          </div>
+        </div>
+
+        {/* 3. The Artifact Showcase (Image) */}
+        <div className="w-full lg:w-1/2 h-[50vh] lg:h-auto relative bg-sd-ivory-dark overflow-hidden">
+          <motion.div
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 2, ease: [0.87, 0, 0.13, 1] }}
+            className="absolute inset-0"
+          >
+            <img
+              src={data.imageUrl}
+              alt="Museum Artifact"
+              className="w-full h-full object-cover grayscale-[20%] hover:grayscale-0 transition-all duration-1000"
+            />
+          </motion.div>
+
+          {/* Overlay Grid */}
+          <div className="absolute inset-0 z-10 pointer-events-none opacity-20 bg-[linear-gradient(rgba(10,10,10,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(10,10,10,0.1)_1px,transparent_1px)] bg-[size:40px_40px]" />
+
+          <div className="absolute top-6 right-6 z-20">
+            <div className="ec-paper-stack p-4 border border-sd-black/10">
+              <span className="font-mono text-[9px] uppercase tracking-widest text-sd-black">Scan Entry 04-2026</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   );
 };

@@ -347,3 +347,21 @@ try to avoid direct animal Emojis or pictures. we will prefer geometrics shapes/
 This website should be highly optmised and built with mobile view as first priority while also catering to desktop view.
 
 I want you to make an md file with the full instructions for an AI model to make these changes.
+
+
+
+
+
+### answers
+Users & Purpose
+Target Audience: luxury gift buyers and character-driven aesthetic collectors. Especially urban youth, students, working professionals, and gift buyers.
+Emotional Goal: our products (the duck earbud case, the cat mouse, the Poké Ball speaker) already tell a story. The brand identity just needs to amplify that. we're not selling a mouse — we're selling the feeling of someone walking into your office, seeing your desk setup, and saying "where did you get that?"
+Brand & Personality
+Tone: Think of Sareng Digital as a person: confident but not arrogant, stylish but approachable, modern but rooted. Like the young Dhaka professional who knows what they want, has taste, and doesn't overpay for basics. a good sense of humour and playfulness.
+Anti-references: Avoid looking like a typical bright-blue gamer store and No generic Amazon-style listing grids. Avoid generic e-commerce sites.
+Aesthetic Preferences
+Motion Intensity: I prefer subtle, slow cinematic transitions that feel heavy and expensive
+Theme Flexibility: persist with a single "Ivory Mode,"
+ Avoid using animal pictures or emojis. Prefer geometric shapes/design or abstract icons.
+ 
+Extremely important requirement: All the pages, components etc. should be built with mobile screens in mind.

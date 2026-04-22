@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 import catalogService, { CatalogCategory, SimpleProduct } from '@/services/catalogService';
 import { buildCardProductsFromResponse } from '@/lib/ecommerceCardUtils';
@@ -293,94 +294,70 @@ const SubcategoryProductTabs: React.FC<SubcategoryProductTabsProps> = ({
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i}>
-                <div style={{ aspectRatio: '2/3', background: '#f5f5f5', borderRadius: '4px', marginBottom: '8px' }} />
-                <div style={{ height: '14px', background: '#f5f5f5', borderRadius: '4px', width: '75%' }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (!tabs.length && hideIfNotFound && !parentNode) return null;
-
-  /* ── main ── */
+    /* ── main ── */
   return (
-    <section style={{ background: '#ffffff', padding: '48px 0', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-      <div className="ec-container">
+    <section className="py-24 lg:py-32 border-t border-sd-border-default/50 bg-sd-ivory">
+      <div className="container mx-auto px-6 lg:px-12">
 
-        {/* Section header — reference style */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ height: '1px', flex: 1, maxWidth: '80px', background: '#111111' }} />
-          <h2 style={{
-            fontFamily: "'Jost', sans-serif",
-            fontSize: '18px',
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.15em',
-            color: '#111111',
-            margin: 0,
-          }}>
-            {title ?? (parentLabel ? parentLabel.toUpperCase() : eyebrow?.toUpperCase() ?? 'NEW AND POPULAR')}
-          </h2>
-          <div style={{ height: '1px', flex: 1, maxWidth: '80px', background: '#111111' }} />
-        </div>
-
-        {/* Scrollable pill tabs — reference style */}
-        <div style={{ marginBottom: '24px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          <div
-            ref={tabsContainerRef}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingBottom: '4px', flexWrap: 'nowrap' }}
-          >
-            {tabs.map((cat) => (
-              <button
-                key={cat.id}
-                ref={el => { tabRefs.current[cat.id] = el; }}
-                onClick={() => setActiveId(cat.id)}
-                style={{
-                  fontFamily: "'Jost', sans-serif",
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  whiteSpace: 'nowrap',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  border: activeId === cat.id ? '1.5px solid #111111' : '1.5px solid rgba(0,0,0,0.15)',
-                  background: activeId === cat.id ? '#111111' : '#ffffff',
-                  color: activeId === cat.id ? '#ffffff' : '#555555',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0,
-                }}
-              >
-                {cat.name}
-              </button>
-            ))}
+        {/* Section Header */}
+        <div className="flex flex-col gap-6 mb-16">
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.4em] font-bold">Dept. Anthology</span>
+            <div className="h-[1px] flex-1 bg-sd-border-default/30" />
+          </div>
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div>
+              <h2 className="text-4xl lg:text-7xl font-display text-sd-black italic leading-none mb-6">
+                {title ?? (parentLabel || eyebrow || 'The Collection')}
+              </h2>
+              {subtitle && (
+                <p className="max-w-xl text-sd-text-secondary font-sans text-sm lg:text-lg leading-relaxed">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap items-center gap-2">
+              {tabs.map((cat) => (
+                <button
+                  key={cat.id}
+                  ref={el => { tabRefs.current[cat.id] = el; }}
+                  onClick={() => setActiveId(cat.id)}
+                  className={`
+                    px-5 py-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] border transition-all duration-300
+                    ${activeId === cat.id 
+                      ? 'bg-sd-black text-sd-white border-sd-black' 
+                      : 'bg-sd-white text-sd-text-muted border-sd-border-default hover:border-sd-gold hover:text-sd-black'}
+                  `}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Product grid */}
-        <div style={{ minHeight: '400px' }}>
+        {/* Product Grid */}
+        <div className="min-h-[500px]">
           {activeTab?.loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 md:gap-6">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i}>
-                  <div style={{ aspectRatio: '2/3', background: '#f5f5f5', borderRadius: '4px', marginBottom: '8px' }} />
-                  <div style={{ height: '14px', background: '#f5f5f5', borderRadius: '4px', width: '75%', marginBottom: '6px' }} />
-                  <div style={{ height: '14px', background: '#f5f5f5', borderRadius: '4px', width: '40%' }} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[4/5] bg-sd-ivory-dark/40 mb-6 border border-sd-border-default" />
+                  <div className="h-4 bg-sd-ivory-dark/40 w-3/4 mb-2" />
+                  <div className="h-4 bg-sd-ivory-dark/40 w-1/4" />
                 </div>
               ))}
             </div>
           ) : activeTab?.products.length ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
               {activeTab.products.map((p, index) => (
                 <PremiumProductCard
                   key={`${activeKey}-${p.id}`}
                   product={p}
-                  animDelay={Math.min(index, 9) * 60}
+                  animDelay={index * 40}
                   imageErrored={imageErrors.has(p.id)}
                   onImageError={onImgError}
                   onOpen={onProductClick}
@@ -389,36 +366,25 @@ const SubcategoryProductTabs: React.FC<SubcategoryProductTabsProps> = ({
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px', textAlign: 'center', background: '#f8f8f8', borderRadius: '8px', border: '1px dashed rgba(0,0,0,0.15)' }}>
-              <p style={{ color: '#999999', fontSize: '14px' }}>No products found in this collection</p>
+            <div className="flex flex-col items-center justify-center py-32 border border-dashed border-sd-border-default bg-sd-ivory-dark/5">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-sd-text-muted mb-4 opacity-50">Null Entry</span>
+              <p className="font-display italic text-2xl text-sd-text-muted">No artifacts found in this department.</p>
             </div>
           )}
         </div>
 
-        {/* View All Button */}
+        {/* View All Footer */}
         {activeTab?.category && activeTab.products.length > 0 && (
-          <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center' }}>
-            <button
-              onClick={() => router.push(`/e-commerce/${encodeURIComponent(catSlug(activeTab.category))}`)}
-              style={{
-                padding: '12px 32px',
-                background: '#ffffff',
-                color: '#111111',
-                border: '1.5px solid #111111',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 700,
-                fontFamily: "'Jost', sans-serif",
-                textTransform: 'uppercase',
-                letterSpacing: '0.10em',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#111111'; (e.currentTarget as HTMLElement).style.color = '#ffffff'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#ffffff'; (e.currentTarget as HTMLElement).style.color = '#111111'; }}
+          <div className="mt-20 flex justify-center">
+            <Link
+              href={`/e-commerce/${encodeURIComponent(catSlug(activeTab.category))}`}
+              className="group relative px-12 py-5 border border-sd-black font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-sd-black overflow-hidden transition-all duration-700"
             >
-              View All {activeTab.category.name}
-            </button>
+              <div className="absolute inset-0 bg-sd-black translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-in-out" />
+              <span className="relative z-10 group-hover:text-sd-white transition-colors">
+                View Full Department Anthology {'->'}
+              </span>
+            </Link>
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navigation from '@/components/ecommerce/Navigation';
 import CategorySidebar from '@/components/ecommerce/category/CategorySidebar';
-import { useCart } from '@/app/CartContext';
+import { useCart } from '@/app/e-commerce/CartContext';
 import catalogService, {
   CatalogCategory,
   Product,
@@ -526,190 +526,225 @@ export default function CategoryPage() {
 
   if (loading && products.length === 0) {
     return (
-      <div className="ec-root bg-sd-black min-h-screen">
+      <>
         <Navigation />
-        <div className="container mx-auto px-6 py-12 lg:py-20 animate-pulse">
-          <div className="h-10 w-64 bg-sd-onyx rounded mb-12" />
-          <div className="flex flex-col lg:flex-row gap-16">
-            <div className="hidden lg:block w-64 h-[600px] bg-sd-onyx rounded-2xl" />
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="aspect-[3/4] bg-sd-onyx rounded-xl" />
-              ))}
+        <div className="ec-root bg-[var(--bg-root)] min-h-screen">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="animate-pulse">
+              <div className="h-8 rounded w-1/4 mb-8 animate-pulse" style={{ background: 'var(--ivory-ghost)' }}></div>
+              <div className="flex gap-8">
+                <div className="w-64 h-96 rounded-lg animate-pulse" style={{ background: 'var(--bg-surface)' }}></div>
+                <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="aspect-[2/3] rounded-lg animate-pulse bg-gray-100" />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="ec-root bg-sd-black min-h-screen">
+    <>
       <Navigation />
 
-      {/* Header */}
-      <div className="bg-sd-onyx/50 border-b border-sd-border-default mb-8 py-16 lg:py-24">
-        <div className="container mx-auto px-6 text-center">
-          <span className="text-sd-gold text-[10px] tracking-[0.4em] uppercase mb-4 block">Storefront</span>
-          <h1 className="text-4xl lg:text-6xl font-bold text-sd-ivory mb-6 font-display italic">
-            {activeCategory?.name || 'Collection'}
-          </h1>
-          <p className="text-sd-text-secondary max-w-2xl mx-auto">
-            {activeCategory?.description || 'Browse our premium selection of precision-engineered accessories and digital essentials.'}
-          </p>
+      <div className="ec-root bg-[var(--bg-root)] min-h-screen">
+        <div className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] mb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <h1 className="text-4xl font-light text-[var(--text-primary)] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{activeCategory?.name || 'Products'}</h1>
+            <p className="text-[var(--text-muted)] font-medium tracking-wide ec-eyebrow uppercase text-xs">
+              {totalResults} {totalResults === 1 ? 'item' : 'items'} found
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Desktop sidebar */}
+            <aside className="hidden xl:block w-64 flex-shrink-0">
+              <CategorySidebar
+                categories={categories}
+                activeCategory={categorySlug}
+                onCategoryChange={handleCategoryChange}
+                selectedPriceRange={selectedPriceRange}
+                onPriceRangeChange={setSelectedPriceRange}
+                selectedStock="all"
+                onStockChange={() => { }}
+                selectedSort={selectedSort}
+                onSortChange={setSelectedSort}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+            </aside>
+
+            <main className="flex-1">
+              {/* Mobile: Filters button placeholder (removed in favor of bottom pill) */}
+
+              {partialLoadWarning && !error && (
+                <div className="mb-4 rounded-lg border border-amber-200/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                  {partialLoadWarning}
+                </div>
+              )}
+
+              {error ? (
+                <div className="text-center py-24 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)]">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 mx-auto mb-6">
+                    <X className="h-8 w-8 text-rose-500" />
+                  </div>
+                  <h3 className="text-xl font-medium text-[var(--text-primary)] mb-2">Failed to load products</h3>
+                  <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto">We encountered an issue while reaching our catalog servers. Please check your connection and try again.</p>
+                  <button
+                    onClick={() => fetchProducts(currentPage)}
+                    className="px-10 py-3.5 bg-[var(--text-primary)] text-[var(--bg-root)] rounded-xl hover:opacity-90 font-bold transition-all"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              ) : products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-32 text-center bg-[var(--bg-surface)] rounded-3xl border border-dashed border-[var(--border-default)] ec-anim-fade-up">
+                  <div className="h-20 w-20 rounded-full bg-[var(--bg-root)] flex items-center justify-center mb-6">
+                    <X className="h-8 w-8 text-[var(--text-muted)] opacity-40" />
+                  </div>
+                  <h3 className="text-2xl font-light text-[var(--text-primary)] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Nothing here yet</h3>
+                  <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto text-sm">We couldn't find any products matching your current filters. Try adjusting them or browse our full collection.</p>
+                  <button 
+                    onClick={() => {
+                      setSelectedPriceRange('all');
+                      handleCategoryChange('all');
+                    }}
+                    className="ec-btn bg-[var(--text-primary)] text-[var(--bg-root)] hover:opacity-90 px-10"
+                  >
+                    Browse All Products
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-12 gap-x-4 md:gap-6">
+                    {products.map((product, index) => (
+                      <PremiumProductCard
+                        key={product.id}
+                        product={product as SimpleProduct}
+                        animDelay={Math.min(index, 9) * 60}
+                        imageErrored={imageErrors.has(product.id)}
+                        onImageError={handleImageError}
+                        onOpen={handleProductClick}
+                        onAddToCart={handleAddToCart}
+                      />
+                    ))}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center mt-12 gap-1.5 sm:gap-3">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-2)] disabled:opacity-20 transition-all text-xs sm:text-sm"
+                      >
+                        Previous
+                      </button>
+
+                      <div className="flex items-center gap-1 sm:gap-1.5 mx-1 sm:mx-2">
+                        {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                          const pageNum = i + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-xs sm:text-sm font-medium transition-all ${currentPage === pageNum
+                                  ? 'bg-[var(--cyan)] text-[var(--text-on-accent)] shadow-lg shadow-cyan/20'
+                                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:border-[var(--cyan)] hover:text-[var(--cyan)]'
+                                }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-2)] disabled:opacity-20 transition-all text-xs sm:text-sm"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </main>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-6 pb-24 lg:pb-32">
-        <div className="flex flex-col lg:flex-row gap-16">
-          {/* Desktop sidebar */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
-            <CategorySidebar
-              categories={categories}
-              activeCategory={categorySlug}
-              onCategoryChange={handleCategoryChange}
-              selectedPriceRange={selectedPriceRange}
-              onPriceRangeChange={setSelectedPriceRange}
-              selectedStock="all"
-              onStockChange={() => { }}
-              selectedSort={selectedSort}
-              onSortChange={setSelectedSort}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-            />
-          </aside>
 
-          <main className="flex-1">
-            {/* Mobile: Filters button pill */}
-            <div className="lg:hidden mb-8">
-               <button 
-                 onClick={() => setIsFiltersOpen(true)}
-                 className="w-full bg-sd-onyx border border-sd-border-default rounded-xl py-4 flex items-center justify-center gap-3 text-sm font-bold tracking-widest text-sd-ivory uppercase"
-               >
-                 FILTERS & SORTING
-               </button>
+
+      {/* Mobile filter drawer (Bottom Sheet) */}
+      {isFiltersOpen && (
+        <div className="fixed inset-0 z-[100] xl:hidden flex items-end">
+          <div 
+            className={`fixed inset-0 bg-black/60 backdrop-blur-md ${isClosingFilters ? 'ec-anim-backdrop-out' : 'ec-anim-backdrop'}`}
+            onClick={closeFilters}
+          />
+          <div className={`relative z-[101] w-full bg-[var(--bg-lifted)] rounded-t-3xl shadow-[var(--shadow-lifted)] flex flex-col max-h-[90vh] ${isClosingFilters ? 'ec-anim-slide-out-down' : 'ec-anim-slide-in-up'}`}>
+            {/* Handle bar */}
+            <div className="w-12 h-1.5 bg-[var(--border-strong)] rounded-full mx-auto my-3" />
+            
+            <div className="flex items-center justify-between p-6 pt-2 border-b border-[var(--border-default)]">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-tight" style={{ fontFamily: "'Jost', sans-serif" }}>Filters & Sort</h2>
+              <button 
+                onClick={closeFilters} 
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] transition-all"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
 
-            {partialLoadWarning && !error && (
-              <div className="mb-8 rounded-xl border border-sd-gold/20 bg-sd-gold/5 px-6 py-4 text-sm text-sd-gold">
-                {partialLoadWarning}
-              </div>
-            )}
+            <div className="flex-1 overflow-y-auto ec-scrollbar p-6 space-y-8 pb-32 focus-within:pb-80">
+              <CategorySidebar
+                categories={categories}
+                activeCategory={categorySlug}
+                onCategoryChange={(v) => {
+                  closeFilters();
+                  handleCategoryChange(v);
+                }}
+                selectedPriceRange={selectedPriceRange}
+                onPriceRangeChange={setSelectedPriceRange}
+                selectedStock="all"
+                onStockChange={() => { }}
+                selectedSort={selectedSort}
+                onSortChange={setSelectedSort}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+            </div>
 
-            {error ? (
-              <div className="text-center py-32 bg-sd-onyx rounded-3xl border border-sd-border-default">
-                <h3 className="text-xl font-bold text-sd-ivory mb-2">Failed to load products</h3>
-                <p className="text-sd-text-secondary mb-8 max-w-xs mx-auto">We encountered an issue while reaching our catalog servers.</p>
-                <button
-                  onClick={() => fetchProducts(currentPage)}
-                  className="px-10 py-3.5 bg-sd-gold text-sd-black rounded-full font-bold text-xs uppercase tracking-widest hover:bg-sd-gold-soft transition-all"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-32 text-center bg-sd-onyx rounded-3xl border border-dashed border-sd-border-default">
-                <h3 className="text-2xl font-bold text-sd-ivory mb-2 font-display italic">Nothing here yet</h3>
-                <p className="text-sd-text-secondary mb-8 max-w-xs mx-auto text-sm">Try adjusting your filters or browse our full collection.</p>
-                <button 
-                  onClick={() => {
-                    setSelectedPriceRange('all');
-                    handleCategoryChange('all');
-                  }}
-                  className="bg-sd-gold text-sd-black px-10 py-4 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-sd-gold-soft transition-all"
-                >
-                  Browse All Products
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-y-12 gap-x-4 md:gap-8">
-                  {products.map((product, index) => (
-                    <PremiumProductCard
-                      key={product.id}
-                      product={product as SimpleProduct}
-                      animDelay={Math.min(index, 8) * 50}
-                      onOpen={handleProductClick}
-                      onAddToCart={handleAddToCart}
-                    />
-                  ))}
-                </div>
-
-                {totalPages > 1 && (
-                  <div className="flex justify-center items-center mt-20 gap-3">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="w-10 h-10 rounded-full border border-sd-border-default flex items-center justify-center text-sd-ivory hover:border-sd-gold hover:text-sd-gold disabled:opacity-20 transition-all shadow-lg"
-                    >
-                      ←
-                    </button>
-
-                    <div className="flex items-center gap-2">
-                       <span className="text-sd-text-muted text-xs font-bold tracking-widest uppercase">
-                         Page {currentPage} of {totalPages}
-                       </span>
-                    </div>
-
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="w-10 h-10 rounded-full border border-sd-border-default flex items-center justify-center text-sd-ivory hover:border-sd-gold hover:text-sd-gold disabled:opacity-20 transition-all shadow-lg"
-                    >
-                      →
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </main>
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[var(--bg-lifted)] via-[var(--bg-lifted)] to-transparent pt-10">
+              <button 
+                onClick={closeFilters}
+                className="w-full py-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-root)] font-bold shadow-[var(--shadow-lifted)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                Show Results
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Mobile filter drawer */}
-      <AnimatePresence>
-        {isFiltersOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-sd-black/80 backdrop-blur-sm z-[300]"
-              onClick={closeFilters}
-            />
-            <motion.aside 
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 max-h-[90vh] bg-sd-onyx z-[301] rounded-t-[2rem] overflow-hidden flex flex-col pt-safe shadow-2xl"
-            >
-              <div className="p-6 flex items-center justify-between border-b border-sd-border-default">
-                <h2 className="text-xl font-bold text-sd-ivory font-display italic">Filters</h2>
-                <button onClick={closeFilters} className="p-2 text-sd-text-secondary"><X className="w-6 h-6" /></button>
-              </div>
-              <div className="flex-1 overflow-y-auto p-8 pb-32">
-                <CategorySidebar
-                  categories={categories}
-                  activeCategory={categorySlug}
-                  onCategoryChange={(v) => {
-                    closeFilters();
-                    handleCategoryChange(v);
-                  }}
-                  selectedPriceRange={selectedPriceRange}
-                  onPriceRangeChange={setSelectedPriceRange}
-                  selectedStock="all"
-                  onStockChange={() => { }}
-                  selectedSort={selectedSort}
-                  onSortChange={setSelectedSort}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
-                />
-              </div>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+      {/* 2.4 — Mobile Filter Pill */}
+      <div className="xl:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full px-6 max-w-[320px]">
+        <button
+          onClick={() => setIsFiltersOpen(true)}
+          className="w-full py-4 bg-[var(--bg-lifted)] text-[var(--text-primary)] rounded-full font-bold shadow-[var(--shadow-lifted)] flex items-center justify-center gap-3 active:scale-95 transition-all text-sm uppercase tracking-widest border border-[var(--border-strong)]"
+          style={{ fontFamily: "'Jost', sans-serif" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
+          Filter & Sort
+        </button>
+      </div>
+    </>
   );
 }
