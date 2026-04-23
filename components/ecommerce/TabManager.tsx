@@ -26,57 +26,34 @@ export default function TabManager() {
       }
     };
 
-    // --- Playful Favicon Animation ---
+    // --- Efficient Frame-based Favicon Animation ---
     const animateFavicon = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 32;
-      canvas.height = 32;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      const frameCount = 16;
+      const frames: string[] = Array.from({ length: frameCount }, (_, i) => 
+        `/animated_logo/frame_${String(i + 1).padStart(2, '0')}.webp`
+      );
+      
+      // Preload images for zero-latency switching
+      frames.forEach(src => {
+        const img = new Image();
+        img.src = src;
+      });
 
-      const img = new Image();
-      img.src = '/logo.webp';
+      let currentFrame = 0;
+      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) return;
 
-      const startAnimation = () => {
-        let angle = 0;
+      const runLoop = () => {
         faviconTimer = setInterval(() => {
           if (document.hidden) return;
-
-          ctx.clearRect(0, 0, 32, 32);
-
-          // Draw the original logo
-          ctx.drawImage(img, 2, 2, 28, 28);
-
-          // Add a playful rotating "sparkle" or dot
-          ctx.save();
-          ctx.translate(16, 16);
-          ctx.rotate((angle * Math.PI) / 180);
-          ctx.fillStyle = '#C5A059'; // Gold
-          ctx.beginPath();
-          ctx.arc(14, 0, 3, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-
-          // Update favicon
-          const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-          if (link) {
-            link.href = canvas.toDataURL('image/webp', 0.8);
-          }
-
-          angle = (angle + 10) % 360;
-        }, 250);
-
+          
+          link.href = frames[currentFrame];
+          currentFrame = (currentFrame + 1) % frameCount;
+        }, 125); // 8 FPS
       };
 
-
-      if (img.complete) {
-        startAnimation();
-      } else {
-        img.onload = startAnimation;
-      }
+      runLoop();
     };
-
-
 
     const handleVisibility = () => {
       clearInterval(timer);
