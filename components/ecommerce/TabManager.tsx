@@ -29,8 +29,9 @@ export default function TabManager() {
     // --- Efficient Frame-based Favicon Animation ---
     const animateFavicon = () => {
       const frameCount = 16;
+      // Using compressed frames for high-performance retrieval
       const frames: string[] = Array.from({ length: frameCount }, (_, i) => 
-        `/animated_logo/frame_${String(i + 1).padStart(2, '0')}.webp`
+        `/animated_logo_compressed/frame_${String(i + 1).padStart(2, '0')}.webp`
       );
       
       // Preload images for zero-latency switching
@@ -40,19 +41,30 @@ export default function TabManager() {
       });
 
       let currentFrame = 0;
-      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) return;
 
-      const runLoop = () => {
-        faviconTimer = setInterval(() => {
-          if (document.hidden) return;
-          
-          link.href = frames[currentFrame];
-          currentFrame = (currentFrame + 1) % frameCount;
-        }, 125); // 8 FPS
+      const updateIcons = () => {
+        if (document.hidden) return;
+        
+        // Find all potential icon links to tackle Next.js metadata overrides
+        const links = document.querySelectorAll("link[rel*='icon']");
+        const framePath = frames[currentFrame];
+        
+        if (links.length > 0) {
+          links.forEach(l => {
+            (l as HTMLLinkElement).href = framePath;
+          });
+        } else {
+          // Fallback: spawn a new one if registry is empty
+          const newLink = document.createElement('link');
+          newLink.rel = 'icon';
+          newLink.href = framePath;
+          document.head.appendChild(newLink);
+        }
+        
+        currentFrame = (currentFrame + 1) % frameCount;
       };
 
-      runLoop();
+      faviconTimer = setInterval(updateIcons, 125); // 8 FPS
     };
 
     const handleVisibility = () => {

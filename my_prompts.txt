@@ -353,3 +353,6 @@ I want you to make an md file with the full instructions for an AI model to make
 
 
 ### answers
+for f in animated_logo/frame_*.webp; do
+  cwebp -q 70 -m 6 -af -sharp_yuv "$f" -o "animated_logo_compressed/$(basename "${f%.webp}.webp")"
+done
