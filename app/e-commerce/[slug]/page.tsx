@@ -548,203 +548,216 @@ export default function CategoryPage() {
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-sd-ivory relative overflow-hidden">
       <Navigation />
+      
+      {/* ── Background Typography ── */}
+      <div className="absolute top-[5%] right-[-5%] opacity-[0.02] pointer-events-none select-none">
+        <span className="text-[25vw] font-display italic font-light text-sd-black leading-none whitespace-nowrap">
+           Registry
+        </span>
+      </div>
 
-      <div className="ec-root bg-[var(--bg-root)] min-h-screen">
-        <div className="bg-[var(--bg-surface)] border-b border-[var(--border-default)] mb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <h1 className="text-4xl font-light text-[var(--text-primary)] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{activeCategory?.name || 'Products'}</h1>
-            <p className="text-[var(--text-muted)] font-medium tracking-wide ec-eyebrow uppercase text-xs">
-              {totalResults} {totalResults === 1 ? 'item' : 'items'} found
-            </p>
+      <main className="pt-32 pb-40 relative z-10">
+        <div className="container mx-auto px-6 lg:px-12">
+          
+          {/* Header Strip */}
+          <div className="bg-sd-white sd-depth-lift rounded-[32px] mb-20 overflow-hidden relative border border-sd-border-default/20">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-sd-gold/5 rounded-bl-full pointer-events-none" />
+             <div className="px-10 py-16 flex flex-col md:flex-row md:items-end justify-between gap-10">
+                <div>
+                   <div className="flex items-center gap-4 mb-6">
+                      <span className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.5em]">Dept classification</span>
+                      <div className="h-[1px] w-12 bg-sd-gold/30" />
+                   </div>
+                   <h1 className="text-6xl lg:text-8xl font-display text-sd-black italic leading-[0.8]">
+                      {activeCategory?.name || 'Anthology'}
+                   </h1>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                   <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-sd-text-muted">Archives Found</span>
+                   <span className="font-mono text-3xl font-bold text-sd-black">{totalResults}</span>
+                </div>
+             </div>
           </div>
-        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Desktop sidebar */}
-            <aside className="hidden xl:block w-64 flex-shrink-0">
-              <CategorySidebar
-                categories={categories}
-                activeCategory={categorySlug}
-                onCategoryChange={handleCategoryChange}
-                selectedPriceRange={selectedPriceRange}
-                onPriceRangeChange={setSelectedPriceRange}
-                selectedStock="all"
-                onStockChange={() => { }}
-                selectedSort={selectedSort}
-                onSortChange={setSelectedSort}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-              />
+          <div className="flex flex-col xl:flex-row gap-16 items-start">
+            {/* ── 1. Registry Filters (Sidebar) ── */}
+            <aside className="hidden xl:block w-72 lg:sticky lg:top-32">
+               <div className="sd-depth-recess bg-sd-ivory-dark/10 rounded-[40px] p-8">
+                  <CategorySidebar
+                    categories={categories}
+                    activeCategory={categorySlug}
+                    onCategoryChange={handleCategoryChange}
+                    selectedPriceRange={selectedPriceRange}
+                    onPriceRangeChange={setSelectedPriceRange}
+                    selectedStock="all"
+                    onStockChange={() => { }}
+                    selectedSort={selectedSort}
+                    onSortChange={setSelectedSort}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                  />
+               </div>
             </aside>
 
-            <main className="flex-1">
-              {/* Mobile: Filters button placeholder (removed in favor of bottom pill) */}
-
+            {/* ── 2. Artifact Registry (Main Feed) ── */}
+            <div className="flex-1 w-full">
               {partialLoadWarning && !error && (
-                <div className="mb-4 rounded-lg border border-amber-200/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                  {partialLoadWarning}
+                <div className="mb-10 p-4 border border-sd-gold/20 bg-sd-gold/5 rounded-2xl">
+                   <p className="font-mono text-[10px] text-sd-gold uppercase tracking-widest text-center">{partialLoadWarning}</p>
                 </div>
               )}
 
               {error ? (
-                <div className="text-center py-24 bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)]">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 mx-auto mb-6">
-                    <X className="h-8 w-8 text-rose-500" />
-                  </div>
-                  <h3 className="text-xl font-medium text-[var(--text-primary)] mb-2">Failed to load products</h3>
-                  <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto">We encountered an issue while reaching our catalog servers. Please check your connection and try again.</p>
-                  <button
-                    onClick={() => fetchProducts(currentPage)}
-                    className="px-10 py-3.5 bg-[var(--text-primary)] text-[var(--bg-root)] rounded-xl hover:opacity-90 font-bold transition-all"
-                  >
-                    Try Again
-                  </button>
+                <div className="sd-depth-recess bg-sd-white/50 rounded-[40px] py-32 text-center flex flex-col items-center">
+                   <div className="w-20 h-20 rounded-full border-2 border-sd-gold/20 flex items-center justify-center mb-8">
+                      <X className="text-sd-gold" size={32} strokeWidth={1} />
+                   </div>
+                   <h2 className="font-display text-4xl italic text-sd-black mb-6">Synchronization Failed</h2>
+                   <button 
+                     onClick={() => fetchProducts(currentPage)}
+                     className="bg-sd-black text-sd-white h-14 px-10 rounded-2xl font-mono text-[10px] uppercase tracking-[0.4em] hover:sd-depth-lift transition-all"
+                   >
+                     Re-Sync Registry
+                   </button>
                 </div>
-              ) : products.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-32 text-center bg-[var(--bg-surface)] rounded-3xl border border-dashed border-[var(--border-default)] ec-anim-fade-up">
-                  <div className="h-20 w-20 rounded-full bg-[var(--bg-root)] flex items-center justify-center mb-6">
-                    <X className="h-8 w-8 text-[var(--text-muted)] opacity-40" />
-                  </div>
-                  <h3 className="text-2xl font-light text-[var(--text-primary)] mb-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Nothing here yet</h3>
-                  <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto text-sm">We couldn't find any products matching your current filters. Try adjusting them or browse our full collection.</p>
-                  <button 
-                    onClick={() => {
-                      setSelectedPriceRange('all');
-                      handleCategoryChange('all');
-                    }}
-                    className="ec-btn bg-[var(--text-primary)] text-[var(--bg-root)] hover:opacity-90 px-10"
-                  >
-                    Browse All Products
-                  </button>
+              ) : products.length === 0 && !loading ? (
+                <div className="sd-depth-recess bg-sd-white/50 rounded-[40px] py-32 text-center flex flex-col items-center border border-dashed border-sd-border-default/30">
+                   <div className="w-20 h-20 rounded-full border border-sd-border-default flex items-center justify-center mb-8 opacity-40">
+                      <Hash className="text-sd-text-muted" size={32} strokeWidth={1} />
+                   </div>
+                   <h2 className="font-display text-4xl italic text-sd-black mb-4 opacity-40">Registry Empty</h2>
+                   <p className="font-mono text-[10px] text-sd-text-muted uppercase tracking-widest mb-10">No items detected for the current parameters.</p>
+                   <button 
+                     onClick={() => {
+                        setSelectedPriceRange('all');
+                        handleCategoryChange('all');
+                     }}
+                     className="border border-sd-black h-14 px-10 rounded-2xl font-mono text-[10px] uppercase tracking-[0.4em] hover:bg-sd-black hover:text-sd-white transition-all"
+                   >
+                     Clear Fragments
+                   </button>
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-12 gap-x-4 md:gap-6">
-                    {products.map((product, index) => (
-                      <PremiumProductCard
-                        key={product.id}
-                        product={product as SimpleProduct}
-                        animDelay={Math.min(index, 9) * 60}
-                        imageErrored={imageErrors.has(product.id)}
-                        onImageError={handleImageError}
-                        onOpen={handleProductClick}
-                        onAddToCart={handleAddToCart}
-                      />
-                    ))}
-                  </div>
+                <div className="space-y-20">
+                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-y-16 gap-x-8">
+                      {products.map((item, idx) => (
+                        <PremiumProductCard 
+                          key={item.id} 
+                          product={item as SimpleProduct} 
+                          animDelay={idx * 50}
+                          onOpen={handleProductClick}
+                          onAddToCart={handleAddToCart}
+                        />
+                      ))}
+                   </div>
 
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center mt-12 gap-1.5 sm:gap-3">
-                      <button
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-2)] disabled:opacity-20 transition-all text-xs sm:text-sm"
-                      >
-                        Previous
-                      </button>
+                   {/* Registry Pagination */}
+                   {totalPages > 1 && (
+                      <div className="pt-20 border-t border-sd-border-default/10 flex items-center justify-center gap-4">
+                         <button
+                           onClick={() => handlePageChange(currentPage - 1)}
+                           disabled={currentPage === 1}
+                           className="w-14 h-14 rounded-2xl border border-sd-border-default flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all disabled:opacity-20 mr-4"
+                         >
+                            <ChevronLeft size={20} />
+                         </button>
 
-                      <div className="flex items-center gap-1 sm:gap-1.5 mx-1 sm:mx-2">
-                        {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                          const pageNum = i + 1;
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => handlePageChange(pageNum)}
-                              className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-xs sm:text-sm font-medium transition-all ${currentPage === pageNum
-                                  ? 'bg-[var(--cyan)] text-[var(--text-on-accent)] shadow-lg shadow-cyan/20'
-                                  : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-default)] hover:border-[var(--cyan)] hover:text-[var(--cyan)]'
-                                }`}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
+                         <div className="flex items-center gap-2">
+                            {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                               const pageNum = i + 1;
+                               return (
+                                 <button
+                                   key={pageNum}
+                                   onClick={() => handlePageChange(pageNum)}
+                                   className={`
+                                      w-12 h-12 rounded-xl font-mono text-[10px] font-bold transition-all
+                                      ${currentPage === pageNum 
+                                        ? 'bg-sd-gold text-sd-black sd-depth-lift' 
+                                        : 'bg-sd-white text-sd-text-muted border border-sd-border-default/50 hover:border-sd-gold hover:text-sd-black'}
+                                   `}
+                                 >
+                                    {String(pageNum).padStart(2, '0')}
+                                 </button>
+                               );
+                            })}
+                         </div>
+
+                         <button
+                           onClick={() => handlePageChange(currentPage + 1)}
+                           disabled={currentPage === totalPages}
+                           className="w-14 h-14 rounded-2xl border border-sd-border-default flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all disabled:opacity-20 ml-4"
+                         >
+                            <ChevronRight size={20} />
+                         </button>
                       </div>
-
-                      <button
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-2)] disabled:opacity-20 transition-all text-xs sm:text-sm"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
+                   )}
+                </div>
               )}
-            </main>
-          </div>
-        </div>
-      </div>
-
-
-
-      {/* Mobile filter drawer (Bottom Sheet) */}
-      {isFiltersOpen && (
-        <div className="fixed inset-0 z-[100] xl:hidden flex items-end">
-          <div 
-            className={`fixed inset-0 bg-black/60 backdrop-blur-md ${isClosingFilters ? 'ec-anim-backdrop-out' : 'ec-anim-backdrop'}`}
-            onClick={closeFilters}
-          />
-          <div className={`relative z-[101] w-full bg-[var(--bg-lifted)] rounded-t-3xl shadow-[var(--shadow-lifted)] flex flex-col max-h-[90vh] ${isClosingFilters ? 'ec-anim-slide-out-down' : 'ec-anim-slide-in-up'}`}>
-            {/* Handle bar */}
-            <div className="w-12 h-1.5 bg-[var(--border-strong)] rounded-full mx-auto my-3" />
-            
-            <div className="flex items-center justify-between p-6 pt-2 border-b border-[var(--border-default)]">
-              <h2 className="text-xl font-bold text-[var(--text-primary)] uppercase tracking-tight" style={{ fontFamily: "'Jost', sans-serif" }}>Filters & Sort</h2>
-              <button 
-                onClick={closeFilters} 
-                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] transition-all"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto ec-scrollbar p-6 space-y-8 pb-32 focus-within:pb-80">
-              <CategorySidebar
-                categories={categories}
-                activeCategory={categorySlug}
-                onCategoryChange={(v) => {
-                  closeFilters();
-                  handleCategoryChange(v);
-                }}
-                selectedPriceRange={selectedPriceRange}
-                onPriceRangeChange={setSelectedPriceRange}
-                selectedStock="all"
-                onStockChange={() => { }}
-                selectedSort={selectedSort}
-                onSortChange={setSelectedSort}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-              />
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[var(--bg-lifted)] via-[var(--bg-lifted)] to-transparent pt-10">
-              <button 
-                onClick={closeFilters}
-                className="w-full py-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-root)] font-bold shadow-[var(--shadow-lifted)] hover:scale-[1.02] active:scale-[0.98] transition-all"
-              >
-                Show Results
-              </button>
             </div>
           </div>
         </div>
-      )}
+      </main>
 
-      {/* 2.4 — Mobile Filter Pill */}
-      <div className="xl:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full px-6 max-w-[320px]">
+      {/* Mobile Registry Control Pad */}
+      <div className="xl:hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full px-6 max-w-[280px]">
         <button
           onClick={() => setIsFiltersOpen(true)}
-          className="w-full py-4 bg-[var(--bg-lifted)] text-[var(--text-primary)] rounded-full font-bold shadow-[var(--shadow-lifted)] flex items-center justify-center gap-3 active:scale-95 transition-all text-sm uppercase tracking-widest border border-[var(--border-strong)]"
-          style={{ fontFamily: "'Jost', sans-serif" }}
+          className="w-full h-16 bg-sd-black text-sd-white rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.4em] flex items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all border border-sd-white/10"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
-          Filter & Sort
+          <Filter size={14} className="text-sd-gold" />
+          Refine Search
         </button>
       </div>
-    </>
+
+      {/* Mobile Filter Drawer */}
+      <AnimatePresence>
+        {isFiltersOpen && (
+          <div className="fixed inset-0 z-[200]">
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-sd-black/80 backdrop-blur-xl"
+               onClick={closeFilters}
+            />
+            <motion.div 
+               initial={{ y: '100%' }}
+               animate={{ y: 0 }}
+               exit={{ y: '100%' }}
+               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+               className="absolute bottom-0 left-0 right-0 bg-sd-ivory rounded-t-[48px] max-h-[90vh] overflow-hidden flex flex-col"
+            >
+               <div className="w-12 h-1.5 bg-sd-border-default/20 rounded-full mx-auto my-6" />
+               <div className="px-10 pb-10 overflow-y-auto no-scrollbar">
+                  <CategorySidebar
+                    categories={categories}
+                    activeCategory={categorySlug}
+                    onCategoryChange={(v) => { closeFilters(); handleCategoryChange(v); }}
+                    selectedPriceRange={selectedPriceRange}
+                    onPriceRangeChange={setSelectedPriceRange}
+                    selectedStock="all"
+                    onStockChange={() => { }}
+                    selectedSort={selectedSort}
+                    onSortChange={setSelectedSort}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                  />
+               </div>
+               <div className="px-10 pb-10 pt-4 bg-sd-ivory border-t border-sd-border-default/10">
+                  <button 
+                     onClick={closeFilters}
+                     className="w-full h-16 bg-sd-black text-sd-white rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em]"
+                  >
+                     Review Registry
+                  </button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
+}
 }

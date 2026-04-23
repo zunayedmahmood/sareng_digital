@@ -112,290 +112,189 @@ export default function OrderConfirmationPage() {
   }
 
   return (
-    <div className="ec-root bg-[var(--bg-root)] min-h-screen pb-20">
+    <div className="ec-root bg-sd-ivory min-h-screen pb-24 selection:bg-sd-gold/30">
       <Navigation />
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-20">
         
-        {/* Success Header Section */}
-        <div className="text-center mb-12 ec-anim-fade-up">
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[var(--gold)]/10 blur-3xl rounded-full scale-150"></div>
-              <div className="relative w-24 h-24 bg-[var(--gold)] rounded-full flex items-center justify-center shadow-xl">
-                <CheckCircle2 className="text-white" size={52} strokeWidth={1.5} />
-              </div>
-            </div>
+        {/* ── Success Monument (Header) ── */}
+        <div className="text-center mb-24 relative">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-sd-gold/5 blur-[120px] rounded-full pointer-events-none" />
+          
+          <div className="relative mb-12 inline-block">
+             <div className="w-32 h-32 bg-sd-white rounded-full flex items-center justify-center sd-depth-lift border border-sd-gold/20 relative z-10">
+                <CheckCircle size={64} strokeWidth={1} className="text-sd-gold" />
+             </div>
+             {/* 3D Orbitals */}
+             <div className="absolute -top-4 -right-4 w-12 h-12 bg-sd-black rounded-full flex items-center justify-center sd-depth-top text-sd-white">
+                <ShoppingBag size={18} />
+             </div>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-medium text-[var(--text-primary)] mb-4 tracking-tight leading-tight" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            Order Confirmed
-          </h1>
-          <p className="text-lg text-[var(--text-secondary)] max-w-lg mx-auto leading-relaxed font-light">
-            Thank you for shopping with <span className="text-[var(--gold)] font-medium">Errum</span>. 
-            We&apos;ve received your order and started the fulfillment process.
+          <span className="block font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.6em] mb-4">Transaction Confirmed</span>
+          <h1 className="text-7xl md:text-8xl font-display text-sd-black italic leading-none mb-8">Order Secured</h1>
+          
+          <p className="max-w-lg mx-auto font-mono text-[11px] leading-relaxed uppercase tracking-widest text-sd-text-muted">
+            Provisioning successful. Your order reference <span className="text-sd-black font-bold">#{order?.order_number}</span> has been logged into the registry. A digital copy has been dispatched to your contact.
           </p>
-          
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-10 px-6 sm:px-10 py-6 sm:py-8 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm">
-            <div className="text-center sm:text-left sm:border-r sm:border-[var(--border-default)] sm:pr-10 w-full sm:w-auto">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-1.5 font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>Order Reference</p>
-              <p className="text-2xl font-bold text-[var(--text-primary)] tracking-wider">#{order?.order_number}</p>
-            </div>
-            <div className="text-center sm:text-left w-full sm:w-auto mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-[var(--border-default)]">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-1.5 font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>Order Date</p>
-              <p className="text-xl font-medium text-[var(--text-secondary)]">
-                {order && new Date(order.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* Main Grid Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Order Content */}
-          <div className="lg:col-span-8 space-y-6">
-            
-            {/* Action Card */}
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] overflow-hidden ec-anim-fade-up ec-delay-1 shadow-sm">
-              <div className="p-6 md:p-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-[var(--bg-surface-2)]/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-root)] flex items-center justify-center border border-[var(--border-default)]">
-                    <Package className="text-[var(--gold)]" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-[var(--text-primary)] font-semibold">Track Delivery</h3>
-                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-tight font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>Real-time status updates</p>
-                   </div>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                    <button
-                        onClick={() => router.push(`/e-commerce/order-tracking/${order?.order_number}`)}
-                        className="flex-1 md:flex-none ec-btn-primary px-8 py-3.5 rounded-xl text-[10px] font-bold tracking-widest uppercase shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5"
-                    >
-                        Track Status
-                    </button>
-                    <button
-                        onClick={handlePrint}
-                        className="p-3.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-depth)] transition-all print:hidden"
-                        title="Print Receipt"
-                    >
-                        <Printer size={20} />
-                    </button>
-                </div>
+        {/* ── Action Deck ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+           <div className="p-10 rounded-[48px] bg-sd-white sd-depth-lift flex flex-col gap-8 group hover:scale-[1.02] transition-transform duration-700">
+              <div className="w-16 h-16 rounded-[24px] bg-sd-black text-sd-white flex items-center justify-center">
+                 <Package size={28} />
               </div>
-            </div>
-
-            {/* Order Items List */}
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm ec-anim-fade-up ec-delay-2">
-              <div className="px-6 py-5 border-b border-[var(--border-default)] flex items-center justify-between">
-                <h3 className="text-lg font-medium text-[var(--text-primary)] tracking-wide" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Ordered Items</h3>
-                <span className="text-[10px] text-[var(--text-muted)] font-bold tracking-[0.2em] px-3 py-1 bg-[var(--bg-depth)] rounded-full border border-[var(--border-default)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  {order?.items.length} Product{order?.items.length !== 1 ? 's' : ''}
-                </span>
+              <div>
+                 <h3 className="text-3xl font-display text-sd-black italic">Track Provenance</h3>
+                 <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-widest mt-2">Real-time logistics monitoring</p>
               </div>
-              <div className="p-6 md:p-8 space-y-6">
-                {order?.items.map((item, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row gap-4 sm:gap-6 pb-8 sm:pb-6 border-b border-[var(--border-default)] last:border-b-0 last:pb-0 group">
-                    <div className="flex gap-4 sm:gap-6 flex-1">
-                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-[var(--bg-surface-2)] rounded-xl overflow-hidden border border-[var(--border-default)] group-hover:border-[var(--gold)]/30 transition-colors">
-                        {(() => {
-                          const imgUrl = toAbsoluteAssetUrl(
-                                       item.product_image || item.image_url || 
-                                       (item.product?.images?.find((img: any) => img.is_primary)?.image_url || 
-                                        item.product?.images?.find((img: any) => img.is_primary)?.url || 
-                                        item.product?.images?.[0]?.image_url || 
-                                        item.product?.images?.[0]?.url)
-                          );
-                          
-                          return imgUrl ? (
-                            <img
-                              src={imgUrl}
-                              alt={item.product_name}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="text-[var(--text-muted)]" size={32} />
-                            </div>
-                          );
-                        })()}
-                        <div className="absolute top-1 right-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg text-[10px] font-bold text-white border border-white/10">
-                          ×{item.quantity}
-                        </div>
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[var(--text-primary)] font-medium text-base sm:text-lg leading-tight mb-1 line-clamp-2 hover:text-[var(--gold)] transition-colors cursor-pointer">
-                          {item.product_name}
-                        </h4>
-                        <div className="flex flex-wrap gap-y-1 gap-x-3 mt-2">
-                          {(item.sku || item.product_sku) && (
-                            <p className="text-[10px] text-[var(--text-muted)] font-bold tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
-                              SKU: <span className="text-[var(--text-secondary)]">{item.sku || item.product_sku}</span>
-                            </p>
-                          )}
-                        </div>
-                        {(item.color || item.size) && (
-                          <div className="flex flex-wrap items-center gap-2 mt-2">
-                             {item.color && (
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--bg-depth)] border border-[var(--border-default)] text-[var(--text-secondary)]">
-                                    {item.color}
-                                </span>
-                             )}
-                             {item.size && (
-                                <span className="text-[10px] px-2 py-0.5 rounded bg-[var(--bg-depth)] border border-[var(--border-default)] text-[var(--text-secondary)]">
-                                    {item.size}
-                                </span>
-                             )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex sm:flex-col justify-between items-center sm:items-end mt-2 sm:mt-0 border-t border-[var(--border-default)] pt-3 sm:border-0 sm:pt-0">
-                      <p className="text-lg font-bold text-[var(--text-primary)] tracking-wide">
-                        ৳{(item.total_amount ?? item.total ?? 0).toLocaleString('en-BD', { minimumFractionDigits: 2 })}
-                      </p>
-                      <p className="text-[11px] text-[var(--text-muted)] font-medium">
-                        ৳{(item.unit_price ?? item.price ?? 0).toLocaleString('en-BD', { minimumFractionDigits: 2 })} ea
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <button
+                onClick={() => router.push(`/e-commerce/order-tracking/${order?.order_number}`)}
+                className="mt-4 px-10 h-16 bg-sd-black text-sd-white rounded-[20px] font-mono text-[10px] items-center justify-center flex font-bold uppercase tracking-[0.4em] group-hover:bg-sd-gold group-hover:text-sd-black transition-all"
+              >
+                Launch Tracker
+              </button>
+           </div>
+
+           <div className="p-10 rounded-[48px] bg-sd-white border border-sd-border-default/20 flex flex-col gap-8 justify-between">
+              <div className="flex justify-between items-start">
+                 <div className="w-16 h-16 rounded-[24px] bg-sd-ivory-dark/20 text-sd-black flex items-center justify-center">
+                    <Printer size={28} />
+                 </div>
+                 <div className="text-right">
+                    <span className="block font-mono text-[9px] font-bold text-sd-gold uppercase tracking-widest">Dated</span>
+                    <span className="block font-display text-xl">{order && new Date(order.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</span>
+                 </div>
               </div>
-            </div>
-
-            {/* Logistics Info Section */}
-            <div className="grid md:grid-cols-2 gap-6 ec-anim-fade-up ec-delay-3">
-              {/* Shipping Address */}
-              <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2.5 rounded-lg bg-[var(--bg-depth)] border border-[var(--border-default)]">
-                    <MapPin className="text-[var(--gold)]" size={20} />
-                  </div>
-                  <h3 className="font-bold text-[var(--text-primary)] tracking-[0.1em] uppercase text-xs" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    Shipping Destination
-                  </h3>
-                </div>
-                <div className="text-[var(--text-secondary)] space-y-2.5 leading-relaxed">
-                  <p className="font-bold text-[var(--text-primary)] text-lg">{order?.shipping_address.name}</p>
-                  <p className="flex items-center gap-2 text-[var(--text-muted)] font-bold uppercase text-[10px]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    <span>PHONE</span>
-                    <span className="text-[var(--text-secondary)] font-medium text-xs">{order?.shipping_address.phone}</span>
-                  </p>
-                  <p className="text-[var(--text-secondary)] pt-1 font-light">
-                    {order?.shipping_address.address_line_1}
-                    {order?.shipping_address.address_line_2 && <span className="block">{order?.shipping_address.address_line_2}</span>}
-                  </p>
-                  <p className="text-[var(--gold)] font-medium">
-                    {order?.shipping_address.city}, {order?.shipping_address.state} {order?.shipping_address.postal_code}
-                  </p>
-                </div>
+              <div>
+                 <h3 className="text-3xl font-display text-sd-black italic">Archive Receipt</h3>
+                 <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-widest mt-2">Hard copy for your permanent records</p>
               </div>
-
-              {/* Payment Info */}
-              <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] shadow-sm p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2.5 rounded-lg bg-[var(--bg-depth)] border border-[var(--border-default)]">
-                    <CreditCard className="text-[var(--gold)]" size={20} />
-                  </div>
-                  <h3 className="font-bold text-[var(--text-primary)] tracking-[0.1em] uppercase text-xs" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    Payment Summary
-                  </h3>
-                </div>
-                <div className="space-y-6">
-                   <div>
-                        <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-1.5 font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>Method</p>
-                        <div className="flex items-center gap-2">
-                             <span className="text-[var(--text-primary)] font-bold tracking-wide capitalize bg-[var(--bg-depth)] px-3 py-1 rounded-lg border border-[var(--border-default)]">
-                                {order?.payment_method.replace(/_/g, ' ')}
-                             </span>
-                        </div>
-                   </div>
-                   <div>
-                        <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mb-1.5 font-bold" style={{ fontFamily: "'DM Mono', monospace" }}>Gateway Status</p>
-                        <div className="flex items-center gap-2">
-                            <span className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.1em] uppercase border ${
-                                order?.payment_status === 'paid' 
-                                ? 'bg-green-50 text-green-700 border-green-100' 
-                                : 'bg-amber-50 text-amber-700 border-amber-100'
-                            }`}>
-                                <div className={`w-2 h-2 rounded-full ${order?.payment_status === 'paid' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-                                {order?.payment_status}
-                            </span>
-                        </div>
-                   </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar Area - Order Total & Support */}
-          <div className="lg:col-span-4 space-y-6">
-            
-            {/* Amount Summary Sidebar */}
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] sticky top-24 ec-anim-fade-up ec-delay-4 overflow-hidden shadow-xl border-t-[var(--gold)] border-t-[3px]">
-              <div className="bg-[var(--bg-depth)] border-b border-[var(--border-default)] px-6 py-4">
-                 <h3 className="text-center font-bold text-[var(--text-primary)] tracking-[0.2em] uppercase text-[10px]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                    Billing Breakdown
-                 </h3>
-              </div>
-              <div className="p-6 md:p-8 space-y-5">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-light text-[var(--text-secondary)]">Basket Subtotal</span>
-                  <span className="font-bold text-[var(--text-primary)]">৳{order?.subtotal.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-light text-[var(--text-secondary)]">Fulfillment & Shipping</span>
-                  <span className="font-bold text-[var(--text-primary)]">৳{order?.shipping_amount.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
-                </div>
-                {order && order.discount_amount > 0 && (
-                  <div className="flex justify-between items-center text-green-600 bg-green-50 px-4 py-3 rounded-xl border border-green-100">
-                    <span className="text-[10px] font-bold tracking-[0.1em] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Voucher Savings</span>
-                    <span className="font-bold font-mono">-৳{order.discount_amount.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
-                  </div>
-                )}
-                
-                <div className="pt-6 mt-4 border-t border-[var(--border-default)]">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.2em] font-bold text-center" style={{ fontFamily: "'DM Mono', monospace" }}>Total Amount Payable</p>
-                    <div className="text-center">
-                        <span className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">
-                            ৳{order?.total_amount.toLocaleString('en-BD', { minimumFractionDigits: 2 })}
-                        </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8">
-                     <Link 
-                        href="/e-commerce"
-                        className="w-full flex items-center justify-center gap-3 py-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-depth)] text-[var(--text-primary)] hover:bg-[var(--bg-surface-2)] transition-all font-bold tracking-[0.1em] text-[11px] uppercase"
-                        style={{ fontFamily: "'DM Mono', monospace" }}
-                     >
-                        Continue Shopping <ArrowRight size={14} className="text-[var(--gold)]" />
-                     </Link>
-                </div>
-              </div>
-              
-              {/* Receipt Visual Decor */}
-              <div className="bg-[var(--bg-depth)] px-6 py-4 border-t border-[var(--border-default)] flex items-center justify-center gap-2">
-                 <CheckCircle className="text-green-500" size={14} />
-                 <span className="text-[9px] text-[var(--text-muted)] font-bold tracking-[0.2em] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Verified Digital Receipt</span>
-              </div>
-            </div>
-
-
-
-          </div>
+              <button
+                onClick={handlePrint}
+                className="mt-4 px-10 h-16 bg-sd-ivory-dark/10 text-sd-black rounded-[20px] font-mono text-[10px] items-center justify-center flex font-bold uppercase tracking-[0.4em] border border-sd-border-default/20 hover:bg-sd-ivory-dark transition-all"
+              >
+                Print Artifact
+              </button>
+           </div>
         </div>
-        
-        {/* Footer Info */}
-        <div className="mt-16 text-center text-[var(--text-muted)] text-[9px] font-bold tracking-[0.4em] uppercase ec-anim-fade-up ec-delay-6" style={{ fontFamily: "'DM Mono', monospace" }}>
-            Errum Store &copy; 2026 • Secure Order Fulfillment
+
+        {/* ── The Registry (Line Items) ── */}
+        <div className="sd-depth-recess bg-sd-ivory-dark/10 rounded-[64px] p-12 mb-20 space-y-12">
+            <div className="flex items-center justify-between border-b border-sd-black/5 pb-8">
+               <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.5em]">Inventory Manifest</h4>
+               <span className="font-mono text-[9px] font-bold bg-sd-black text-sd-white px-4 py-1.5 rounded-full uppercase tracking-widest">{order?.items.length} units</span>
+            </div>
+
+            <div className="space-y-10">
+              {order?.items.map((item, index) => (
+                <div key={index} className="flex gap-10 items-start group">
+                  <div className="w-32 h-40 rounded-[32px] overflow-hidden bg-sd-white sd-depth-lift flex-shrink-0 relative">
+                     {(() => {
+                        const imgUrl = toAbsoluteAssetUrl(
+                                     item.product_image || item.image_url || 
+                                     (item.product?.images?.find((img: any) => img.is_primary)?.image_url || 
+                                      item.product?.images?.find((img: any) => img.is_primary)?.url || 
+                                      item.product?.images?.[0]?.image_url || 
+                                      item.product?.images?.[0]?.url)
+                        );
+                        return imgUrl ? (
+                          <img src={imgUrl} alt={item.product_name} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-sd-ivory-dark/20 text-sd-text-muted"><Package size={32} /></div>
+                        );
+                      })()}
+                  </div>
+                  
+                  <div className="flex-1 py-2">
+                     <div className="flex justify-between items-start mb-4">
+                        <div>
+                           <h4 className="text-3xl font-display text-sd-black leading-tight line-clamp-1">{item.product_name}</h4>
+                           <span className="font-mono text-[9px] text-sd-gold uppercase tracking-widest mt-2 block">SKU: {item.sku || item.product_sku || 'N/A'}</span>
+                        </div>
+                        <span className="text-2xl font-display italic text-sd-black">×{item.quantity}</span>
+                     </div>
+                     <div className="flex justify-between items-center pt-8 border-t border-sd-black/5">
+                        <span className="font-mono text-[10px] text-sd-text-muted uppercase tracking-[0.3em]">Unit Valuation</span>
+                        <span className="font-mono text-[13px] font-bold text-sd-black">৳{(item.unit_price ?? item.price ?? 0).toLocaleString()}</span>
+                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-12 border-t border-sd-black/5 space-y-6">
+               <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.4em] text-sd-text-muted">
+                  <span>Gross Valuation</span>
+                  <span className="text-sd-black">৳{order?.subtotal.toLocaleString()}</span>
+               </div>
+               <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.4em] text-sd-text-muted">
+                  <span>Dispatch Provision</span>
+                  <span className="text-sd-black">+ ৳{order?.shipping_amount.toLocaleString()}</span>
+               </div>
+               {order && order.discount_amount > 0 && (
+                 <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.4em] text-sd-success">
+                    <span>Protocol Save</span>
+                    <span className="font-bold">- ৳{order.discount_amount.toLocaleString()}</span>
+                 </div>
+               )}
+               <div className="flex justify-between items-end pt-8 border-t border-sd-black/10">
+                  <span className="font-mono text-[11px] font-bold text-sd-black uppercase tracking-[0.6em]">Collective Total</span>
+                  <span className="text-5xl font-display italic text-sd-black tracking-tighter">৳{order?.total_amount.toLocaleString()}</span>
+               </div>
+            </div>
+        </div>
+
+        {/* ── Logistic Deck ── */}
+        <div className="grid md:grid-cols-2 gap-8 mb-20">
+           <div className="p-10 rounded-[48px] bg-sd-white sd-depth-lift border border-sd-border-default/10">
+              <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em] mb-8 flex items-center gap-3">
+                 <MapPin size={14} /> Dispatch Protocol
+              </h4>
+              <div className="space-y-4">
+                 <p className="font-display text-4xl text-sd-black leading-none">{order?.shipping_address.name}</p>
+                 <p className="font-mono text-[11px] text-sd-text-muted uppercase tracking-tighter leading-relaxed">
+                    {order?.shipping_address.address_line_1}<br/>
+                    {order?.shipping_address.city}, Bangladesh
+                 </p>
+                 <p className="font-mono text-[10px] font-bold text-sd-black tracking-widest pt-4">{order?.shipping_address.phone}</p>
+              </div>
+           </div>
+
+           <div className="p-10 rounded-[48px] bg-sd-white sd-depth-lift border border-sd-border-default/10">
+              <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em] mb-8 flex items-center gap-3">
+                 <CreditCard size={14} /> Settlement Status
+              </h4>
+              <div className="space-y-8">
+                 <div>
+                    <span className="block font-mono text-[9px] text-sd-text-muted uppercase tracking-widest mb-2">Method</span>
+                    <span className="text-2xl font-display italic text-sd-black capitalize">{order?.payment_method.replace(/_/g, ' ')}</span>
+                 </div>
+                 <div className="flex items-center gap-4 px-6 py-4 rounded-3xl bg-sd-ivory-dark/20 border border-sd-border-default/20 w-fit">
+                    <div className={`w-3 h-3 rounded-full ${order?.payment_status === 'paid' ? 'bg-sd-success shadow-[0_0_15px_rgba(22,163,74,0.5)]' : 'bg-sd-gold animate-pulse'}`} />
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-sd-black">{order?.payment_status}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        {/* ── Footer Deck ── */}
+        <div className="text-center space-y-12">
+           <Link 
+              href="/e-commerce"
+              className="inline-flex items-center gap-4 bg-sd-black text-sd-white px-16 h-20 rounded-[28px] font-mono text-[11px] font-bold uppercase tracking-[0.4em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift group"
+           >
+              Return to Gallery <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+           </Link>
+           
+           <div className="pt-20 border-t border-sd-border-default/10 opacity-30">
+              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.8em]">Errum Digital Archive • MMXXVI</p>
+           </div>
         </div>
       </div>
     </div>
+  );
+}
   );
 }

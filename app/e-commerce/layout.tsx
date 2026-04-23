@@ -8,13 +8,14 @@ import { CartProvider } from './CartContext';
 import Footer from '@/components/ecommerce/Footer';
 import ScrollToTopOnRouteChange from '@/components/ecommerce/ScrollToTopOnRouteChange';
 import GlobalCartSidebar from '@/components/ecommerce/cart/GlobalCartSidebar';
-
+import TabManager from '@/components/ecommerce/TabManager';
 
 export default function EcommerceLayout({ children }: { children: React.ReactNode }) {
   return (
     <CustomerAuthProvider>
       <PromotionProvider>
         <CartProvider>
+          <TabManager />
           <Suspense fallback={null}>
             <ScrollToTopOnRouteChange />
           </Suspense>

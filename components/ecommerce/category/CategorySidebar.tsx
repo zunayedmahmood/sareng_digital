@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Hash, Filter, DollarSign, Layers } from 'lucide-react';
 
 interface Category {
   id: number;
@@ -39,7 +39,7 @@ export default function CategorySidebar({
   activeCategory,
   onCategoryChange,
   selectedPriceRange,
-  onStockChange,
+  onPriceRangeChange,
   selectedSort,
   onSortChange,
   searchQuery,
@@ -60,48 +60,47 @@ export default function CategorySidebar({
 
   const isActive = (category: Category) => {
     const normalizedActive = decodeURIComponent(activeCategory || '').toLowerCase();
-
-    // Check ID match
     if (normalizedActive === String(category.id)) return true;
-
-    // Legacy/Slug match
     const slug = (category.slug || slugify(category.name)).toLowerCase();
     return normalizedActive === slug || normalizedActive === category.name.toLowerCase();
   };
 
   const categoryRouteValue = (category: Category) => 
-    useIdForRouting ? String(category.id) : slugify(category.name);
+    useIdForRouting ? String(category.id) : (category.slug || slugify(category.name));
 
   const renderCategory = (category: Category, level = 0) => {
     const hasChildren = category.children && category.children.length > 0;
     const isExpanded = expandedCategories.has(category.id);
+    const active = isActive(category);
 
     return (
-      <div key={category.id} className="mb-1">
+      <div key={category.id} className="mb-px group">
         <div
-          className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${isActive(category)
-              ? 'bg-[var(--cyan-pale)] text-[var(--cyan)] font-medium border border-[var(--cyan-border)]'
-              : 'hover:bg-[var(--ivory-ghost)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          style={{ paddingLeft: `${8 + level * 16}px` }}
+          className={`
+            flex items-center justify-between py-3 px-4 transition-all duration-300 relative
+            ${active 
+              ? 'bg-sd-white text-sd-black font-bold z-10 border-l-4 border-sd-gold' 
+              : 'hover:bg-sd-ivory-dark/10 text-sd-text-muted hover:text-sd-black border-l-4 border-transparent'}
+          `}
+          style={{ paddingLeft: `${16 + level * 16}px` }}
         >
           <span
             onClick={() => onCategoryChange(categoryRouteValue(category))}
-            className="flex-1"
+            className="flex-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer"
           >
             {category.name}
           </span>
           {hasChildren && (
             <button
-              onClick={() => toggleCategory(category.id)}
-              className="p-1 hover:bg-[var(--cyan-pale)] hover:text-[var(--cyan)] rounded transition-colors"
+               onClick={() => toggleCategory(category.id)}
+               className="p-1 hover:text-sd-gold transition-colors"
             >
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+               {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </button>
           )}
         </div>
         {hasChildren && isExpanded && (
-          <div className="mt-1 max-h-[400px] overflow-y-auto ec-scrollbar pr-1">
+          <div className="bg-sd-ivory-dark/5 border-l border-sd-border-default/10">
             {category.children!.map(child => renderCategory(child, level + 1))}
           </div>
         )}
@@ -110,91 +109,112 @@ export default function CategorySidebar({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
+      {/* ── Search Artifacts ── */}
       {onSearchChange && (
-        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
-          <h3 className="font-semibold text-[var(--text-primary)] mb-3" style={{ fontFamily: "'Jost', sans-serif" }}>Search</h3>
-          <div className="relative">
-            <input 
-              type="text" 
-              placeholder="Size, color, fabric..."
-              value={searchQuery || ''}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full bg-[var(--bg-root)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--cyan)] transition-all placeholder:text-[var(--text-muted)]"
-            />
-          </div>
-        </div>
+        <section className="space-y-4">
+           <div className="flex items-center gap-2 mb-4">
+              <Hash size={12} className="text-sd-gold" />
+              <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Query Registry</h3>
+           </div>
+           <div className="sd-depth-recess bg-sd-ivory-dark/20 p-2 rounded-2xl">
+              <input 
+                type="text" 
+                placeholder="Fragment keywords..."
+                value={searchQuery || ''}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full bg-white border border-sd-border-default/50 rounded-xl px-4 py-3 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/40 uppercase tracking-widest"
+              />
+           </div>
+        </section>
       )}
 
-      {onSortChange && (
-        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
-          <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Jost', sans-serif" }}>Sort By</h3>
-          <div className="space-y-2">
-            {[
-              { id: 'newest', label: 'Newest Arrivals' },
-              { id: 'price_asc', label: 'Price: Low to High' },
-              { id: 'price_desc', label: 'Price: High to Low' },
-            ].map((option) => (
-              <label key={option.id} className="flex items-center cursor-pointer group">
-                <input
-                  type="radio"
-                  name="sortOrder"
-                  value={option.id}
-                  checked={selectedSort === option.id}
-                  onChange={(e) => onSortChange(e.target.value)}
-                  className="mr-2 accent-[var(--cyan)]"
-                />
-                <span className={`text-sm transition-colors ${selectedSort === option.id ? 'text-[var(--cyan)] font-medium' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
-                  {option.label}
-                </span>
-              </label>
-            ))}
-          </div>
+      {/* ── Category Anthology ── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+           <Layers size={12} className="text-sd-gold" />
+           <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Sections</h3>
         </div>
-      )}
-
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
-        <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Jost', sans-serif" }}>Categories</h3>
-        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 ec-scrollbar">
+        <div className="sd-depth-recess bg-sd-white overflow-hidden rounded-3xl border border-sd-border-default/30">
           <div
-            className={`p-2 rounded cursor-pointer transition-colors ${activeCategory === 'all'
-                ? 'bg-[var(--cyan-pale)] text-[var(--cyan)] font-medium border border-[var(--cyan-border)]'
-                : 'hover:bg-[var(--ivory-ghost)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+            className={`
+              py-4 px-5 text-[10px] font-mono font-bold uppercase tracking-widest cursor-pointer transition-all border-l-4
+              ${activeCategory === 'products' || activeCategory === 'all' || activeCategory === ''
+                ? 'bg-sd-white text-sd-black border-sd-gold'
+                : 'bg-sd-ivory-dark/5 text-sd-text-muted border-transparent hover:bg-sd-ivory-dark/10 hover:text-sd-black'}
+            `}
             onClick={() => onCategoryChange('all')}
           >
-            All Categories
+            All Anthology
           </div>
-          {categories.map(category => renderCategory(category))}
+          <div className="divide-y divide-sd-border-default/5">
+            {categories.map(category => renderCategory(category))}
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
-        <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Jost', sans-serif" }}>Price Range</h3>
-        <div className="space-y-2">
-          {[
-            { value: 'all', label: 'All Prices' },
-            { value: '0-500', label: 'Under ৳500' },
-            { value: '500-1000', label: '৳500 - ৳1,000' },
-            { value: '1000-2000', label: '৳1,000 - ৳2,000' },
-            { value: '2000-5000', label: '৳2,000 - ৳5,000' },
-            { value: '5000-999999', label: 'Above ৳5,000' },
-          ].map((range) => (
-            <label key={range.value} className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name="priceRange"
-                value={range.value}
-                checked={selectedPriceRange === range.value}
-                onChange={(e) => onPriceRangeChange(e.target.value)}
-                className="mr-2 accent-[var(--cyan)] focus:ring-[var(--cyan-border)]"
-              />
-              <span className="text-sm text-[var(--text-secondary)]">{range.label}</span>
-            </label>
-          ))}
+      {/* ── Price Matrix ── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2 mb-4">
+           <DollarSign size={12} className="text-sd-gold" />
+           <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Value Tiers</h3>
         </div>
-      </div>
+        <div className="sd-depth-recess bg-sd-ivory-dark/20 p-4 rounded-3xl space-y-2">
+           {[
+             { value: 'all', label: 'Complete Catalog' },
+             { value: '0-500', label: 'Under ৳500' },
+             { value: '500-1000', label: '৳500 — ৳1,000' },
+             { value: '1000-2000', label: '৳1,000 — ৳2,000' },
+             { value: '2000-5000', label: '৳2,000 — ৳5,000' },
+             { value: '5000-999999', label: 'Above ৳5,000' },
+           ].map((range) => (
+             <label key={range.value} className="flex items-center justify-between group cursor-pointer py-1">
+               <span className={`font-mono text-[9px] uppercase tracking-widest transition-all ${selectedPriceRange === range.value ? 'text-sd-black font-bold border-b border-sd-gold' : 'text-sd-text-muted group-hover:text-sd-black'}`}>
+                  {range.label}
+               </span>
+               <input
+                 type="radio"
+                 name="priceRange"
+                 value={range.value}
+                 checked={selectedPriceRange === range.value}
+                 onChange={(e) => onPriceRangeChange(e.target.value)}
+                 className="opacity-0 w-0 h-0"
+               />
+               <div className={`w-3 h-3 rounded-full border-2 transition-all ${selectedPriceRange === range.value ? 'bg-sd-gold border-sd-gold' : 'border-sd-border-default group-hover:border-sd-gold/50'}`} />
+             </label>
+           ))}
+        </div>
+      </section>
 
+      {/* ── Registry Sequence ── */}
+      {onSortChange && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+             <Filter size={12} className="text-sd-gold" />
+             <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Sequence</h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'newest', label: 'Recency' },
+              { id: 'price_asc', label: 'Ascending' },
+              { id: 'price_desc', label: 'Descending' },
+            ].map((option) => (
+              <button
+                key={option.id}
+                onClick={() => onSortChange(option.id)}
+                className={`
+                  px-3 py-1.5 rounded-lg font-mono text-[9px] uppercase tracking-widest border transition-all
+                  ${selectedSort === option.id 
+                    ? 'bg-sd-black text-sd-white border-sd-black sd-depth-lift' 
+                    : 'bg-sd-white text-sd-text-muted border-sd-border-default hover:border-sd-gold hover:text-sd-black'}
+                `}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

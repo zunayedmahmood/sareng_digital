@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductImage {
   id: number;
@@ -27,7 +27,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 1. Reset gallery when images change (prevents blank screen when switching variants with fewer images)
   useEffect(() => {
     setActiveIndex(0);
     if (scrollContainerRef.current) {
@@ -37,9 +36,8 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
 
   const safeImages = images.length > 0
     ? images
-    : [{ id: 0, url: '/placeholder-product.png', is_primary: true }];
+    : [{ id: 0, url: '/placeholder-product.png', is_primary: true } as ProductImage];
 
-  // Sync scroll position for mobile carousel
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     const { scrollLeft, offsetWidth } = scrollContainerRef.current;
@@ -51,13 +49,9 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   };
 
   const scrollToImage = (index: number) => {
-    // Set index immediately for desktop opacity transition
     setActiveIndex(index);
-
     if (!scrollContainerRef.current) return;
     const { offsetWidth } = scrollContainerRef.current;
-
-    // Only use smooth behavior for mobile swipe experience
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     scrollContainerRef.current.scrollTo({
@@ -77,99 +71,107 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   };
 
   return (
-    <div className="flex flex-col-reverse md:flex-row gap-6">
-      {/* Vertical Thumbnails (Desktop) */}
-      {safeImages.length > 1 && (
-        <div className="flex flex-row md:flex-col gap-3 w-full md:w-20 flex-shrink-0 overflow-x-auto no-scrollbar pb-2 md:pb-0">
-          {safeImages.map((img, index) => (
-            <button
-              key={img.id || index}
-              onMouseEnter={() => scrollToImage(index)}
-              onClick={() => scrollToImage(index)}
-              className={`relative overflow-hidden rounded-xl bg-[var(--bg-surface)] border-2 transition-all duration-200 flex-shrink-0 w-16 md:w-full ${activeIndex === index ? 'border-[var(--cyan)]' : 'border-transparent hover:border-[var(--border-strong)]'
-                }`}
-              style={{ aspectRatio: '1/1' }}
-            >
-              <img src={img.url} alt={`${productName} view ${index + 1}`} className="w-full h-full object-cover p-1" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Main Container */}
-      <div className="flex-1 relative group">
-        {/* Mobile Swipe Carousel / Desktop Main Image */}
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          className="relative overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar md:overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface-2)]"
-          style={{ aspectRatio: '600/850' }}
+    <div className="flex flex-col gap-6 lg:gap-10">
+      {/* ── Main Shadow Box Showcase ── */}
+      <div className="relative group">
+        <div 
+          className="sd-depth-recess bg-sd-ivory-dark/20 rounded-[48px] overflow-hidden relative"
+          style={{ aspectRatio: '4/5' }}
         >
-          <div className="flex h-full md:block">
-            {safeImages.map((img, index) => (
-              <div
-                key={img.id || index}
-                className={`snap-start flex-shrink-0 w-full h-full md:absolute md:inset-0 transition-opacity duration-300 ${index === activeIndex ? 'md:opacity-100 z-10' : 'md:opacity-0 z-0'
-                  }`}
+          {/* Internal Stacking Border */}
+          <div className="absolute inset-0 border-[12px] border-sd-white/40 rounded-[48px] z-10 pointer-events-none" />
+          
+          <div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            className="flex h-full overflow-x-auto snap-x snap-mandatory no-scrollbar touch-pan-x"
+          >
+            {safeImages.map((img, idx) => (
+              <div 
+                key={img.id || idx} 
+                className="w-full h-full flex-shrink-0 snap-start flex items-center justify-center p-8 lg:p-16"
               >
-                <img
-                  src={img.url}
-                  alt={`${productName} view ${index + 1}`}
-                  className="w-full h-full object-contain p-4 sm:p-8 transition-transform duration-300 md:group-hover:scale-105"
-                />
+                <motion.div
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ 
+                      opacity: activeIndex === idx ? 1 : 0.4, 
+                      scale: activeIndex === idx ? 1 : 0.95,
+                      filter: activeIndex === idx ? 'grayscale(0)' : 'grayscale(1)'
+                   }}
+                   className="w-full h-full relative"
+                >
+                  <img 
+                    src={img.url} 
+                    alt={`${productName} view ${idx + 1}`}
+                    className="w-full h-full object-contain drop-shadow-2xl"
+                  />
+                </motion.div>
               </div>
             ))}
           </div>
 
-          {/* Status Badges */}
-          <div className="absolute top-4 left-4 sm:top-6 sm:left-6 flex flex-col gap-2 z-20">
-            {!inStock && (
-              <span className="bg-red-500 text-white px-3 py-1 rounded-full text-[9px] sm:text-[10px] font-bold tracking-widest uppercase shadow-lg">
-                Out of Stock
-              </span>
-            )}
-            {discountPercent > 0 && (
-              <span className="ec-badge-urgent px-3 py-1 text-[10px] font-bold tracking-widest uppercase">
-                {discountPercent}% OFF
-              </span>
-            )}
+          {/* Registry Status Badges */}
+          <div className="absolute top-8 left-8 z-20 flex flex-col gap-3">
+             {discountPercent > 0 && (
+                <div className="bg-sd-gold text-sd-black px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-widest shadow-sd-lift">
+                   Save {discountPercent}%
+                </div>
+             )}
+             {!inStock && (
+                <div className="bg-sd-black text-sd-white px-4 py-1.5 rounded-full font-mono text-[10px] font-bold uppercase tracking-widest shadow-sd-lift border border-sd-white/20">
+                   Unavailable
+                </div>
+             )}
           </div>
 
-          {/* Mobile Carousel Dots */}
-          {safeImages.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 md:hidden z-30">
-              {safeImages.map((_, i) => (
-                <div 
-                  key={i} 
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === activeIndex ? 'w-6 bg-[var(--cyan)]' : 'w-1.5 bg-[var(--border-strong)]'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+          {/* Navigation Overlay (Desktop) */}
+          <div className="absolute inset-y-0 left-0 right-0 hidden lg:flex items-center justify-between px-10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-30">
+            <button
+               onClick={(e) => { e.stopPropagation(); prevImage(); }}
+               className="pointer-events-auto w-16 h-16 rounded-full bg-sd-white/80 backdrop-blur-md border border-sd-border-default/10 flex items-center justify-center text-sd-black shadow-sd-lift hover:bg-sd-gold hover:border-sd-gold transition-all active:scale-90"
+            >
+               <ChevronLeft size={24} strokeWidth={1.5} />
+            </button>
+            <button
+               onClick={(e) => { e.stopPropagation(); nextImage(); }}
+               className="pointer-events-auto w-16 h-16 rounded-full bg-sd-white/80 backdrop-blur-md border border-sd-border-default/10 flex items-center justify-center text-sd-black shadow-sd-lift hover:bg-sd-gold hover:border-sd-gold transition-all active:scale-90"
+            >
+               <ChevronRight size={24} strokeWidth={1.5} />
+            </button>
+          </div>
 
-          {/* Navigation Arrows (Desktop) */}
-          {safeImages.length > 1 && (
-            <div className="absolute inset-y-0 left-0 right-0 hidden sm:flex items-center justify-between px-6 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-30">
-              <button
-                onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                className="pointer-events-auto h-12 w-12 flex items-center justify-center rounded-full bg-[var(--bg-lifted)] border border-[var(--border-default)] shadow-xl text-[var(--text-primary)] hover:bg-[var(--cyan)] hover:text-[var(--text-on-accent)] transition-all"
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                className="pointer-events-auto h-12 w-12 flex items-center justify-center rounded-full bg-[var(--bg-lifted)] border border-[var(--border-default)] shadow-xl text-[var(--text-primary)] hover:bg-[var(--cyan)] hover:text-[var(--text-on-accent)] transition-all"
-              >
-                <ChevronRight size={24} />
-              </button>
-            </div>
-          )}
-
-
+          {/* Image Counter Strip */}
+          <div className="absolute bottom-8 right-8 z-20 bg-sd-black/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-sd-white/10">
+             <span className="font-mono text-[10px] text-sd-white font-bold tracking-widest uppercase">
+                {activeIndex + 1} / {safeImages.length}
+             </span>
+          </div>
         </div>
       </div>
+
+      {/* ── Thumbnail Index (Paper Slips) ── */}
+      {safeImages.length > 1 && (
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-4 p-1">
+           {safeImages.map((img, idx) => (
+             <button
+                key={img.id || idx}
+                onClick={() => scrollToImage(idx)}
+                className={`
+                   relative flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden transition-all duration-500 border-2
+                   ${activeIndex === idx 
+                      ? 'border-sd-gold sd-depth-lift scale-105 z-10' 
+                      : 'border-sd-border-default/5 hover:border-sd-gold/30 opacity-60 hover:opacity-100'}
+                `}
+             >
+                <img 
+                   src={img.url} 
+                   alt={`Thumbnail ${idx + 1}`} 
+                   className="w-full h-full object-cover p-2"
+                />
+             </button>
+           ))}
+        </div>
+      )}
     </div>
   );
 };

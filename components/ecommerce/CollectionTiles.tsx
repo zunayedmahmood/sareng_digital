@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { CatalogCategory } from '@/services/catalogService';
 import { motion } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
 
 interface Collection {
   id: string | number;
@@ -66,59 +67,86 @@ export default function CollectionTiles({ categories }: CollectionTilesProps) {
     : DEFAULT_COLLECTIONS;
 
   return (
-    <section className="py-24 bg-sd-ivory">
+    <section className="py-32 bg-sd-ivory overflow-hidden">
       <div className="container mx-auto px-6 lg:px-12">
-        <div className="flex flex-col lg:flex-row items-end justify-between mb-16 gap-8">
-          <div className="max-w-2xl">
+        <div className="flex flex-col lg:flex-row items-baseline justify-between mb-24 gap-8">
+          <div className="max-w-2xl relative">
             <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.4em] mb-4 block">Archive Classification</span>
-            <h2 className="text-5xl lg:text-7xl font-display text-sd-black leading-tight">
-              Curated <span className="italic">Departments</span>
+            <h2 className="text-6xl lg:text-8xl font-display text-sd-black leading-[0.85] tracking-tight">
+              Selected <br />
+              <span className="italic font-medium text-sd-gold">Departments</span>
             </h2>
+            <div className="absolute -top-12 -left-8 text-[120px] font-display italic opacity-[0.03] pointer-events-none select-none">
+              Index
+            </div>
           </div>
-          <p className="font-mono text-[9px] uppercase tracking-widest text-sd-text-muted text-right max-w-[200px]">
-            Every category is a deliberate collection of form and function.
-          </p>
+          <div className="flex flex-col items-end gap-4 max-w-xs text-right">
+            <div className="h-[1px] w-24 bg-sd-gold/30" />
+            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-sd-text-muted leading-relaxed">
+              Every category is a deliberate collection of form and function. Curated for character.
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-0 border border-sd-border-default h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {displayCollections.map((item, idx) => (
             <Link
               key={item.id}
               href={item.href}
-              className={`group relative flex flex-col bg-sd-white overflow-hidden transition-colors hover:bg-sd-ivory-dark/10 ${idx !== displayCollections.length - 1 ? 'lg:border-r border-sd-border-default' : ''} border-b lg:border-b-0 border-sd-border-default`}
+              className="group relative"
             >
-              {/* Asset Index */}
-              <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
-                <span className="font-mono text-[10px] text-sd-gold font-bold">{item.index}</span>
-                <div className="h-[1px] w-4 bg-sd-border-default" />
-              </div>
+              <motion.div
+                whileHover={{ y: -12 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                className="flex flex-col h-full rounded-[30px] p-2 bg-sd-ivory-dark/30 border border-sd-border-default/10"
+              >
+                {/* Image Section (Recessed Well) */}
+                <div className="sd-depth-recess rounded-[26px] p-2 aspect-[4/5] overflow-hidden relative group-hover:sd-depth-lift transition-all duration-700">
+                  <div className="w-full h-full rounded-[18px] overflow-hidden relative">
+                    <motion.img
+                      whileHover={{ scale: 1.15 }}
+                      transition={{ duration: 10 }}
+                      src={item.image}
+                      alt={item.title}
+                      className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-1000"
+                    />
+                    <div className="absolute inset-0 bg-sd-gold/0 group-hover:bg-sd-gold/5 transition-colors duration-700" />
+                  </div>
 
-              {/* Image Area (Paper stack effect) */}
-              <div className="p-8 pb-0">
-                <div className="relative aspect-[1/1] mb-8 overflow-hidden ec-paper-stack border border-sd-black/5">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-1000 ease-in-out group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-sd-gold/0 group-hover:bg-sd-gold/5 transition-colors duration-700" />
+                  {/* Index Overlay */}
+                  <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
+                    <span className="bg-sd-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-mono text-sd-black font-bold rounded shadow-sm">
+                      #{item.index}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Label Area */}
-              <div className="px-8 pb-10 flex-1 flex flex-col">
-                <h3 className="text-3xl font-display text-sd-black mb-4 group-hover:italic transition-all duration-500">{item.title}</h3>
-                <p className="font-sans text-xs text-sd-text-secondary leading-relaxed mb-8 flex-1">
-                  {item.subtitle}
-                </p>
-                
-                <div className="flex items-center gap-3">
-                   <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-sd-black opacity-40 group-hover:opacity-100 transition-opacity">Enter Archive</span>
-                   <div className="h-[1px] flex-1 bg-sd-border-default relative overflow-hidden">
-                      <div className="absolute inset-0 bg-sd-gold -translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
-                   </div>
+                {/* Content Section (Layered Text) */}
+                <div className="p-6 pt-8 flex-1 flex flex-col relative">
+                  <div className="absolute top-0 right-8 h-10 w-[1px] bg-sd-gold/20" />
+                  
+                  <h3 className="text-3xl font-display text-sd-black mb-3 group-hover:italic transition-all duration-500 flex items-center justify-between">
+                    {item.title}
+                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-sd-gold" />
+                  </h3>
+                  
+                  <p className="font-sans text-sm text-sd-text-secondary leading-relaxed mb-8 flex-1">
+                    {item.subtitle}
+                  </p>
+                  
+                  <div className="flex items-center gap-3">
+                     <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-sd-gold font-bold">Entry Path</span>
+                     <div className="h-[1px] flex-1 bg-sd-border-default/10 relative overflow-hidden">
+                        <motion.div 
+                          initial={{ x: '-100%' }}
+                          whileHover={{ x: '100%' }}
+                          transition={{ duration: 0.8, ease: "easeInOut" }}
+                          className="absolute inset-0 bg-sd-gold" 
+                        />
+                     </div>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             </Link>
           ))}
         </div>

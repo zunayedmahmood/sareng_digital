@@ -152,7 +152,7 @@ export default function CheckoutClient() {
       const transformedItems = items.map(item => ({
         id: item.id,
         product_id: item.product_id,
-        category_id: typeof item.product?.category === 'object' && item.product?.category != null ? (item.product.category as any).id : (typeof item.product?.category_id === 'number' ? item.product.category_id : undefined),
+        category: typeof item.product?.category === 'object' && item.product?.category != null ? (item.product.category as any).name || (item.product.category as any).id : (typeof item.product?.category === 'string' ? item.product.category : undefined),
         name: item.product.name,
         images: item.product.images || [],
         sku: item.product.sku ?? '',
@@ -162,7 +162,7 @@ export default function CheckoutClient() {
         variant_options: item.variant_options,
         notes: item.notes,
         available_inventory: item.product.available_inventory,
-      }));
+      })) as any[];
 
       setSelectedItems(transformedItems);
       setIsLoadingItems(false);
@@ -1156,31 +1156,33 @@ export default function CheckoutClient() {
   }
 
   return (
-    <div className="ec-root ec-darkify min-h-screen pb-20">
+    <div className="min-h-screen bg-sd-ivory pb-40 relative overflow-hidden">
       <Navigation />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
-        <div className="mb-12">
-          <div className="hidden sm:flex items-center justify-between mb-8">
+      {/* ── Background Typography ── */}
+      <div className="absolute top-[5%] left-[-2%] opacity-[0.02] pointer-events-none select-none">
+        <span className="text-[20vw] font-display italic font-light text-sd-black leading-none whitespace-nowrap">Archives</span>
+      </div>
+
+      <div className="container mx-auto px-6 lg:px-12 pt-32 relative z-10">
+        <div className="mb-20">
+          <div className="hidden sm:flex items-center justify-between mb-12">
             {['shipping', 'payment', 'review'].map((stepId, idx) => {
               const isActive = currentStep === stepId;
               const isCompleted = ['shipping', 'payment', 'review'].indexOf(currentStep) > idx;
               const Icon = [MapPin, CreditCard, Package][idx];
-              const labels = ['Shipping', 'Payment', 'Review'];
+              const labels = ['Provenance', 'Transaction', 'Audit'];
 
               return (
-                <div key={stepId} className="flex flex-col items-center flex-1 relative">
-                  {idx > 0 && (
-                    <div className={`absolute right-[50%] top-5 w-full h-[2px] -z-10 transition-colors duration-500 ${isCompleted || isActive ? 'bg-[var(--cyan)] opacity-30' : 'bg-[var(--border-default)]'}`} />
-                  )}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
-                    isActive ? 'bg-[var(--cyan-pale)] border-[var(--cyan)] text-[var(--cyan)] shadow-xl scale-110' :
-                    isCompleted ? 'bg-[var(--cyan)] border-[var(--cyan)] text-[var(--bg-root)]' : 
-                    'bg-[var(--bg-depth)] border-[var(--border-default)] text-[var(--text-muted)]'
+                <div key={stepId} className="flex flex-col items-center flex-1 relative group">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 border ${
+                    isActive ? 'bg-sd-black border-sd-black text-sd-white sd-depth-lift scale-110' :
+                    isCompleted ? 'bg-sd-gold border-sd-gold text-sd-black' : 
+                    'bg-sd-white border-sd-border-default text-sd-text-muted hover:border-sd-gold hover:text-sd-black'
                   }`}>
-                    {isCompleted ? <span className="text-sm font-bold">✓</span> : <Icon size={16} />}
+                    {isCompleted ? <span className="font-mono font-bold text-sm">OK</span> : <Icon size={18} strokeWidth={1.5} />}
                   </div>
-                  <span className={`mt-3 text-[10px] font-bold uppercase tracking-[0.2em] ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}`} style={{ fontFamily: "'DM Mono', monospace" }}>
+                  <span className={`mt-4 font-mono text-[9px] font-bold uppercase tracking-[0.4em] transition-colors duration-500 ${isActive ? 'text-sd-black' : 'text-sd-text-muted group-hover:text-sd-gold'}`}>
                     {labels[idx]}
                   </span>
                 </div>
@@ -1188,59 +1190,52 @@ export default function CheckoutClient() {
             })}
           </div>
 
-          <div className="hidden sm:block h-1 w-full bg-[var(--bg-lifted)] rounded-full overflow-hidden mt-8">
+          <div className="hidden sm:block h-[1px] w-full bg-sd-border-default/10 rounded-full overflow-hidden mt-8">
             <div
-              className="h-full bg-[var(--cyan)] transition-all duration-700 ease-out"
+              className="h-full bg-sd-gold transition-all duration-1000 ease-out"
               style={{ width: `${((['shipping', 'payment', 'review'].indexOf(currentStep) + 1) / 3) * 100}%` }}
             />
           </div>
 
-          <div className="sm:hidden flex flex-col gap-3">
+          <div className="sm:hidden flex flex-col gap-4">
             <div className="flex justify-between items-end">
-              <div>
-                <span className="text-[10px] font-bold text-[var(--gold)] uppercase tracking-[0.2em]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  Step {['shipping', 'payment', 'review'].indexOf(currentStep) + 1} of 3
-                </span>
-                <h2 className="text-xl font-medium text-[var(--text-primary)] mt-1 capitalize" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{currentStep} Details</h2>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]" style={{ fontFamily: "'DM Mono', monospace" }}>Next Up</span>
-                <p className="text-sm font-medium text-[var(--text-secondary)] capitalize">
-                  {currentStep === 'shipping' ? 'Payment' : currentStep === 'payment' ? 'Review' : 'Order Done'}
-                </p>
-              </div>
+               <div className="flex flex-col gap-2">
+                  <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Section 0{['shipping', 'payment', 'review'].indexOf(currentStep) + 1} of 03</span>
+                  <p className="font-display italic text-3xl text-sd-black capitalize">{currentStep} Protocol</p>
+               </div>
             </div>
-            <div className="h-1.5 w-full bg-[var(--bg-lifted)] rounded-full overflow-hidden">
+            <div className="h-[2px] w-full bg-sd-border-default/10 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[var(--cyan)] transition-all duration-700 ease-out"
+                className="h-full bg-sd-gold transition-all duration-1000 ease-out"
                 style={{ width: `${((['shipping', 'payment', 'review'].indexOf(currentStep) + 1) / 3) * 100}%` }}
               />
             </div>
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
-          <div className="mb-6 bg-red-600 rounded-xl p-6 flex items-start gap-4 ec-anim-fade-up shadow-lg shadow-red-500/20">
-            <AlertCircle className="text-white flex-shrink-0 mt-0.5" size={20} />
-            <div className="flex-1">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/90 mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Action Required</h3>
-              <p className="text-white text-sm font-medium leading-relaxed">{error}</p>
+          <div className="mb-12 bg-sd-white/80 border-l-4 border-sd-gold p-8 flex items-start gap-6 sd-depth-lift rounded-r-2xl">
+            <div className="w-10 h-10 rounded-full bg-sd-gold/10 flex items-center justify-center flex-shrink-0">
+               <AlertCircle className="text-sd-gold" size={20} />
             </div>
-            <button onClick={() => setError(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+            <div className="flex-1">
+              <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-sd-black mb-2">Protocol Anomaly Detected</h3>
+              <p className="text-sd-text-secondary text-sm font-medium leading-relaxed uppercase tracking-tight">{error}</p>
+            </div>
+            <button onClick={() => setError(null)} className="text-sd-text-muted hover:text-sd-black p-2 transition-colors">✕</button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start" ref={formRef}>
-          <div className="lg:col-span-7 space-y-8">
-            {/* Shipping Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start" ref={formRef}>
+          <div className="lg:col-span-7 space-y-12">
+            {/* ── Shipping Info Step ── */}
             {currentStep === 'shipping' && (
-              <div className="ec-anim-fade-up">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-3xl font-bold text-neutral-900 flex items-center gap-2" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                    <MapPin className="text-neutral-900" size={28} />
-                    Shipping Address
-                  </h2>
+              <div className="ec-anim-fade-up space-y-12">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-2">
+                     <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 01</span>
+                     <h2 className="text-5xl font-display text-sd-black italic leading-none">Shipping Registry</h2>
+                  </div>
                   <button
                     onClick={() => {
                       setShowAddressForm(true);
@@ -1248,335 +1243,180 @@ export default function CheckoutClient() {
                       setAddressForm(getEmptyAddressForm());
                       setError(null);
                     }}
-                    className="flex items-center gap-2 text-neutral-900 font-medium hover:text-neutral-900"
+                    className="group flex items-center gap-3 font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black hover:text-sd-gold transition-colors"
                   >
-                    <Plus size={20} />
-                    <span className="hidden sm:inline">Add New Address</span>
+                    <Plus size={16} strokeWidth={3} />
+                    <span className="hidden sm:inline">Add Entry</span>
                   </button>
                 </div>
 
                 {loadingAddresses ? (
-                  <div className="text-center py-8">
-                    <Loader2 className="animate-spin h-8 w-8 text-neutral-900 mx-auto mb-2" />
-                    <p className="text-neutral-600">Loading addresses...</p>
-                  </div>
+                   <div className="sd-depth-recess bg-sd-ivory-dark/10 py-20 text-center rounded-[40px]">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.8em] animate-pulse">Syncing...</span>
+                   </div>
                 ) : addresses.length === 0 && !showAddressForm ? (
-                  <div className="text-center py-8">
-                    <MapPin className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-neutral-600 mb-4">No addresses found. Please add a delivery address.</p>
+                  <div className="sd-depth-recess bg-sd-white/50 py-24 text-center rounded-[40px] border border-dashed border-sd-border-default/30">
+                    <MapPin className="h-16 w-16 text-sd-gold/20 mx-auto mb-8" />
+                    <p className="text-sd-text-muted font-mono text-[10px] uppercase tracking-widest mb-10">No entries detected in the primary registry.</p>
                     <button
                       onClick={() => {
                         setShowAddressForm(true);
                         setError(null);
                       }}
-                      className="bg-neutral-900 text-white px-6 py-2 rounded-xl font-medium hover:bg-neutral-800"
+                      className="bg-sd-black text-sd-white h-14 px-12 rounded-2xl font-mono text-[10px] uppercase tracking-[0.5em] hover:sd-depth-lift transition-all"
                     >
-                      Add Address
+                      Initialize Entry
                     </button>
                   </div>
                 ) : (
                   <>
                     {showAddressForm && (
-                      <div className="mb-8 p-6 border border-white/10 rounded-2xl space-y-6 ec-dark-card shadow-2xl">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-bold text-white">
-                            {editingAddressId ? 'Edit Address' : 'New Address'}
+                      <div className="sd-depth-recess bg-sd-ivory-dark/20 p-10 rounded-[40px] space-y-10 relative overflow-hidden">
+                        <div className="flex items-center justify-between relative z-10">
+                          <h3 className="font-mono text-xs font-bold uppercase tracking-[0.4em]">
+                            {editingAddressId ? 'Update Registry Label' : 'New Entry Profile'}
                           </h3>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowAddressForm(false);
-                              setEditingAddressId(null);
-                              setAddressForm(getEmptyAddressForm());
-                              setError(null);
-                            }}
-                            className="text-neutral-500 hover:text-neutral-700 text-2xl leading-none"
-                          >
-                            ×
-                          </button>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-neutral-400 mb-1">
-                              Full Name <span className="text-rose-600">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              autoComplete="name"
-                              autoCapitalize="words"
-                              value={addressForm.name}
-                              onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                              className="ec-input"
-                              placeholder="John Doe"
-                              aria-invalid={!addressForm.name && isProcessing}
-                            />
-                            {!addressForm.name && isProcessing && <p className="text-xs text-rose-500 mt-1">Name is required</p>}
+                        <div className="grid md:grid-cols-2 gap-8 relative z-10">
+                          <div className="space-y-4">
+                             <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em] flex items-center gap-2">Full Legal Name <span className="text-sd-danger">*</span></label>
+                             <input
+                               type="text"
+                               value={addressForm.name}
+                               onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
+                               className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                               placeholder="Entry owner..."
+                             />
                           </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-neutral-400 mb-1">
-                              Phone Number <span className="text-rose-600">*</span>
-                            </label>
-                            <input
-                              type="tel"
-                              inputMode="tel"
-                              autoComplete="tel"
-                              value={addressForm.phone}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '');
-                                setAddressForm({ ...addressForm, phone: value });
-                              }}
-                              placeholder="01712345678"
-                              maxLength={11}
-                              className="ec-input"
-                              aria-invalid={(!addressForm.phone || addressForm.phone.length !== 11) && isProcessing}
-                            />
-                            {(!addressForm.phone || addressForm.phone.length !== 11) && isProcessing && <p className="text-xs text-rose-500 mt-1">11-digit phone required</p>}
+                          <div className="space-y-4">
+                             <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em] flex items-center gap-2">Dispatch Contact <span className="text-sd-danger">*</span></label>
+                             <input
+                               type="tel"
+                               value={addressForm.phone}
+                               onChange={(e) => {
+                                 const value = e.target.value.replace(/\D/g, '');
+                                 setAddressForm({ ...addressForm, phone: value });
+                               }}
+                               placeholder="01xxxxxxxxx"
+                               maxLength={11}
+                               className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                             />
                           </div>
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-400 mb-1">
-                            Email (Optional)
-                          </label>
-                          <input
-                            type="email"
-                            inputMode="email"
-                            autoComplete="email"
-                            value={addressForm.email || ''}
-                            onChange={(e) => setAddressForm({ ...addressForm, email: e.target.value })}
-                            placeholder="john@example.com"
-                            className="ec-input"
-                          />
+                        <div className="space-y-4 relative z-10">
+                           <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Communication Proxy (Optional)</label>
+                           <input
+                             type="email"
+                             value={addressForm.email || ''}
+                             onChange={(e) => setAddressForm({ ...addressForm, email: e.target.value })}
+                             placeholder="identifier@artifact.io"
+                             className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                           />
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-400 mb-1">
-                            Address Line 1 <span className="text-rose-600">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            autoComplete="address-line1"
-                            value={addressForm.address_line_1}
-                            onChange={(e) => setAddressForm({ ...addressForm, address_line_1: e.target.value })}
-                            placeholder="House/Flat number, Street name"
-                            className="ec-input"
-                            aria-invalid={!addressForm.address_line_1 && isProcessing}
-                          />
-                          {!addressForm.address_line_1 && isProcessing && <p className="text-xs text-rose-500 mt-1">Address is required</p>}
+                        <div className="space-y-4 relative z-10">
+                           <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Primary Coordinate <span className="text-sd-danger">*</span></label>
+                           <input
+                             type="text"
+                             value={addressForm.address_line_1}
+                             onChange={(e) => setAddressForm({ ...addressForm, address_line_1: e.target.value })}
+                             placeholder="Block, street, precinct..."
+                             className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                           />
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-400 mb-1">
-                            Address Line 2 (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            autoComplete="address-line2"
-                            value={addressForm.address_line_2 || ''}
-                            onChange={(e) => setAddressForm({ ...addressForm, address_line_2: e.target.value })}
-                            placeholder="Area, Sector"
-                            className="ec-input"
-                          />
+                        <div className="grid md:grid-cols-3 gap-8 relative z-10">
+                           <div className="space-y-4">
+                              <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Metro Node</label>
+                              <select
+                                value={addressForm.city}
+                                onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                                className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all uppercase tracking-widest appearance-none outline-none"
+                              >
+                                {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Rangpur', 'Mymensingh'].map(city => (
+                                  <option key={city} value={city}>{city} Node</option>
+                                ))}
+                              </select>
+                           </div>
+
+                           <div className="space-y-4 col-span-2">
+                              <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Sector Landmark</label>
+                              <input
+                                type="text"
+                                value={addressForm.landmark || ''}
+                                onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
+                                placeholder="Proximity markers..."
+                                className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                              />
+                           </div>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-neutral-400 mb-1">
-                              City <span className="text-rose-600">*</span>
-                            </label>
-                            <select
-                              value={addressForm.city}
-                              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                              className="ec-input w-full appearance-none bg-[#1a1a1a] text-white border-white/10"
-                            >
-                              <option value="Dhaka">Dhaka</option>
-                              <option value="Chittagong">Chittagong</option>
-                              <option value="Sylhet">Sylhet</option>
-                              <option value="Rajshahi">Rajshahi</option>
-                              <option value="Khulna">Khulna</option>
-                              <option value="Barisal">Barisal</option>
-                              <option value="Rangpur">Rangpur</option>
-                              <option value="Mymensingh">Mymensingh</option>
-                              <option value="Comilla">Comilla</option>
-                              <option value="Gazipur">Gazipur</option>
-                              <option value="Narayanganj">Narayanganj</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-neutral-400 mb-1">
-                              State <span className="text-rose-600">*</span>
-                            </label>
-                            <select
-                              value={addressForm.state}
-                              onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                              className="ec-input w-full appearance-none bg-[#1a1a1a] text-white border-white/10"
-                            >
-                              <option value="Dhaka Division">Dhaka Division</option>
-                              <option value="Chittagong Division">Chittagong Division</option>
-                              <option value="Rajshahi Division">Rajshahi Division</option>
-                              <option value="Khulna Division">Khulna Division</option>
-                              <option value="Barisal Division">Barisal Division</option>
-                              <option value="Sylhet Division">Sylhet Division</option>
-                              <option value="Rangpur Division">Rangpur Division</option>
-                              <option value="Mymensingh Division">Mymensingh Division</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-neutral-400 mb-1">
-                              Postal Code (Optional)
-                            </label>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              autoComplete="postal-code"
-                              value={addressForm.postal_code || ''}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/\D/g, '');
-                                setAddressForm({ ...addressForm, postal_code: value });
-                              }}
-                              placeholder="1234"
-                              maxLength={4}
-                              className="ec-input"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-400 mb-1">
-                            Landmark (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={addressForm.landmark || ''}
-                            onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
-                            placeholder="Near XYZ School"
-                            className="ec-input"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-neutral-400 mb-1">
-                            Delivery Instructions (Optional)
-                          </label>
-                          <textarea
-                            value={addressForm.delivery_instructions || ''}
-                            onChange={(e) => setAddressForm({ ...addressForm, delivery_instructions: e.target.value })}
-                            placeholder="e.g., Call before delivery"
-                            rows={2}
-                            className="ec-input h-auto min-h-[80px] py-4"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-4 relative z-10">
                           <input
                             type="checkbox"
                             id="defaultShipping"
                             checked={addressForm.is_default_shipping || false}
                             onChange={(e) => setAddressForm({ ...addressForm, is_default_shipping: e.target.checked })}
-                            className="w-4 h-4 text-neutral-900 focus:ring-neutral-200 rounded"
+                            className="w-5 h-5 accent-sd-gold bg-white border-sd-border-default rounded"
                           />
-                          <label htmlFor="defaultShipping" className="text-sm text-neutral-700">
-                            Set as default shipping address
-                          </label>
+                          <label htmlFor="defaultShipping" className="font-mono text-[9px] font-bold uppercase tracking-widest text-sd-text-muted">Set as Primary Protocol Entry</label>
                         </div>
 
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex gap-4 pt-6 relative z-10">
                           <button
                             type="button"
                             onClick={handleSaveAddress}
                             disabled={isProcessing}
-                            className="flex-1 bg-neutral-900 text-white py-2.5 rounded-xl font-medium hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="flex-1 h-14 bg-sd-black text-sd-white rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:sd-depth-lift transition-all disabled:opacity-50 flex items-center justify-center gap-3"
                           >
-                            {isProcessing ? (
-                              <>
-                                <Loader2 className="animate-spin" size={16} />
-                                Saving...
-                              </>
-                            ) : (
-                              <>
-                                {editingAddressId ? 'Update Address' : 'Save Address'}
-                              </>
-                            )}
+                            {isProcessing ? <Loader2 className="animate-spin" size={16} /> : (editingAddressId ? 'Finalize Revisions' : 'Approve Entry')}
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              setShowAddressForm(false);
-                              setEditingAddressId(null);
-                              setAddressForm(getEmptyAddressForm());
-                              setError(null);
-                            }}
+                            onClick={() => { setShowAddressForm(false); setEditingAddressId(null); setAddressForm(getEmptyAddressForm()); setError(null); }}
                             disabled={isProcessing}
-                            className="px-6 bg-neutral-100 text-neutral-700 py-2.5 rounded-xl font-medium hover:bg-gray-300 disabled:opacity-50"
+                            className="px-10 h-14 bg-sd-white text-sd-text-muted border border-sd-border-default rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:text-sd-black hover:border-sd-black transition-all"
                           >
-                            Cancel
+                            Abort
                           </button>
                         </div>
                       </div>
                     )}
 
-                    {/* Address List */}
                     {!showAddressForm && addresses.length > 0 && (
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-6">
                         {addresses.map((address) => (
                           <label
                             key={address.id}
-                            className={`block p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedShippingAddressId === address.id
-                              ? 'border-neutral-900 bg-neutral-50'
-                              : 'border-neutral-200 hover:border-neutral-300'
-                              }`}
+                            className={`
+                               group block p-8 rounded-[32px] border-2 cursor-pointer transition-all duration-500
+                               ${selectedShippingAddressId === address.id 
+                                 ? 'bg-sd-white border-sd-black sd-depth-lift' 
+                                 : 'bg-sd-white border-sd-border-default/20 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 hover:border-sd-gold'}
+                            `}
                           >
-                            <div className="flex items-start gap-3">
-                              <input
-                                type="radio"
-                                name="shipping_address"
-                                value={address.id}
-                                checked={selectedShippingAddressId === address.id}
-                                onChange={() => setSelectedShippingAddressId(address.id!)}
-                                className="mt-1 w-5 h-5 text-neutral-900"
-                              />
+                            <div className="flex items-start gap-8">
                               <div className="flex-1">
-                                <div className="flex items-start justify-between">
-                                  <div>
-                                    <p className="font-bold text-neutral-900 text-lg leading-tight mb-1" style={{ fontFamily: "'Jost', sans-serif" }}>{address.name}</p>
-                                    <p className="text-sm font-medium text-neutral-500 mb-3">{address.phone}</p>
-                                    <div className="space-y-0.5 text-[13px] text-neutral-600 leading-relaxed">
-                                      <p>{address.address_line_1}</p>
-                                      {address.address_line_2 && <p>{address.address_line_2}</p>}
-                                      <p>{address.city}, {address.state} {address.postal_code}</p>
-                                    </div>
-                                    {address.is_default_shipping && (
-                                      <span className="inline-block mt-4 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-green-100" style={{ fontFamily: "'DM Mono', monospace" }}>
-                                        Default Shipping
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        handleEditAddress(address);
-                                      }}
-                                      className="p-1 text-white/50 hover:bg-white/5 rounded transition-colors"
-                                    >
-                                      <Edit2 size={16} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        handleDeleteAddress(address.id!);
-                                      }}
-                                      className="p-1 text-rose-500 hover:bg-rose-500/10 rounded transition-colors"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
+                                <div className="flex items-start justify-between gap-6 mb-8">
+                                   <div className="flex flex-col gap-2">
+                                      <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Coordinate Entry {String(address.id).padStart(2,'0')}</span>
+                                      <h3 className="font-display text-3xl text-sd-black">{address.name}</h3>
+                                   </div>
+                                   <div className="flex gap-2">
+                                      <button onClick={(e) => { e.preventDefault(); handleEditAddress(address); }} className="w-10 h-10 rounded-full bg-sd-ivory-dark/10 flex items-center justify-center hover:bg-sd-black hover:text-sd-white transition-all"><Edit2 size={14} /></button>
+                                      <button onClick={(e) => { e.preventDefault(); handleDeleteAddress(address.id!); }} className="w-10 h-10 rounded-full bg-sd-danger/10 text-sd-danger flex items-center justify-center hover:bg-sd-danger hover:text-sd-white transition-all"><Trash2 size={14} /></button>
+                                   </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-6">
+                                   <input type="radio" value={address.id} checked={selectedShippingAddressId === address.id} onChange={() => setSelectedShippingAddressId(address.id!)} className="w-6 h-6 accent-sd-black" />
+                                   <div className="flex flex-col">
+                                      <p className="font-mono text-[11px] font-bold text-sd-black uppercase tracking-widest">{address.phone}</p>
+                                      <p className="font-mono text-[10px] text-sd-text-muted uppercase tracking-tighter mt-1">{address.address_line_1}, {address.city}</p>
+                                   </div>
                                 </div>
                               </div>
                             </div>
@@ -1591,311 +1431,225 @@ export default function CheckoutClient() {
                   <button
                     onClick={() => setCurrentStep('payment')}
                     disabled={!selectedShippingAddressId}
-                    className="w-full mt-6 bg-neutral-900 text-white py-3 rounded-xl font-semibold hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift mt-12 flex items-center justify-center gap-4"
                   >
-                    Continue to Payment
+                    Authorize Payment Protocol <ChevronRight size={16} strokeWidth={3} />
                   </button>
                 )}
               </div>
             )}
 
-            {/* ✅ FIXED: Payment Method */}
+            {/* ── Transaction Protocol (Payment) ── */}
             {currentStep === 'payment' && (
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h2 className="text-2xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-                  <CreditCard className="text-neutral-900" />
-                  Payment Method
-                </h2>
+              <div className="ec-anim-fade-up space-y-12">
+                <div className="flex flex-col gap-2">
+                   <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 02</span>
+                   <h2 className="text-5xl font-display text-sd-black italic leading-none">Transaction Protocol</h2>
+                </div>
 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-6">
                   {paymentMethods.map((method) => (
                     <label
-                      key={method.code}
-                      className={`flex items-start gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${selectedPaymentMethod === method.code
-                        ? 'border-neutral-900 bg-neutral-50'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                        }`}
+                      key={method.id}
+                      className={`
+                        group block p-8 rounded-[32px] border-2 cursor-pointer transition-all duration-500 relative overflow-hidden
+                        ${selectedPaymentMethod === method.code 
+                          ? 'bg-sd-white border-sd-black sd-depth-lift' 
+                          : 'bg-sd-white border-sd-border-default/20 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 hover:border-sd-gold'}
+                      `}
                     >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={method.code}
-                        checked={selectedPaymentMethod === method.code}
-                        onChange={(e) => {
-                          console.log('💳 Payment method selected:', e.target.value);
-                          setSelectedPaymentMethod(e.target.value);
-                        }}
-                        className="mt-1 w-5 h-5 text-neutral-900 cursor-pointer"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-neutral-900">{method.name}</h3>
-                        {method.description && (
-                          <p className="text-sm text-neutral-600 mt-1">{method.description}</p>
-                        )}
-                        {(method.fixed_fee > 0 || method.percentage_fee > 0) && (
-                          <p className="text-sm text-neutral-900 mt-1">
-                            Fee: ৳{method.fixed_fee}
-                            {method.percentage_fee > 0 && ` + ${method.percentage_fee}%`}
-                          </p>
-                        )}
+                      <div className="flex items-center gap-8 relative z-10">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${selectedPaymentMethod === method.code ? 'bg-sd-black text-sd-white' : 'bg-sd-ivory-dark/20 text-sd-text-muted'}`}>
+                          {method.code === 'cod' ? <Package size={24} /> : <CreditCard size={24} />}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-display text-2xl text-sd-black">{method.name}</h3>
+                          <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-widest mt-1">{method.description || 'Secure authorized gateway'}</p>
+                        </div>
+                        <input
+                          type="radio"
+                          value={method.code}
+                          checked={selectedPaymentMethod === method.code}
+                          onChange={() => setSelectedPaymentMethod(method.code)}
+                          className="w-6 h-6 accent-sd-black"
+                        />
                       </div>
                     </label>
                   ))}
                 </div>
 
-                <div className="mt-6 flex gap-4">
-                  <button
+                <div className="flex gap-6 mt-12">
+                   <button
                     onClick={() => setCurrentStep('shipping')}
-                    className="flex-1 bg-neutral-100 text-neutral-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                    className="px-12 h-20 bg-sd-white text-sd-black border border-sd-border-default rounded-[24px] font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-sd-ivory-dark transition-all"
                   >
-                    Back to Shipping
+                    Return
                   </button>
                   <button
                     onClick={() => setCurrentStep('review')}
                     disabled={!selectedPaymentMethod}
-                    className="flex-1 bg-neutral-900 text-white py-3 rounded-xl font-semibold hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift flex items-center justify-center gap-4"
                   >
-                    Continue to Review
+                    Proceed to Audit <ChevronRight size={16} strokeWidth={3} />
                   </button>
                 </div>
               </div>
             )}
 
-            {/* 🔒 ORIGINAL REVIEW CODE - UNCHANGED (except payment method display) */}
+            {/* ── Final Audit (Review) ── */}
             {currentStep === 'review' && (
-              <div className="space-y-6">
-                {/* Shipping Address Review */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-neutral-900">Shipping Address</h3>
-                    <button
-                      onClick={() => setCurrentStep('shipping')}
-                      className="text-neutral-900 text-sm font-medium hover:underline"
-                    >
-                      Change
-                    </button>
-                  </div>
-                  {selectedShippingAddressId && (
-                    (() => {
-                      const address = addresses.find(a => a.id === selectedShippingAddressId);
-                      if (!address) return null;
-                      return (
-                        <div className="text-neutral-700">
-                          <p className="font-semibold">{address.name}</p>
-                          <p>{address.phone}</p>
-                          {address.email && <p>{address.email}</p>}
-                          <p className="mt-2">
-                            {address.address_line_1}
-                            {address.address_line_2 && `, ${address.address_line_2}`}
-                          </p>
-                          <p>
-                            {address.city}, {address.state} {address.postal_code}
-                          </p>
-                          {address.landmark && <p className="text-sm text-neutral-600 mt-1">Landmark: {address.landmark}</p>}
-                        </div>
-                      );
-                    })()
-                  )}
+              <div className="ec-anim-fade-up space-y-12">
+                <div className="flex flex-col gap-2">
+                   <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 03</span>
+                   <h2 className="text-5xl font-display text-sd-black italic leading-none">Final Audit</h2>
                 </div>
 
-                {/* Payment Method Review */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-neutral-900">Payment Method</h3>
-                    <button
-                      onClick={() => setCurrentStep('payment')}
-                      className="text-neutral-900 text-sm font-medium hover:underline"
-                    >
-                      Change
-                    </button>
-                  </div>
-                  <p className="text-neutral-700">
-                    {paymentMethods.find(m => m.code === selectedPaymentMethod)?.name || selectedPaymentMethod}
-                  </p>
+                <div className="sd-depth-recess bg-sd-ivory-dark/10 p-12 rounded-[40px] space-y-10">
+                   <div className="grid md:grid-cols-2 gap-12">
+                      <div className="space-y-4">
+                         <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Dispatch Destination</h4>
+                         <p className="font-display text-2xl text-sd-black">{addresses.find(a => a.id === selectedShippingAddressId)?.name}</p>
+                         <p className="font-mono text-[11px] text-sd-text-muted leading-relaxed uppercase tracking-tighter">
+                            {addresses.find(a => a.id === selectedShippingAddressId)?.address_line_1}<br/>
+                            {addresses.find(a => a.id === selectedShippingAddressId)?.city}, Bangladesh
+                         </p>
+                      </div>
+                      <div className="space-y-4">
+                         <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Settlement Method</h4>
+                         <p className="font-display text-2xl text-sd-black">
+                            {paymentMethods.find(m => m.code === selectedPaymentMethod)?.name}
+                         </p>
+                         <p className="font-mono text-[11px] text-sd-text-muted uppercase tracking-widest">Authorized Transaction</p>
+                      </div>
+                   </div>
+                   
+                   <div className="pt-10 border-t border-sd-border-default/20">
+                      <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em] mb-6">Internal Notes</h4>
+                      <textarea
+                        value={orderNotes}
+                        onChange={(e) => setOrderNotes(e.target.value)}
+                        placeholder="Add handling requirements..."
+                        className="w-full bg-white/50 border border-sd-border-default/30 rounded-3xl p-8 font-mono text-[11px] text-sd-black focus:outline-none focus:border-sd-gold transition-all min-h-[160px] uppercase tracking-widest"
+                      />
+                   </div>
                 </div>
 
-                {/* Order Notes */}
-                <div className="bg-white rounded-xl shadow-md p-6">
-                  <h3 className="text-lg font-medium text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Order Notes (Optional)</h3>
-                  <textarea
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    placeholder="Any special instructions for your order"
-                    rows={4}
-                    className="w-full px-4 py-3 bg-[var(--bg-surface-2)] border border-[var(--border-strong)] rounded-[var(--radius-md)] text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--cyan-glow)] focus:border-[var(--cyan)] transition-all outline-none"
-                  />
+                <div className="flex gap-6">
+                   <button
+                    onClick={() => setCurrentStep('payment')}
+                    className="px-12 h-20 bg-sd-white text-sd-black border border-sd-border-default rounded-[24px] font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-sd-ivory-dark transition-all"
+                  >
+                    Revision
+                  </button>
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isProcessing}
+                    className="flex-1 h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.6em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift flex items-center justify-center gap-4 group"
+                  >
+                    {isProcessing ? (
+                       <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <>Commit Transaction <CheckCircle size={18} strokeWidth={3} className="group-hover:scale-125 transition-transform" /></>
+                    )}
+                  </button>
                 </div>
-
-                {/* Place Order Button */}
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={isProcessing}
-                  className="ec-btn-primary w-full py-4 text-xs font-bold tracking-[0.2em] uppercase"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="animate-spin" size={20} />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      Place Order
-                    </>
-                  )}
-                </button>
               </div>
             )}
           </div>
 
-          {/* 🔒 ORIGINAL ORDER SUMMARY - UNCHANGED */}
+          {/* ── Order Summary Sidebar (The Registry) ── */}
           <div className="lg:col-span-5">
-            <div className="sticky top-24 space-y-4">
-              {/* Order Summary: Collapsible on Mobile */}
-              <div className="bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-default)] overflow-hidden shadow-sm">
-                {/* Header / Toggle */}
-                <button
-                  onClick={() => setIsSummaryOpen(!isSummaryOpen)}
-                  className="w-full flex items-center justify-between p-6 sm:cursor-default"
-                >
-                  <div className="flex items-center gap-2">
-                    <ShoppingBag className="text-[var(--cyan)]" size={20} />
-                    <h2 className="text-xl font-medium text-[var(--text-primary)]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Order Summary</h2>
-                  </div>
-                  <div className="flex items-center gap-3 sm:hidden">
-                    <span className="text-lg font-bold text-[var(--text-primary)]">৳{summary.total_amount.toLocaleString()}</span>
-                    <ChevronRight className={`transition-transform duration-300 ${isSummaryOpen ? 'rotate-90' : ''}`} size={20} />
-                  </div>
-                </button>
+            <div className="sticky top-24">
+              <div className="sd-depth-lift bg-sd-white rounded-[48px] overflow-hidden border border-sd-border-default/10">
+                <div className="p-10 pb-6 border-b border-sd-border-default/10">
+                   <div className="flex items-center gap-4 mb-2">
+                      <ShoppingBag size={18} className="text-sd-gold" />
+                      <span className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Audit Summary</span>
+                   </div>
+                   <h2 className="text-4xl font-display text-sd-black leading-none">The Registry</h2>
+                </div>
 
-                {/* Content */}
-                <div className={`transition-all duration-500 ease-in-out ${isSummaryOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 sm:max-h-none opacity-0 sm:opacity-100'} overflow-hidden`}>
-                  <div className="p-6 pt-0">
-                    <div className="space-y-4">
-                      {selectedItems.map((item: any) => {
-                        const originalUnitPrice = Number(item.unit_price || 0);
-                        const promo = getApplicablePromotion(item.product_id, item.category_id ?? null);
-                        const discountPercent = promo?.discount_value ?? 0;
-                        const unitPrice = discountPercent > 0 ? Math.max(0, originalUnitPrice - (originalUnitPrice * discountPercent / 100)) : originalUnitPrice;
-                        return (
-                          <div key={item.id} className="flex gap-4 items-start py-2 border-b border-[var(--border-default)] last:border-0">
-                            <div className="w-16 h-16 rounded-[var(--radius-md)] overflow-hidden bg-[var(--bg-surface-2)] flex-shrink-0 border border-[var(--border-default)]">
-                              <img
-                                src={item.image || item.images?.find((i: any) => i?.is_primary)?.image_url || (item.images?.[0] as any)?.image_url || '/placeholder-product.png'}
-                                alt={item.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between gap-2">
-                                <h4 className="text-[13px] font-medium text-[var(--text-primary)] leading-tight" style={{ fontFamily: "'Jost', sans-serif" }}>{item.name}</h4>
-                                <button
-                                  onClick={() => handleRemoveItem(item.id)}
-                                  className="text-[var(--text-muted)] hover:text-[var(--status-danger)] transition-colors p-1"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                              <p className="text-[11px] text-[var(--text-muted)] mt-1 uppercase tracking-tight flex gap-2 items-center" style={{ fontFamily: "'DM Mono', monospace" }}>
-                                <span>৳{unitPrice.toLocaleString()}</span>
-                                {discountPercent > 0 && originalUnitPrice > 0 && (
-                                  <span className="line-through opacity-60">৳{originalUnitPrice.toLocaleString()}</span>
-                                )}
-                              </p>
-                              <div className="flex items-center justify-between mt-2">
-                                <div className="flex items-center rounded-lg bg-[var(--bg-depth)] border border-[var(--border-default)]">
-                                  <button
-                                    onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                    disabled={item.quantity <= 1}
-                                    className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20 transition-colors"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="w-6 text-center text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                                    {item.quantity}
-                                  </span>
-                                  <button
-                                    onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                    disabled={item.quantity >= (item.available_inventory ?? 999)}
-                                    className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20 transition-colors"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <span className="text-[13px] font-bold text-[var(--text-primary)]">
-                                  ৳{(unitPrice * item.quantity).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
+                <div className="p-10 pt-8 space-y-8">
+                  <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 scrollbar-hide">
+                    {selectedItems.map((item: any) => (
+                      <div key={item.id} className="flex gap-6 items-start group">
+                        <div className="w-20 h-24 rounded-2xl overflow-hidden bg-sd-ivory-dark/10 flex-shrink-0 border border-sd-border-default/10 relative">
+                          <img
+                            src={item.image || item.images?.find((i: any) => i?.is_primary)?.image_url || (item.images?.[0] as any)?.image_url || '/placeholder-product.png'}
+                            alt={item.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0 py-1">
+                          <div className="flex justify-between items-start gap-4 mb-2">
+                             <h4 className="font-mono text-[10px] font-bold text-sd-black uppercase tracking-widest leading-relaxed line-clamp-2">{item.name}</h4>
+                             <button onClick={() => handleRemoveItem(item.id)} className="text-sd-danger/30 hover:text-sd-danger transition-colors"><Trash2 size={12} /></button>
                           </div>
-                        );
-                      })}
-                    </div>
+                          
+                          <div className="flex items-center justify-between mt-auto">
+                             <div className="flex items-center gap-3 bg-sd-ivory-dark/20 h-8 px-3 rounded-full">
+                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1} className="text-sd-text-muted hover:text-sd-black disabled:opacity-20">-</button>
+                                <span className="font-mono text-[9px] font-bold">{item.quantity}</span>
+                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= (item.available_inventory ?? 999)} className="text-sd-text-muted hover:text-sd-black disabled:opacity-20">+</button>
+                             </div>
+                             <span className="font-mono text-[11px] font-bold text-sd-black">৳{(item.unit_price * item.quantity).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-                    {/* Coupon Input */}
-                    <div className="mt-6 pt-6 border-t border-[var(--border-default)]">
-                      <div className="flex gap-2">
+                  <div className="space-y-4 pt-8 border-t border-sd-border-default/10">
+                     <div className="flex gap-3">
                         <input
                           type="text"
-                          placeholder="PROMO CODE"
+                          placeholder="ASSIGN COUPON"
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-surface-2)] border border-[var(--border-default)] text-[11px] font-bold tracking-widest text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--cyan)] transition-all"
-                          style={{ fontFamily: "'DM Mono', monospace" }}
+                          className="flex-1 bg-sd-ivory-dark/10 border-none rounded-2xl px-6 py-4 font-mono text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-sd-gold transition-all"
                         />
                         <button
                           onClick={handleApplyCoupon}
                           disabled={couponApplyLoading || !couponCode}
-                          className="px-6 py-3 rounded-xl bg-[var(--text-primary)] text-[var(--bg-root)] text-[10px] font-bold uppercase tracking-widest hover:opacity-90 disabled:opacity-50 transition-all"
+                          className="px-8 bg-sd-black text-sd-white rounded-2xl font-mono text-[9px] font-bold uppercase tracking-widest hover:bg-sd-gold hover:text-sd-black transition-all"
                         >
-                          {couponApplyLoading ? 'Apply...' : 'Apply'}
+                          {couponApplyLoading ? '...' : 'Link'}
                         </button>
-                      </div>
-                      {couponError && (
-                        <div className="mt-2 px-3 py-2 bg-red-600 rounded-lg text-[10px] text-white font-bold uppercase tracking-wider animate-pulse">
-                          {couponError}
-                        </div>
-                      )}
-                      {couponSuccess && <p className="text-[10px] text-[var(--status-success)] mt-2 font-medium">{couponSuccess}</p>}
+                     </div>
+                     {couponError && <p className="text-[9px] text-sd-danger font-mono uppercase tracking-widest text-center">{couponError}</p>}
+                  </div>
+
+                  <div className="pt-4 space-y-4 font-mono text-[10px] uppercase tracking-[0.2em] text-sd-text-muted">
+                    <div className="flex justify-between">
+                      <span>Valuation</span>
+                      <span className="text-sd-black">৳{summary.subtotal.toLocaleString()}</span>
                     </div>
-
-                    {/* Fees & Discounts */}
-                    <div className="space-y-3 pt-6">
-
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--text-secondary)]">Subtotal</span>
-                        <span className="text-[var(--text-primary)] font-medium">৳{summary.subtotal.toLocaleString()}</span>
+                    <div className="flex justify-between">
+                      <span>Dispatch Fee</span>
+                      <span className="text-sd-black">+ ৳{shippingCharge.toLocaleString()}</span>
+                    </div>
+                    {summary.discount_amount > 0 && (
+                      <div className="flex justify-between text-sd-success">
+                        <span>Provision Save</span>
+                        <span className="font-bold">- ৳{summary.discount_amount.toLocaleString()}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--text-secondary)]">Delivery</span>
-                        <span className="text-[var(--text-primary)] font-medium">+ ৳{shippingCharge.toLocaleString()}</span>
-                      </div>
-                      {summary.discount_amount > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-[var(--status-success)] font-medium">Discount</span>
-                          <span className="text-[var(--status-success)] font-bold">- ৳{summary.discount_amount.toLocaleString()}</span>
-                        </div>
-                      )}
-
-                      {/* Total */}
-                      <div className="flex justify-between pt-6 border-t border-[var(--border-strong)] items-center">
-                        <span className="text-base font-bold text-[var(--text-primary)]">Total</span>
-                        <h3 className="text-2xl font-bold text-[var(--text-primary)]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-                          ৳{summary.total_amount.toLocaleString()}
-                        </h3>
-                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-8 border-t border-sd-border-default/10">
+                      <span className="text-[11px] font-bold text-sd-black tracking-[0.4em]">Collective Total</span>
+                      <span className="text-3xl font-display italic text-sd-black tracking-normal lowercase">৳{summary.total_amount.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Secure Payment Badge */}
-              <div className="p-5 rounded-[var(--radius-lg)] bg-[var(--bg-surface-2)] border border-[var(--border-default)] flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-[var(--status-success)]/10 flex items-center justify-center text-[var(--status-success)]">
-                  <Lock size={18} />
+              {/* Security Protocol */}
+              <div className="mt-8 flex items-center gap-6 p-8 rounded-[32px] bg-sd-black/5 border border-sd-border-default/10">
+                <div className="w-12 h-12 rounded-full bg-sd-black flex items-center justify-center text-sd-gold">
+                  <Lock size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-tight">Secure Checkout</h4>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest" style={{ fontFamily: "'DM Mono', monospace" }}>SSL Encrypted</p>
+                  <h4 className="font-mono text-[10px] font-bold text-sd-black uppercase tracking-widest italic">Security Protocol</h4>
+                  <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-tighter mt-1">SSL Encrypted Transaction</p>
                 </div>
               </div>
             </div>

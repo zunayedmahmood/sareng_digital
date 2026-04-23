@@ -321,95 +321,103 @@ const SubcategoryProductTabs: React.FC<SubcategoryProductTabsProps> = ({
 
   /* ── main ── */
   return (
-    <section className="py-24 lg:py-32 border-t border-sd-border-default/50 bg-sd-ivory">
-      <div className="container mx-auto px-6 lg:px-12">
-
+    <section className="py-32 bg-sd-ivory relative overflow-hidden">
+      <div className="container mx-auto px-6 lg:px-12 relative z-10">
+        
         {/* Section Header */}
-        <div className="flex flex-col gap-6 mb-16">
-          <div className="flex items-center gap-4">
-            <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.4em] font-bold">Dept. Anthology</span>
-            <div className="h-[1px] flex-1 bg-sd-border-default/30" />
+        <div className="flex flex-col gap-10 mb-20">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+               <span className="w-2 h-2 rounded-full bg-sd-gold" />
+               <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.5em] font-bold">Archives</span>
+            </div>
+            <div className="h-[1px] flex-1 bg-sd-border-default/10" />
           </div>
           
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div>
-              <h2 className="text-4xl lg:text-7xl font-display text-sd-black italic leading-none mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-12">
+            <div className="max-w-2xl relative">
+              <h2 className="text-6xl lg:text-[100px] font-display text-sd-black leading-[0.85] tracking-tight">
                 {title ?? (parentLabel || eyebrow || 'The Collection')}
               </h2>
-              {subtitle && (
-                <p className="max-w-xl text-sd-text-secondary font-sans text-sm lg:text-lg leading-relaxed">
-                  {subtitle}
-                </p>
-              )}
+              <div className="absolute -top-10 -left-6 text-[120px] font-display italic opacity-[0.02] pointer-events-none select-none">
+                Catalog
+              </div>
             </div>
-            
-            {/* Tab Navigation */}
-            <div className="flex flex-wrap items-center gap-2">
-              {tabs.map((cat) => (
-                <button
-                  key={cat.id}
-                  ref={el => { tabRefs.current[cat.id] = el; }}
-                  onClick={() => setActiveId(cat.id)}
-                  className={`
-                    px-5 py-2.5 font-mono text-[9px] font-bold uppercase tracking-[0.15em] border transition-all duration-300
-                    ${activeId === cat.id 
-                      ? 'bg-sd-black text-sd-white border-sd-black' 
-                      : 'bg-sd-white text-sd-text-muted border-sd-border-default hover:border-sd-gold hover:text-sd-black'}
-                  `}
-                >
-                  {cat.name}
-                </button>
-              ))}
+
+            {/* Subcategory "Strip" Navigation */}
+            <div className="sd-depth-recess bg-sd-ivory-dark/30 p-2 rounded-[28px] overflow-x-auto scrollbar-none">
+              <div className="flex items-center gap-1 min-w-max">
+                {tabs.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveId(cat.id)}
+                    className={`
+                      px-8 py-3.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] rounded-[22px] transition-all duration-500
+                      ${activeId === cat.id 
+                        ? 'bg-sd-white text-sd-black sd-depth-lift scale-[1.02]' 
+                        : 'text-sd-text-muted hover:text-sd-black'}
+                    `}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Product Grid */}
-        <div className="min-h-[500px]">
-          {activeTab?.loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="aspect-[4/5] bg-sd-ivory-dark/40 mb-6 border border-sd-border-default" />
-                  <div className="h-4 bg-sd-ivory-dark/40 w-3/4 mb-2" />
-                  <div className="h-4 bg-sd-ivory-dark/40 w-1/4" />
-                </div>
-              ))}
-            </div>
-          ) : activeTab?.products.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-              {activeTab.products.map((p, index) => (
-                <PremiumProductCard
-                  key={`${activeKey}-${p.id}`}
-                  product={p}
-                  animDelay={index * 40}
-                  imageErrored={imageErrors.has(p.id)}
-                  onImageError={onImgError}
-                  onOpen={onProductClick}
-                  onAddToCart={onAddToCart}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-32 border border-dashed border-sd-border-default bg-sd-ivory-dark/5">
-              <span className="font-mono text-[10px] uppercase tracking-widest text-sd-text-muted mb-4 opacity-50">Null Entry</span>
-              <p className="font-display italic text-2xl text-sd-text-muted">No artifacts found in this department.</p>
+          {subtitle && (
+            <div className="flex items-center gap-6 mt-4">
+               <div className="h-10 w-[1px] bg-sd-gold/30" />
+               <p className="max-w-xl text-sd-text-secondary font-sans text-sm leading-relaxed opacity-80">
+                 {subtitle}
+               </p>
             </div>
           )}
         </div>
 
-        {/* View All Footer */}
+        {/* Product Archive Expansion */}
+        <div className="min-h-[600px] relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
+            {activeTab?.loading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-square bg-sd-ivory-dark/20 rounded-[32px] mb-6" />
+                  <div className="h-4 bg-sd-ivory-dark/20 w-3/4 mb-2 rounded" />
+                  <div className="h-4 bg-sd-ivory-dark/20 w-1/4 rounded" />
+                </div>
+              ))
+            ) : activeTab?.products.length ? (
+              activeTab.products.map((p, index) => (
+                <PremiumProductCard
+                  key={`${activeKey}-${p.id}`}
+                  product={p}
+                  animDelay={index * 80}
+                  onOpen={onProductClick}
+                  onAddToCart={onAddToCart}
+                />
+              ))
+            ) : (
+              <div className="col-span-full flex flex-col items-center justify-center py-40 rounded-[48px] border border-dashed border-sd-border-default/20 bg-sd-ivory-dark/5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.5em] text-sd-gold font-bold mb-6">Department Empty</span>
+                <p className="font-display italic text-3xl text-sd-text-muted opacity-40">No entries recorded in this registry.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Tray */}
         {activeTab?.category && activeTab.products.length > 0 && (
-          <div className="mt-20 flex justify-center">
+          <div className="mt-24 flex flex-col items-center gap-6">
             <Link
               href={`/e-commerce/${encodeURIComponent(catSlug(activeTab.category))}`}
-              className="group relative px-12 py-5 border border-sd-black font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-sd-black overflow-hidden transition-all duration-700"
+              className="group relative h-16 px-16 flex items-center justify-center rounded-[20px] bg-sd-black overflow-hidden transition-all duration-700 hover:sd-depth-lift"
             >
-              <div className="absolute inset-0 bg-sd-black translate-x-[-101%] group-hover:translate-x-0 transition-transform duration-500 ease-in-out" />
-              <span className="relative z-10 group-hover:text-sd-white transition-colors">
-                View Full Department Anthology {'->'}
+              <div className="absolute inset-0 bg-sd-gold translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out" />
+              <span className="relative z-10 font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-sd-white group-hover:text-sd-black transition-colors flex items-center gap-4">
+                Enter Department <ArrowRight className="w-3.5 h-3.5 stroke-[2.5px]" />
               </span>
             </Link>
+            <span className="font-mono text-[8px] text-sd-text-muted uppercase tracking-[0.2em]">Viewing {activeTab.products.length} of {activeTab.category.product_count || '...'} artifacts</span>
           </div>
         )}
       </div>
