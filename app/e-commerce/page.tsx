@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Navigation from '@/components/ecommerce/Navigation';
 import HeroSection from '@/components/ecommerce/HeroSection';
-import Footer from '@/components/ecommerce/Footer';
 import dynamic from 'next/dynamic';
 
 const CollectionTiles = dynamic(() => import('@/components/ecommerce/CollectionTiles'), {
@@ -19,6 +18,10 @@ const InstagramReelViewer = dynamic(() => import('@/components/ecommerce/Instagr
   ssr: false,
   loading: () => <div style={{ minHeight: '760px', margin: '40px 0' }} className="w-full bg-[var(--bg-surface-2)] animate-pulse rounded-2xl" />
 });
+const Footer = dynamic(() => import('@/components/ecommerce/Footer'), {
+  loading: () => <div className="h-80 bg-sd-ivory animate-pulse" />
+});
+
 import SectionReveal from '@/components/ecommerce/SectionReveal';
 import catalogService, { CatalogCategory } from '@/services/catalogService';
 

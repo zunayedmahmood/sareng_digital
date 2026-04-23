@@ -6,21 +6,22 @@ import {
   ShoppingCart,
   Minus,
   Plus,
-  ChevronRight,
-  Truck,
-  ShieldCheck,
-  ChevronLeft
+  ArrowRight,
+  ShoppingBag,
+  Info
 } from 'lucide-react';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import PremiumProductCard from '@/components/ecommerce/ui/PremiumProductCard';
+import NeoProductCard from '@/components/ecommerce/ui/NeoProductCard';
+import NeoBadge from '@/components/ecommerce/ui/NeoBadge';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
 import { usePromotion } from '@/contexts/PromotionContext';
 
 import { useCart } from '@/app/CartContext';
 import Navigation from '@/components/ecommerce/Navigation';
 import { getBaseProductName, getColorLabel, getSizeLabel } from '@/lib/productNameUtils';
-import { adaptCatalogGroupedProducts, groupProductsByMother } from '@/lib/ecommerceProductGrouping';
 import CartSidebar from '@/components/ecommerce/cart/CartSidebar';
 import catalogService, {
   Product,
@@ -28,12 +29,10 @@ import catalogService, {
   SimpleProduct,
   ProductImage
 } from '@/services/catalogService';
-import cartService from '@/services/cartService';
-import { wishlistUtils } from '@/lib/wishlistUtils';
+import { fireToast } from '@/lib/globalToast';
 import ProductImageGallery from '@/components/ecommerce/ProductImageGallery';
 import VariantSelector from '@/components/ecommerce/VariantSelector';
 import StickyAddToCart from '@/components/ecommerce/StickyAddToCart';
-import { fireToast } from '@/lib/globalToast';
 
 // Types for product variations
 export interface ProductVariant {
@@ -76,14 +75,6 @@ const deriveVariantMeta = (variant: any, name: string) => {
   return { color, size, variationSuffix, optionLabel };
 };
 
-const getVariationDisplayLabel = (variant: ProductVariant, index: number): string => {
-  const explicit = normalizeVariantText(variant.option_label || '');
-  if (explicit) return explicit;
-  const parts = [normalizeVariantText(variant.color || ''), normalizeVariantText(variant.size || '')].filter(Boolean);
-  if (parts.length > 0) return parts.join(' / ');
-  return `Option ${index + 1}`;
-};
-
 const getCategorySlug = (category: Product['category'] | null | undefined): string => {
   if (!category) return 'general';
   if (typeof category === 'string') return slugify(category);
@@ -106,7 +97,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const productId = params?.id ? parseInt(params.id as string) : null;
 
-  const { refreshCart, addToCart } = useCart();
+  const { addToCart } = useCart();
   const { getApplicablePromotion } = usePromotion();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -116,7 +107,6 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cartSidebarOpen, setCartSidebarOpen] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [cartStatus, setCartStatus] = useState<'idle' | 'loading' | 'success'>('idle');
@@ -171,7 +161,7 @@ export default function ProductDetailPage() {
   };
 
   useEffect(() => {
-    if (!productId) { setError('Invalid product ID'); setLoading(false); return; }
+    if (!productId) { setError('Invalid unit ID'); setLoading(false); return; }
     const fetchProduct = async () => {
       try {
         setLoading(true);
@@ -201,7 +191,6 @@ export default function ProductDetailPage() {
 
   const handleVariantChange = async (variant: ProductVariant) => {
     setSelectedVariant(variant);
-    setSelectedImageIndex(0);
     setQuantity(1);
     window.history.pushState(null, '', `/e-commerce/product/${variant.id}`);
     
@@ -226,7 +215,7 @@ export default function ProductDetailPage() {
         setCartStatus('idle');
         setIsAdding(false);
         setCartSidebarOpen(true);
-      }, 1500);
+      }, 1200);
     } catch (error: any) {
       fireToast(error?.message || 'Archival integration failed', 'error');
       setIsAdding(false);
@@ -265,15 +254,18 @@ export default function ProductDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-sd-ivory flex items-center justify-center">
-       <span className="font-mono text-[10px] uppercase tracking-[0.5em] animate-pulse">Cataloging...</span>
+    <div className="min-h-screen bg-sd-ivory flex items-center justify-center px-4">
+       <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 neo-border-4 border-black animate-spin bg-sd-gold" />
+          <span className="font-neo font-black text-xl uppercase tracking-widest animate-pulse">Cataloging Unit...</span>
+       </div>
     </div>
   );
 
   if (error || !product || !selectedVariant) return (
-    <div className="min-h-screen bg-sd-ivory flex flex-col items-center justify-center p-12">
-       <h1 className="font-display italic text-4xl mb-8">Artifact Not Found</h1>
-       <button onClick={() => router.back()} className="font-mono text-[10px] uppercase tracking-widest border border-sd-black px-8 py-4">Return to Anthology</button>
+    <div className="min-h-screen bg-sd-ivory flex flex-col items-center justify-center p-12 px-4 text-center">
+       <h1 className="font-neo font-black text-5xl uppercase mb-8">Unit Not Found</h1>
+       <NeoButton variant="black" onClick={() => router.back()} className="px-12">Return to Index</NeoButton>
     </div>
   );
 
@@ -292,123 +284,192 @@ export default function ProductDetailPage() {
       <Navigation />
       <CartSidebar isOpen={cartSidebarOpen} onClose={() => setCartSidebarOpen(false)} />
       
-      <div className="absolute top-[10%] left-[-2%] opacity-[0.03] pointer-events-none select-none">
-        <span className="text-[20vw] font-display italic font-light text-sd-black leading-none whitespace-nowrap">Archives</span>
+      {/* Background Decor */}
+      <div className="absolute top-[15%] right-[-5%] opacity-[0.03] pointer-events-none select-none hidden lg:block">
+        <span className="text-[18vw] font-neo font-black uppercase text-black leading-none">Registry</span>
       </div>
 
-      <main className="pt-32 pb-40 relative z-10">
-        <div className="container mx-auto px-6 lg:px-12">
+      <main className="pt-24 sm:pt-32 pb-40 relative z-10 px-4 sm:px-6 lg:px-12">
+        <div className="container mx-auto">
           
-          <div className="flex flex-col md:flex-row md:items-center gap-6 mb-16 pb-8 border-b border-sd-border-default/10">
+          {/* Header Strip */}
+          <div className="flex flex-col md:flex-row md:items-center gap-6 mb-16 pb-8 border-b-4 border-black">
             <div className="flex items-center gap-4">
-               <Link href="/e-commerce" className="font-mono text-[9px] uppercase tracking-[0.4em] text-sd-text-muted hover:text-sd-black transition-colors">Anthology Index</Link>
-               <span className="text-sd-gold">/</span>
-               <Link href={`/e-commerce/${getCategorySlug(product?.category)}`} className="font-mono text-[9px] uppercase tracking-[0.4em] text-sd-text-muted hover:text-sd-black transition-colors">{getCategoryName(product?.category)}</Link>
+               <Link href="/e-commerce" className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 hover:text-black">INDEX</Link>
+               <span className="text-sd-gold font-neo font-black">/</span>
+               <Link href={`/e-commerce/${getCategorySlug(product?.category)}`} className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 hover:text-black">{getCategoryName(product?.category)}</Link>
             </div>
-            <div className="h-[1px] flex-1 bg-sd-border-default/10 hidden md:block" />
+            <div className="flex-1 hidden md:block" />
+            <NeoBadge variant="gold" className="shadow-none">REGISTRY STATUS: LIVE</NeoBadge>
             <div className="flex items-center gap-3">
-               <div className="w-2 h-2 rounded-full animate-pulse bg-sd-gold" />
-               <span className="font-mono text-[9px] uppercase tracking-[0.4em] text-sd-gold font-bold">Observers: {liveViewers}</span>
+               <span className="font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold">OBSERVERS: {liveViewers}</span>
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-20 lg:gap-32 items-start">
-            <div className="w-full lg:w-[55%] lg:sticky lg:top-32">
+          <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-start">
+            {/* Gallery Column */}
+            <div className="w-full lg:w-[50%] lg:sticky lg:top-32">
               <ProductImageGallery 
                 images={safeImages}
                 productName={baseName}
                 discountPercent={discountPercent}
                 inStock={selectedVariant.in_stock}
               />
-              <div className="mt-16 hidden lg:grid grid-cols-2 gap-12">
-                 <div className="space-y-4">
-                    <span className="font-mono text-[9px] text-sd-gold uppercase tracking-[0.4em] font-bold">Certification</span>
-                    <p className="text-[10px] text-sd-text-secondary leading-relaxed uppercase tracking-tighter">Certified 100% genuine artifact. Subjected to Sareng Digital's strict quality inspection registry.</p>
-                 </div>
-                 <div className="space-y-4">
-                    <span className="font-mono text-[9px] text-sd-gold uppercase tracking-[0.4em] font-bold">Logistics</span>
-                    <p className="text-[10px] text-sd-text-secondary leading-relaxed uppercase tracking-tighter">Domestic priority dispatch protocol enabled for this specimen.</p>
-                 </div>
-              </div>
             </div>
 
-            <div className="w-full lg:w-[45%]">
-              <div className="flex flex-col gap-12">
-                <div className="relative">
-                   <div className="absolute -top-12 -left-6 text-8xl font-display italic opacity-[0.03] pointer-events-none">ENTRY</div>
-                   <div className="flex items-center gap-4 mb-6">
-                      <span className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.5em]">No. {selectedVariant.sku}</span>
-                      <div className="h-[1px] w-20 bg-sd-gold/30" />
-                   </div>
-                   <h1 className="text-6xl lg:text-[100px] font-display text-sd-black leading-[0.85] tracking-tight mb-8">{baseName}</h1>
-                   <div className="flex items-baseline gap-6">
-                      <span className="text-5xl lg:text-7xl font-mono font-bold text-sd-black">{formatBDT(sellingPrice)}</span>
-                      {salePromo && <span className="text-2xl font-mono text-sd-text-muted line-through opacity-40">{formatBDT(originalPrice)}</span>}
-                   </div>
-                </div>
+            {/* Info Column */}
+            <div className="w-full lg:w-[50%] space-y-12">
+              <div className="relative">
+                 <NeoBadge variant="violet" className="mb-6 shadow-none">PROTOCOL NO. {selectedVariant.sku}</NeoBadge>
+                 <h1 className="font-neo font-black text-5xl sm:text-7xl lg:text-8xl uppercase leading-[0.8] tracking-tighter text-black mb-8">
+                   {baseName}
+                 </h1>
+                 
+                 <div className="flex flex-wrap items-baseline gap-6 mb-8">
+                    <span className="text-5xl lg:text-6xl font-neo font-black text-black">
+                      {formatBDT(sellingPrice)}
+                    </span>
+                    {salePromo && (
+                      <span className="text-2xl font-neo font-black text-black/20 line-through">
+                        {formatBDT(originalPrice)}
+                      </span>
+                    )}
+                 </div>
 
-                {hasMultipleVariants && (
-                   <div className="pt-12 border-t border-sd-border-default/10">
-                      <VariantSelector variants={productVariants} selectedVariant={selectedVariant} onVariantChange={handleVariantChange} />
-                   </div>
-                )}
+                 <NeoCard variant="white" className="p-4 inline-flex items-center gap-3 -rotate-1 shadow-none">
+                    <Info size={16} className="text-sd-gold" />
+                    <span className="font-neo font-bold text-xs uppercase text-black">Direct Archival Entry: Immediate Release Protocol Enabled</span>
+                 </NeoCard>
+              </div>
 
-                <div className="space-y-8 pt-12 border-t border-sd-border-default/10">
-                   <div className="flex items-center gap-4">
-                      <div className="sd-depth-recess flex items-center bg-sd-ivory-dark/20 p-2 rounded-2xl">
-                         <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} className="w-12 h-12 flex items-center justify-center text-sd-black hover:bg-sd-white hover:sd-depth-lift rounded-xl transition-all disabled:opacity-20"><Minus size={14} strokeWidth={2.5} /></button>
-                         <div className="w-16 flex items-center justify-center"><span className="font-mono font-bold text-xl">{quantity}</span></div>
-                         <button onClick={() => handleQuantityChange(1)} disabled={quantity >= availableInventory} className="w-12 h-12 flex items-center justify-center text-sd-black hover:bg-sd-white hover:sd-depth-lift rounded-xl transition-all disabled:opacity-20"><Plus size={14} strokeWidth={2.5} /></button>
-                      </div>
-                      <button ref={mainCtaRef} onClick={handleAddToCart} disabled={!selectedVariant.in_stock || isAdding || availableInventory <= 0} className="flex-1 group relative h-[68px] bg-sd-black rounded-2xl flex items-center justify-center overflow-hidden transition-all hover:sd-depth-lift disabled:opacity-50">
-                         <div className="absolute inset-0 bg-sd-gold translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700 ease-out" />
-                         <AnimatePresence mode="wait">
-                            {cartStatus === 'loading' ? (
-                               <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="z-10 font-mono text-[10px] text-sd-white font-bold uppercase tracking-[0.4em]">Archiving...</motion.div>
-                            ) : cartStatus === 'success' ? (
-                               <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="z-10 flex items-center gap-4 text-sd-black font-mono text-[10px] font-bold uppercase tracking-[0.4em]"><ShoppingCart size={16} /> Added</motion.div>
-                            ) : (
-                               <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="z-10 flex items-center gap-4 text-sd-white group-hover:text-sd-black transition-colors font-mono text-[10px] font-bold uppercase tracking-[0.4em]"><Plus size={14} /> {availableInventory <= 0 ? 'Waitlist' : 'Acquire Artifact'}</motion.div>
-                            )}
-                         </AnimatePresence>
-                      </button>
-                   </div>
-                   <button onClick={handleBuyItNow} disabled={!selectedVariant.in_stock || isAdding || availableInventory <= 0} className="w-full h-[68px] rounded-2xl border-2 border-sd-black font-mono text-[10px] font-bold uppercase tracking-[0.5em] text-sd-black hover:bg-sd-black hover:text-sd-white transition-all duration-700 disabled:opacity-30">Complete Transfer</button>
-                </div>
+              {hasMultipleVariants && (
+                 <div className="pt-12 border-t-4 border-black">
+                    <VariantSelector variants={productVariants} selectedVariant={selectedVariant} onVariantChange={handleVariantChange} />
+                 </div>
+              )}
 
-                <div className="pt-16 space-y-10">
-                   <div className="flex items-center gap-6"><h3 className="font-mono text-[10px] uppercase tracking-[0.5em] text-sd-gold font-bold">Provenance & Detail</h3><div className="h-[1px] flex-1 bg-sd-border-default/10" /></div>
-                   <div className="max-w-none font-sans text-sd-text-secondary text-base leading-relaxed space-y-6">
-                      {product.description && <div className="opacity-80">{product.description}</div>}
-                      <div className="sd-depth-recess bg-sd-white p-1 rounded-2xl overflow-hidden mt-8">
-                         <table className="w-full border-collapse">
-                            <tbody>
-                               <tr className="border-b border-sd-border-default/5"><td className="p-4 font-mono text-[9px] uppercase tracking-[0.3em] text-sd-black/40">Status</td><td className="p-4 font-mono text-[10px] font-bold text-sd-black uppercase text-right">{availableInventory > 0 ? <span className="text-sd-gold">Archived: {availableInventory} Units</span> : <span className="text-sd-danger">Registry Depleted</span>}</td></tr>
-                               <tr className="border-b border-sd-border-default/5"><td className="p-4 font-mono text-[9px] uppercase tracking-[0.3em] text-sd-black/40">Authentication</td><td className="p-4 font-mono text-[10px] font-bold text-sd-black uppercase text-right">Registry Verified</td></tr>
-                               <tr><td className="p-4 font-mono text-[9px] uppercase tracking-[0.3em] text-sd-black/40">Dispatch</td><td className="p-4 font-mono text-[10px] font-bold text-sd-black uppercase text-right">Immediate Release</td></tr>
-                            </tbody>
-                         </table>
-                      </div>
-                   </div>
-                </div>
+              <div className="space-y-8 pt-12 border-t-4 border-black">
+                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-6">
+                    {/* Qty Selector */}
+                    <div className="flex items-center bg-white neo-border-2 p-1">
+                       <button 
+                         onClick={() => handleQuantityChange(-1)} 
+                         disabled={quantity <= 1} 
+                         className="w-12 h-12 flex items-center justify-center text-black hover:bg-black hover:text-white transition-all disabled:opacity-20"
+                       >
+                         <Minus size={16} strokeWidth={3} />
+                       </button>
+                       <div className="w-16 flex items-center justify-center">
+                         <span className="font-neo font-black text-xl">{quantity}</span>
+                       </div>
+                       <button 
+                         onClick={() => handleQuantityChange(1)} 
+                         disabled={quantity >= availableInventory} 
+                         className="w-12 h-12 flex items-center justify-center text-black hover:bg-black hover:text-white transition-all disabled:opacity-20"
+                       >
+                         <Plus size={16} strokeWidth={3} />
+                       </button>
+                    </div>
+
+                    <NeoButton 
+                      ref={mainCtaRef} 
+                      onClick={handleAddToCart} 
+                      disabled={!selectedVariant.in_stock || isAdding || availableInventory <= 0} 
+                      variant="primary"
+                      className="flex-1 h-[68px]"
+                    >
+                       <AnimatePresence mode="wait">
+                          {cartStatus === 'loading' ? (
+                             <motion.span key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="font-neo font-black text-sm uppercase">Archiving...</motion.span>
+                          ) : cartStatus === 'success' ? (
+                             <motion.span key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3 font-neo font-black text-sm uppercase"><ShoppingCart size={18} /> Entry Recorded</motion.span>
+                          ) : (
+                             <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-3 font-neo font-black text-sm uppercase">
+                               <ShoppingBag size={18} /> {availableInventory <= 0 ? 'Waitlist Entry' : 'Acquire Specimen'}
+                             </motion.span>
+                          )}
+                       </AnimatePresence>
+                    </NeoButton>
+                 </div>
+                 
+                 <button 
+                   onClick={handleBuyItNow} 
+                   disabled={!selectedVariant.in_stock || isAdding || availableInventory <= 0} 
+                   className="w-full h-[68px] neo-border-4 border-black bg-white font-neo font-black text-sm uppercase tracking-widest text-black hover:bg-black hover:text-white transition-all neo-shadow-sm active:translate-y-1 active:shadow-none"
+                 >
+                   Instant Transfer protocol
+                 </button>
+              </div>
+
+              {/* Specs */}
+              <div className="pt-16 space-y-10">
+                 <h3 className="font-neo font-black text-2xl uppercase text-black flex items-center gap-4">
+                   Provenance & Detail <div className="h-1 flex-1 bg-black/10" />
+                 </h3>
+                 <div className="space-y-8">
+                    {product.description && (
+                      <NeoCard variant="white" className="p-8 rotate-1 shadow-none">
+                         <div className="font-neo font-bold text-lg text-black/70 leading-relaxed">
+                           {product.description}
+                         </div>
+                      </NeoCard>
+                    )}
+                    
+                    <div className="neo-border-4 border-black bg-white overflow-hidden">
+                       <table className="w-full text-left border-collapse">
+                          <tbody>
+                             <tr className="border-b-2 border-black/10 hover:bg-black/5 transition-colors">
+                               <td className="p-4 font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Inventory Status</td>
+                               <td className="p-4 font-neo font-black text-sm uppercase text-right">
+                                 {availableInventory > 0 ? (
+                                   <span className="text-sd-gold">Archived: {availableInventory} Units</span>
+                                 ) : (
+                                   <span className="text-red-500">Registry Depleted</span>
+                                 )}
+                               </td>
+                             </tr>
+                             <tr className="border-b-2 border-black/10 hover:bg-black/5 transition-colors">
+                               <td className="p-4 font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Authentication</td>
+                               <td className="p-4 font-neo font-black text-sm uppercase text-right">Registry Verified</td>
+                             </tr>
+                             <tr className="hover:bg-black/5 transition-colors">
+                               <td className="p-4 font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Dispatch</td>
+                               <td className="p-4 font-neo font-black text-sm uppercase text-right">Immediate Release</td>
+                             </tr>
+                          </tbody>
+                       </table>
+                    </div>
+                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Related Section */}
         {relatedProducts.length > 0 && (
-           <section className="mt-60 pt-40 border-t border-sd-border-default/10 relative overflow-hidden">
-             <div className="absolute top-20 right-10 opacity-[0.02] text-[180px] font-display italic pointer-events-none select-none -rotate-6">Related</div>
-             <div className="container mx-auto px-6 lg:px-12 relative z-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-12">
+           <section className="mt-40 pt-32 border-t-8 border-black relative overflow-hidden">
+             <div className="container mx-auto">
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-12">
                    <div>
-                      <div className="flex items-center gap-4 mb-4"><span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.6em] font-bold">Anthology</span><div className="h-[1px] w-12 bg-sd-gold/30" /></div>
-                      <h2 className="text-6xl lg:text-8xl font-display text-sd-black leading-[0.8] tracking-tight">Associated <br /><span className="italic font-medium text-sd-gold">Specimens</span></h2>
+                      <NeoBadge variant="gold" className="mb-6 shadow-none">ASSOCIATED SPECIMENS</NeoBadge>
+                      <h2 className="font-neo font-black text-6xl sm:text-8xl uppercase leading-[0.8] tracking-tighter text-black">
+                        Registry <br /><span className="text-sd-gold italic">Connections</span>
+                      </h2>
                    </div>
-                   <Link href="/e-commerce/products" className="group flex flex-col items-end gap-2"><span className="font-mono text-[10px] uppercase tracking-[0.4em] font-bold group-hover:text-sd-gold transition-colors">Enter Archive</span><div className="h-[1px] w-24 bg-sd-black group-hover:w-full transition-all duration-700" /></Link>
+                   <Link href="/e-commerce/products">
+                      <NeoButton variant="black" className="px-10">Complete Anthology <ArrowRight /></NeoButton>
+                   </Link>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-                   {relatedProducts.slice(0, 4).map((item, idx) => (<PremiumProductCard key={item.id} product={item} animDelay={idx * 100} onOpen={(p) => router.push(`/e-commerce/product/${p.id}`)} onAddToCart={handleQuickAddToCart} />))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                   {relatedProducts.slice(0, 4).map((item, idx) => (
+                     <NeoProductCard 
+                       key={item.id} 
+                       product={item} 
+                       animDelay={idx * 100} 
+                       onOpen={(p) => router.push(`/e-commerce/product/${p.id}`)} 
+                       onAddToCart={handleQuickAddToCart} 
+                     />
+                   ))}
                 </div>
              </div>
            </section>

@@ -6,7 +6,7 @@ export default function TabManager() {
   useEffect(() => {
     const defaultTitle = "Sareng Digital";
     const awayTitle = "Sareng: Just For You";
-    const playIcons = ["✨", "🏛️", "⚜️", "📦", "🕊️"];
+    const playIcons = ["💾", "🖱️", "🎧", "⌨️", "🖥️"];
     let iconIndex = 0;
     let timer: NodeJS.Timeout;
     let faviconTimer: NodeJS.Timeout;
@@ -35,36 +35,48 @@ export default function TabManager() {
       if (!ctx) return;
 
       const img = new Image();
-      img.src = '/logo.png';
-      
-      let angle = 0;
-      faviconTimer = setInterval(() => {
-        if (document.hidden) return;
-        
-        ctx.clearRect(0, 0, 32, 32);
-        
-        // Draw the original logo
-        ctx.drawImage(img, 2, 2, 28, 28);
-        
-        // Add a playful rotating "sparkle" or dot
-        ctx.save();
-        ctx.translate(16, 16);
-        ctx.rotate((angle * Math.PI) / 180);
-        ctx.fillStyle = '#C5A059'; // Gold
-        ctx.beginPath();
-        ctx.arc(14, 0, 3, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        
-        // Update favicon
-        const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-        if (link) {
-          link.href = canvas.toDataURL('image/png');
-        }
-        
-        angle = (angle + 10) % 360;
-      }, 100);
+      img.src = '/logo.webp';
+
+      const startAnimation = () => {
+        let angle = 0;
+        faviconTimer = setInterval(() => {
+          if (document.hidden) return;
+
+          ctx.clearRect(0, 0, 32, 32);
+
+          // Draw the original logo
+          ctx.drawImage(img, 2, 2, 28, 28);
+
+          // Add a playful rotating "sparkle" or dot
+          ctx.save();
+          ctx.translate(16, 16);
+          ctx.rotate((angle * Math.PI) / 180);
+          ctx.fillStyle = '#C5A059'; // Gold
+          ctx.beginPath();
+          ctx.arc(14, 0, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Update favicon
+          const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+          if (link) {
+            link.href = canvas.toDataURL('image/webp', 0.8);
+          }
+
+          angle = (angle + 10) % 360;
+        }, 250);
+
+      };
+
+
+      if (img.complete) {
+        startAnimation();
+      } else {
+        img.onload = startAnimation;
+      }
     };
+
+
 
     const handleVisibility = () => {
       clearInterval(timer);

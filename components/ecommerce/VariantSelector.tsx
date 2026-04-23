@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ProductVariant } from '@/app/e-commerce/product/[id]/page';
+import NeoBadge from './ui/NeoBadge';
 
 interface VariantSelectorProps {
   variants: ProductVariant[];
@@ -57,16 +58,15 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   onVariantChange,
 }) => {
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-           <div className="w-1.5 h-1.5 bg-sd-gold rounded-full" />
-           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-sd-black">Registry Options</span>
+           <span className="font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold">Registry Variations</span>
         </div>
-        <span className="font-mono text-[9px] text-sd-text-muted uppercase tracking-[0.2em]">{variants.length} Entries Available</span>
+        <NeoBadge variant="gold" className="text-[10px] shadow-none">{variants.length} ENTRIES</NeoBadge>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {variants.map((v) => {
           const isSelected = selectedVariant.id === v.id;
           const isAvailable = v.in_stock && (v.available_inventory ?? 0) > 0;
@@ -75,27 +75,23 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
           return (
             <button
               key={v.id}
-              onClick={() => onVariantChange(v)}
+              onClick={() => isAvailable && onVariantChange(v)}
               className={`
-                group relative min-h-[56px] px-4 py-3 rounded-2xl transition-all duration-500 border border-sd-border-default/5 overflow-hidden flex flex-col items-center justify-center text-center
+                group relative min-h-[60px] px-4 py-3 neo-border-2 transition-all flex flex-col items-center justify-center text-center
                 ${isSelected 
-                  ? 'bg-sd-white text-sd-black sd-depth-lift border-sd-gold z-10' 
+                  ? 'bg-black text-white neo-shadow-sm -translate-y-1' 
                   : isAvailable 
-                    ? 'bg-sd-ivory-dark/10 text-sd-text-muted hover:bg-sd-white hover:text-sd-black hover:border-sd-gold/30'
-                    : 'bg-sd-ivory-dark/5 text-sd-text-muted/30 opacity-40 cursor-not-allowed sd-depth-recess'}
+                    ? 'bg-white text-black hover:bg-sd-gold hover:neo-shadow-sm hover:-translate-y-1'
+                    : 'bg-black/5 text-black/20 neo-border-4 border-dashed border-black/10 cursor-not-allowed'}
               `}
             >
-              <span className={`text-[10px] font-mono font-bold uppercase tracking-widest transition-all duration-300 ${isSelected ? 'text-sd-black' : 'group-hover:text-sd-gold'}`}>
+              <span className={`text-[11px] font-neo font-black uppercase tracking-widest leading-tight`}>
                  {label}
               </span>
               
-              {isSelected && (
-                 <div className="absolute top-1.5 right-1.5 w-1 h-1 bg-sd-gold rounded-full" />
-              )}
-              
               {!isAvailable && (
-                 <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
-                    <div className="w-full h-[1px] bg-sd-black -rotate-12" />
+                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
+                    <div className="w-full h-[2px] bg-black/10 -rotate-12" />
                  </div>
               )}
             </button>

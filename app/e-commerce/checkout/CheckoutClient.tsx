@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Package, MapPin, CreditCard, ShoppingBag, AlertCircle, Loader2, ChevronRight, Plus, Edit2, Trash2, CheckCircle, Lock } from 'lucide-react';
+import { 
+  Package, MapPin, CreditCard, ShoppingBag, AlertCircle, Loader2, 
+  ChevronRight, Plus, Edit2, Trash2, CheckCircle, Lock, 
+  ArrowRight, Shield, User, Tag, X, Database, ShieldCheck 
+} from 'lucide-react';
 import Navigation from '@/components/ecommerce/Navigation';
 import SSLCommerzPayment from '@/components/ecommerce/SSLCommerzPayment';
 import checkoutService, { Address, OrderItem, PaymentMethod } from '@/services/checkoutService';
@@ -11,6 +15,12 @@ import cartService from '@/services/cartService';
 import guestCheckoutService, { GuestPaymentMethod } from '@/services/guestCheckoutService';
 import campaignService, { CouponValidationResult, CouponErrorCode } from '@/services/campaignService';
 import { usePromotion } from '@/contexts/PromotionContext';
+import CheckoutHeader from '@/components/ecommerce/checkout/CheckoutHeader';
+import CheckoutStepTitle from '@/components/ecommerce/checkout/CheckoutStepTitle';
+import CheckoutOrderSummary from '@/components/ecommerce/checkout/CheckoutOrderSummary';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import Price from '@/components/ecommerce/ui/Price';
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -831,322 +841,223 @@ export default function CheckoutClient() {
     );
   }
 
-  // Guest checkout UI (no login required)
   if (isGuestCheckout()) {
     return (
-      <div className="ec-root ec-darkify min-h-screen">
+      <div className="min-h-screen bg-sd-ivory pb-40">
         <Navigation />
+        <CheckoutHeader step="review" />
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-          <div className="flex items-start justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-medium text-[var(--text-primary)]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Quick Checkout</h1>
-              <p className="text-[var(--text-secondary)] mt-1">Direct delivery without account creation.</p>
+        <div className="container mx-auto px-6 lg:px-12 pt-40">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                 <Shield className="text-sd-gold" size={14} />
+                 <span className="font-neo font-black text-[9px] uppercase tracking-[0.4em] text-sd-gold italic">Guest Protocol Active</span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-neo font-black uppercase tracking-tighter text-black leading-none italic">Fast Retrieval</h1>
+              <p className="font-neo font-bold text-[10px] text-black/40 uppercase tracking-widest mt-2">Direct dispatch bypass - No central account required.</p>
             </div>
-            <Link
-              href="/e-commerce/login"
-              className="hidden sm:inline-flex px-4 py-2 rounded-xl border border-neutral-300 text-neutral-700 hover:bg-neutral-100"
-            >
-              Login / Register
+            <Link href="/e-commerce/login">
+              <NeoButton variant="outline" className="px-8 py-4 text-[10px] italic">
+                 EXISTING CITIZEN? LOGIN
+              </NeoButton>
             </Link>
           </div>
 
           {error && (
-            <div className="mb-6 bg-red-600 rounded-xl p-4 flex items-start ec-anim-fade-up shadow-lg shadow-red-500/20">
-              <AlertCircle className="text-white mr-3 mt-0.5 flex-shrink-0" size={20} />
-              <div className="text-white font-medium">{error}</div>
+            <div className="mb-12 bg-white border-4 border-black p-8 flex items-start gap-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-2 h-full bg-sd-gold" />
+              <div className="w-12 h-12 border-2 border-black bg-sd-gold/10 flex items-center justify-center flex-shrink-0">
+                 <AlertCircle className="text-black" size={24} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-black mb-1 italic">Protocol Anomaly</h3>
+                <p className="text-black text-sm font-bold uppercase tracking-tight leading-relaxed">{error}</p>
+              </div>
+               <button onClick={() => setError(null)} className="text-black/20 hover:text-black transition-colors self-start">
+                  <X size={20} />
+               </button>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Form */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4">Contact</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+            {/* Form Cluster */}
+            <div className="lg:col-span-7 space-y-12">
+              <NeoCard variant="white" className="p-10 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)]">
+                <div className="flex items-center gap-3 mb-8">
+                   <User size={18} className="text-sd-gold" />
+                   <h2 className="font-neo font-black text-xl uppercase italic tracking-tighter text-black leading-none">Contact Identification</h2>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Phone Number *</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Signal Access *</label>
                     <input
                       type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="017XXXXXXXX"
+                      placeholder="01XXXXXXXXX"
                       value={guestPhone}
                       onChange={(e) => setGuestPhone(e.target.value)}
-                      className="ec-input"
-                      aria-invalid={!isValidBDPhone(guestPhone) && guestPhone !== ''}
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest focus:outline-none focus:bg-white transition-colors"
                     />
-                    {!isValidBDPhone(guestPhone) && guestPhone !== '' && (
-                      <p className="text-xs text-rose-500 mt-1">Please enter a valid 11-digit phone</p>
-                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Your Name (optional)</label>
+                  <div className="space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Registry Name (Optional)</label>
                     <input
                       type="text"
-                      autoComplete="name"
-                      autoCapitalize="words"
-                      placeholder="Your name"
+                      placeholder="YOUR ALIAS..."
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
-                      className="ec-input"
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Email (optional)</label>
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Communication Proxy (Optional)</label>
                     <input
                       type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
+                      placeholder="NAME@ARCHIVE.COM"
                       value={guestEmail}
                       onChange={(e) => setGuestEmail(e.target.value)}
-                      className="ec-input"
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
                     />
                   </div>
                 </div>
-              </div>
+              </NeoCard>
 
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4">Delivery Address</h2>
+              <NeoCard variant="white" className="p-10 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)]">
+                <div className="flex items-center gap-3 mb-8">
+                   <MapPin size={18} className="text-sd-gold" />
+                   <h2 className="font-neo font-black text-xl uppercase italic tracking-tighter text-black leading-none">Dispatch Coordinate</h2>
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Full Name *</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Full Receiver Name *</label>
                     <input
                       type="text"
-                      autoComplete="name"
-                      autoCapitalize="words"
-                      placeholder="Recipient name"
+                      placeholder="IDENTIFY RECIPIENT..."
                       value={guestAddress.full_name}
                       onChange={(e) => setGuestAddress({ ...guestAddress, full_name: e.target.value })}
-                      className="ec-input"
-                      aria-invalid={!guestAddress.full_name && isProcessing}
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Address Line 1 *</label>
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Primary Coordinate *</label>
                     <input
                       type="text"
-                      autoComplete="address-line1"
-                      placeholder="House, road, area"
+                      placeholder="STREET, BLOCK, SECTOR..."
                       value={guestAddress.address_line_1}
                       onChange={(e) => setGuestAddress({ ...guestAddress, address_line_1: e.target.value })}
-                      className="ec-input"
-                      aria-invalid={!guestAddress.address_line_1 && isProcessing}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Address Line 2 (optional)</label>
-                    <input
-                      type="text"
-                      autoComplete="address-line2"
-                      placeholder="Apartment, floor, landmark"
-                      value={guestAddress.address_line_2}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, address_line_2: e.target.value })}
-                      className="ec-input"
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">City *</label>
-                    <input
-                      type="text"
-                      autoComplete="address-level2"
-                      placeholder="Dhaka"
-                      value={guestAddress.city}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
-                      className="ec-input"
-                      aria-invalid={!guestAddress.city && isProcessing}
-                    />
+                     <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Metro Node *</label>
+                     <input
+                       type="text"
+                       placeholder="DHAKA NODE..."
+                       value={guestAddress.city}
+                       onChange={(e) => setGuestAddress({ ...guestAddress, city: e.target.value })}
+                       className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
+                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-neutral-400 mb-1">Postal Code (optional)</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="postal-code"
-                      placeholder="1207"
-                      value={guestAddress.postal_code}
-                      onChange={(e) => setGuestAddress({ ...guestAddress, postal_code: e.target.value })}
-                      className="ec-input"
-                    />
+                     <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Post Index</label>
+                     <input
+                       type="text"
+                       placeholder="0000..."
+                       value={guestAddress.postal_code}
+                       onChange={(e) => setGuestAddress({ ...guestAddress, postal_code: e.target.value })}
+                       className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
+                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-[12px] font-medium text-[var(--text-secondary)] mb-2 uppercase tracking-tight">Special Instructions (optional)</label>
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Handling Instructions (Optional)</label>
                     <textarea
                       rows={3}
                       value={orderNotes}
                       onChange={(e) => setOrderNotes(e.target.value)}
-                      className="w-full bg-[var(--bg-surface-2)] border border-[var(--border-strong)] rounded-[var(--radius-md)] px-4 py-3 text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--cyan-glow)] focus:border-[var(--cyan)] transition-all outline-none"
-                      placeholder="e.g., deliver after 5 PM"
+                      className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-all outline-none"
+                      placeholder="SPECIFY PROTOCOLS..."
                     />
                   </div>
                 </div>
-              </div>
+              </NeoCard>
 
-              <div className="bg-white rounded-xl shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-4">Payment Method</h2>
-
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-neutral-50">
-                    <input
-                      type="radio"
-                      name="guest_payment_method"
-                      value="cod"
-                      checked={guestPaymentMethod === 'cod'}
-                      onChange={() => setGuestPaymentMethod('cod')}
-                    />
-                    <div>
-                      <div className="font-medium text-neutral-900">Cash on Delivery</div>
-                      <div className="text-sm text-neutral-600">Pay when your order is delivered</div>
-                    </div>
-                  </label>
-
-                  <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-neutral-50">
-                    <input
-                      type="radio"
-                      name="guest_payment_method"
-                      value="sslcommerz"
-                      checked={guestPaymentMethod === 'sslcommerz'}
-                      onChange={() => setGuestPaymentMethod('sslcommerz')}
-                    />
-                    <div>
-                      <div className="font-medium text-neutral-900">Pay Online (SSLCommerz)</div>
-                      <div className="text-sm text-neutral-600">You’ll be redirected to complete payment</div>
-                    </div>
-                  </label>
+              <NeoCard variant="white" className="p-10 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)]">
+                <div className="flex items-center gap-3 mb-8">
+                   <Database size={18} className="text-sd-gold" />
+                   <h2 className="font-neo font-black text-xl uppercase italic tracking-tighter text-black leading-none">Settlement Policy</h2>
                 </div>
-              </div>
+
+                <div className="space-y-4">
+                  {[
+                    { id: 'cod', name: 'Cash on Arrival', desc: 'Settle protocol at delivery node' },
+                    { id: 'sslcommerz', name: 'Instant Proxy Transfer', desc: 'Authenticate via automated gateway' }
+                  ].map((method) => (
+                    <label 
+                      key={method.id} 
+                      className={`
+                        flex items-center gap-6 p-6 border-4 cursor-pointer transition-all bg-white
+                        ${guestPaymentMethod === method.id ? 'border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] translate-x-[-2px] translate-y-[-2px]' : 'border-black/5 hover:border-sd-gold/40'}
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        className="w-6 h-6 border-2 border-black accent-black"
+                        checked={guestPaymentMethod === method.id}
+                        onChange={() => setGuestPaymentMethod(method.id as any)}
+                      />
+                      <div className="flex flex-col gap-1">
+                        <span className="font-neo font-black text-lg uppercase italic tracking-tighter text-black">{method.name}</span>
+                        <span className="font-neo font-bold text-[9px] uppercase tracking-widest text-black/40 italic">{method.desc}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </NeoCard>
             </div>
 
-            {/* Summary */}
+            {/* Sidebar Summary Module */}
             <div className="lg:col-span-5">
-              <div className="bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-default)] p-6 sticky top-24 shadow-sm">
-                <h2 className="text-xl font-medium text-[var(--text-primary)] mb-6" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Order Summary</h2>
-
-                <div className="space-y-4 max-h-[40vh] overflow-auto pr-1">
-                  {selectedItems.map((item: any) => {
-                    const originalUnitPrice = Number(item.unit_price || 0);
-                    const promo = getApplicablePromotion(item.product_id, item.category_id ?? null);
-                    const discountPercent = promo?.discount_value ?? 0;
-                    const activeUnitPrice = discountPercent > 0 ? Math.max(0, originalUnitPrice - (originalUnitPrice * discountPercent / 100)) : originalUnitPrice;
-
-                    return (
-                      <div key={item.id} className="flex items-start gap-4 py-2 border-b border-[var(--border-default)] last:border-0">
-                        <div className="w-16 h-16 rounded-[var(--radius-md)] overflow-hidden bg-[var(--bg-surface-2)] flex-shrink-0 border border-[var(--border-default)]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={item.image || item.images?.find((i: any) => i?.is_primary)?.image_url || (item.images?.[0] as any)?.image_url || '/placeholder-product.png'}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between gap-2">
-                            <p className="text-[13px] font-medium text-[var(--text-primary)] leading-tight" style={{ fontFamily: "'Jost', sans-serif" }}>{item.name}</p>
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="text-[var(--text-muted)] hover:text-[var(--status-danger)] transition-colors p-1"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                          <p className="text-[11px] text-[var(--text-muted)] mt-1 uppercase tracking-tight flex gap-2 items-center" style={{ fontFamily: "'DM Mono', monospace" }}>
-                            <span>৳{activeUnitPrice.toLocaleString()}</span>
-                            {discountPercent > 0 && originalUnitPrice > 0 && (
-                              <span className="line-through opacity-60">৳{originalUnitPrice.toLocaleString()}</span>
-                            )}
-                          </p>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center rounded-lg bg-[var(--bg-depth)] border border-[var(--border-default)]">
-                              <button
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                                className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20 transition-colors"
-                              >
-                                -
-                              </button>
-                              <span className="w-6 text-center text-[11px] font-bold text-[var(--text-primary)]" style={{ fontFamily: "'DM Mono', monospace" }}>
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                disabled={item.quantity >= (item.available_inventory ?? 999)}
-                                className="w-6 h-6 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-20 transition-colors"
-                              >
-                                +
-                              </button>
-                            </div>
-                            <span className="text-[13px] font-bold text-[var(--text-primary)]">
-                              ৳{(item.quantity * activeUnitPrice).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Coupon Input */}
-                <div className="mt-6 pt-6 border-t border-[var(--border-default)]">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="PROMO CODE"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-surface-2)] border border-[var(--border-default)] text-[11px] font-bold tracking-widest text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--cyan)] transition-all"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    />
-                    <button
-                      onClick={handleApplyCoupon}
-                      disabled={!couponCode || couponApplyLoading}
-                      className="px-6 py-3 bg-[var(--text-primary)] text-[var(--bg-root)] rounded-xl text-[10px] font-bold tracking-widest uppercase hover:opacity-90 disabled:opacity-50 transition-all whitespace-nowrap"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >
-                      {couponApplyLoading ? '...' : 'Apply'}
-                    </button>
-                  </div>
-                  {couponError && <p className="text-[10px] text-rose-500 mt-2 ml-1 font-medium">{couponError}</p>}
-                  {couponSuccess && <p className="text-[10px] text-[var(--status-success)] mt-2 ml-1 font-medium">{couponSuccess}</p>}
-                </div>
-
-                <div className="border-t border-[var(--border-default)] mt-6 pt-6 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--text-secondary)]">Subtotal</span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]">৳{summary.subtotal.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-[var(--text-secondary)]">Standard Delivery</span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]">৳{shippingCharge.toLocaleString()}</span>
-                  </div>
-                  {couponDiscount > 0 && (
-                    <div className="flex justify-between items-center text-[var(--status-success)]">
-                      <span className="text-sm underline decoration-dotted">Store Credit / Promo</span>
-                      <span className="text-sm font-bold">-৳{couponDiscount.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center border-t border-[var(--border-strong)] mt-4 pt-4">
-                    <span className="text-base font-bold text-[var(--text-primary)]">Total</span>
-                    <span className="text-2xl font-bold text-[var(--text-primary)]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>৳{summary.total_amount.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleGuestPlaceOrder}
-                  disabled={isProcessing}
-                  className="ec-btn-primary w-full mt-8 py-4 text-xs font-bold tracking-[0.2em] uppercase"
-                >
-                  {isProcessing ? 'Processing…' : `Place Order`}
-                </button>
+              <CheckoutOrderSummary 
+                 items={selectedItems.map((it: any, idx: number) => ({
+                   id: idx,
+                   name: it.name,
+                   quantity: it.quantity,
+                   price: it.unit_price,
+                   total: it.quantity * it.unit_price,
+                   product_image: it.image || it.images?.[0]?.image_url,
+                   variant_options: it.variant_options
+                 }))}
+                 subtotal={summary.subtotal}
+                 shipping={shippingCharge}
+                 discount={couponDiscount}
+                 total={summary.total_amount}
+                 couponCode={couponCode}
+                 onCouponChange={(code) => setCouponCode(code.toUpperCase())}
+                 onApplyCoupon={handleApplyCoupon}
+                 onRemoveCoupon={() => { setAppliedCoupon(null); setCouponSuccess(null); }}
+                 isApplyingCoupon={couponApplyLoading}
+                 couponError={couponError}
+                 couponSuccess={couponSuccess}
+              />
+              
+              <div className="mt-8">
+                 <NeoButton 
+                   variant="primary" 
+                   className="w-full py-8 text-xl italic font-black uppercase tracking-[0.4em] group"
+                   onClick={handleGuestPlaceOrder}
+                   disabled={isProcessing}
+                 >
+                    {isProcessing ? 'SYNCHRONIZING...' : 'COMMIT TRANSACTION'}
+                    {!isProcessing && <CheckCircle size={24} className="ml-4 group-hover:scale-125 transition-transform text-sd-gold" />}
+                 </NeoButton>
               </div>
             </div>
           </div>
@@ -1156,271 +1067,209 @@ export default function CheckoutClient() {
   }
 
   return (
-    <div className="min-h-screen bg-sd-ivory pb-40 relative overflow-hidden">
+    <div className="min-h-screen bg-sd-ivory pb-40 relative">
       <Navigation />
+      <CheckoutHeader step={currentStep} />
 
-      {/* ── Background Typography ── */}
-      <div className="absolute top-[5%] left-[-2%] opacity-[0.02] pointer-events-none select-none">
-        <span className="text-[20vw] font-display italic font-light text-sd-black leading-none whitespace-nowrap">Archives</span>
-      </div>
-
-      <div className="container mx-auto px-6 lg:px-12 pt-32 relative z-10">
-        <div className="mb-20">
-          <div className="hidden sm:flex items-center justify-between mb-12">
-            {['shipping', 'payment', 'review'].map((stepId, idx) => {
-              const isActive = currentStep === stepId;
-              const isCompleted = ['shipping', 'payment', 'review'].indexOf(currentStep) > idx;
-              const Icon = [MapPin, CreditCard, Package][idx];
-              const labels = ['Provenance', 'Transaction', 'Audit'];
-
-              return (
-                <div key={stepId} className="flex flex-col items-center flex-1 relative group">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-700 border ${
-                    isActive ? 'bg-sd-black border-sd-black text-sd-white sd-depth-lift scale-110' :
-                    isCompleted ? 'bg-sd-gold border-sd-gold text-sd-black' : 
-                    'bg-sd-white border-sd-border-default text-sd-text-muted hover:border-sd-gold hover:text-sd-black'
-                  }`}>
-                    {isCompleted ? <span className="font-mono font-bold text-sm">OK</span> : <Icon size={18} strokeWidth={1.5} />}
-                  </div>
-                  <span className={`mt-4 font-mono text-[9px] font-bold uppercase tracking-[0.4em] transition-colors duration-500 ${isActive ? 'text-sd-black' : 'text-sd-text-muted group-hover:text-sd-gold'}`}>
-                    {labels[idx]}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="hidden sm:block h-[1px] w-full bg-sd-border-default/10 rounded-full overflow-hidden mt-8">
-            <div
-              className="h-full bg-sd-gold transition-all duration-1000 ease-out"
-              style={{ width: `${((['shipping', 'payment', 'review'].indexOf(currentStep) + 1) / 3) * 100}%` }}
-            />
-          </div>
-
-          <div className="sm:hidden flex flex-col gap-4">
-            <div className="flex justify-between items-end">
-               <div className="flex flex-col gap-2">
-                  <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Section 0{['shipping', 'payment', 'review'].indexOf(currentStep) + 1} of 03</span>
-                  <p className="font-display italic text-3xl text-sd-black capitalize">{currentStep} Protocol</p>
-               </div>
-            </div>
-            <div className="h-[2px] w-full bg-sd-border-default/10 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-sd-gold transition-all duration-1000 ease-out"
-                style={{ width: `${((['shipping', 'payment', 'review'].indexOf(currentStep) + 1) / 3) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
+      <div className="container mx-auto px-6 lg:px-12 pt-40 relative z-10">
         {error && (
-          <div className="mb-12 bg-sd-white/80 border-l-4 border-sd-gold p-8 flex items-start gap-6 sd-depth-lift rounded-r-2xl">
-            <div className="w-10 h-10 rounded-full bg-sd-gold/10 flex items-center justify-center flex-shrink-0">
-               <AlertCircle className="text-sd-gold" size={20} />
+          <div className="mb-12 bg-white border-4 border-black p-8 flex items-start gap-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-sd-gold" />
+            <div className="w-12 h-12 border-2 border-black bg-sd-gold/10 flex items-center justify-center flex-shrink-0">
+               <AlertCircle className="text-black" size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-sd-black mb-2">Protocol Anomaly Detected</h3>
-              <p className="text-sd-text-secondary text-sm font-medium leading-relaxed uppercase tracking-tight">{error}</p>
+              <h3 className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-black mb-1 italic">Protocol Anomaly</h3>
+              <p className="text-black text-sm font-bold uppercase tracking-tight leading-relaxed">{error}</p>
             </div>
-            <button onClick={() => setError(null)} className="text-sd-text-muted hover:text-sd-black p-2 transition-colors">✕</button>
+            <button onClick={() => setError(null)} className="text-black/20 hover:text-black transition-colors self-start">
+               <X size={20} />
+            </button>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start" ref={formRef}>
-          <div className="lg:col-span-7 space-y-12">
-            {/* ── Shipping Info Step ── */}
+          <div className="lg:col-span-7 space-y-16">
+            {/* Step 1: Identification (Shipping) */}
             {currentStep === 'shipping' && (
-              <div className="ec-anim-fade-up space-y-12">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-2">
-                     <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 01</span>
-                     <h2 className="text-5xl font-display text-sd-black italic leading-none">Shipping Registry</h2>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowAddressForm(true);
-                      setEditingAddressId(null);
-                      setAddressForm(getEmptyAddressForm());
-                      setError(null);
-                    }}
-                    className="group flex items-center gap-3 font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black hover:text-sd-gold transition-colors"
-                  >
-                    <Plus size={16} strokeWidth={3} />
-                    <span className="hidden sm:inline">Add Entry</span>
-                  </button>
-                </div>
-
-                {loadingAddresses ? (
-                   <div className="sd-depth-recess bg-sd-ivory-dark/10 py-20 text-center rounded-[40px]">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.8em] animate-pulse">Syncing...</span>
-                   </div>
-                ) : addresses.length === 0 && !showAddressForm ? (
-                  <div className="sd-depth-recess bg-sd-white/50 py-24 text-center rounded-[40px] border border-dashed border-sd-border-default/30">
-                    <MapPin className="h-16 w-16 text-sd-gold/20 mx-auto mb-8" />
-                    <p className="text-sd-text-muted font-mono text-[10px] uppercase tracking-widest mb-10">No entries detected in the primary registry.</p>
-                    <button
+              <div className="space-y-12">
+                <CheckoutStepTitle 
+                  number={1} 
+                  label="Identification Protocol" 
+                  title="Shipping Registry" 
+                  rightElement={
+                    <NeoButton 
+                      variant="outline" 
+                      className="px-6 py-3 text-[10px] italic"
                       onClick={() => {
                         setShowAddressForm(true);
+                        setEditingAddressId(null);
+                        setAddressForm(getEmptyAddressForm());
                         setError(null);
                       }}
-                      className="bg-sd-black text-sd-white h-14 px-12 rounded-2xl font-mono text-[10px] uppercase tracking-[0.5em] hover:sd-depth-lift transition-all"
                     >
-                      Initialize Entry
-                    </button>
-                  </div>
+                      <Plus size={14} className="mr-2" /> Add Entry
+                    </NeoButton>
+                  }
+                />
+
+                {loadingAddresses ? (
+                   <div className="py-20 text-center">
+                      <div className="w-12 h-12 border-4 border-black border-t-sd-gold animate-spin mx-auto mb-4" />
+                      <span className="font-neo font-black text-[10px] uppercase tracking-[0.4em] italic">Syncing Central Registry...</span>
+                   </div>
+                ) : addresses.length === 0 && !showAddressForm ? (
+                   <div className="py-32 text-center border-4 border-black border-dashed rounded-[40px] bg-white/30">
+                      <MapPin className="h-20 w-20 text-black/10 mx-auto mb-8" />
+                      <h3 className="font-neo font-black text-2xl uppercase italic mb-4">No Records Detected</h3>
+                      <p className="font-neo text-[10px] uppercase tracking-widest text-black/40 mb-10 max-w-xs mx-auto leading-loose">
+                         The primary coordinate database is currently void of archival entries.
+                      </p>
+                      <NeoButton 
+                        variant="primary" 
+                        className="px-12 py-4"
+                        onClick={() => { setShowAddressForm(true); setError(null); }}
+                      >
+                         Initialize First Entry
+                      </NeoButton>
+                   </div>
                 ) : (
                   <>
                     {showAddressForm && (
-                      <div className="sd-depth-recess bg-sd-ivory-dark/20 p-10 rounded-[40px] space-y-10 relative overflow-hidden">
-                        <div className="flex items-center justify-between relative z-10">
-                          <h3 className="font-mono text-xs font-bold uppercase tracking-[0.4em]">
-                            {editingAddressId ? 'Update Registry Label' : 'New Entry Profile'}
-                          </h3>
-                        </div>
+                      <NeoCard variant="white" className="p-10 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-sd-gold/5 pointer-events-none -rotate-12 translate-x-12 -translate-y-12" />
+                        
+                        <div className="relative z-10 space-y-10">
+                          <div className="grid md:grid-cols-2 gap-8">
+                             <div className="space-y-3">
+                                <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Entry Principal <span className="text-sd-gold font-bold">*</span></label>
+                                <input
+                                  type="text"
+                                  value={addressForm.name}
+                                  onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
+                                  className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
+                                  placeholder="IDENTIFY RECIPIENT..."
+                                />
+                             </div>
+                             <div className="space-y-3">
+                                <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Signal Access <span className="text-sd-gold font-bold">*</span></label>
+                                <input
+                                  type="tel"
+                                  value={addressForm.phone}
+                                  onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value.replace(/\D/g, '') })}
+                                  placeholder="01XXXXXXXXX"
+                                  maxLength={11}
+                                  className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest focus:outline-none focus:bg-white transition-colors"
+                                />
+                             </div>
+                          </div>
 
-                        <div className="grid md:grid-cols-2 gap-8 relative z-10">
-                          <div className="space-y-4">
-                             <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em] flex items-center gap-2">Full Legal Name <span className="text-sd-danger">*</span></label>
+                          <div className="space-y-3 font-neo font-bold mb-4">
+                             <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Coordinate Node <span className="text-sd-gold font-bold">*</span></label>
                              <input
                                type="text"
-                               value={addressForm.name}
-                               onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                               className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
-                               placeholder="Entry owner..."
+                               value={addressForm.address_line_1}
+                               onChange={(e) => setAddressForm({ ...addressForm, address_line_1: e.target.value })}
+                               placeholder="STREET, BLOCK, SECTOR..."
+                               className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
                              />
                           </div>
 
-                          <div className="space-y-4">
-                             <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em] flex items-center gap-2">Dispatch Contact <span className="text-sd-danger">*</span></label>
+                          <div className="grid md:grid-cols-3 gap-8">
+                             <div className="space-y-3">
+                                <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Sector Node</label>
+                                <select
+                                  value={addressForm.city}
+                                  onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                                  className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors appearance-none"
+                                >
+                                  {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Rangpur', 'Mymensingh'].map(city => (
+                                    <option key={city} value={city}>{city.toUpperCase()} NODE</option>
+                                  ))}
+                                </select>
+                             </div>
+                             <div className="col-span-2 space-y-3">
+                                <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Landmark Proxy</label>
+                                <input
+                                  type="text"
+                                  value={addressForm.landmark || ''}
+                                  onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
+                                  placeholder="VISIBLE MARKERS..."
+                                  className="w-full bg-sd-ivory border-2 border-black px-6 py-4 font-neo font-bold text-[11px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors"
+                                />
+                             </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
                              <input
-                               type="tel"
-                               value={addressForm.phone}
-                               onChange={(e) => {
-                                 const value = e.target.value.replace(/\D/g, '');
-                                 setAddressForm({ ...addressForm, phone: value });
-                               }}
-                               placeholder="01xxxxxxxxx"
-                               maxLength={11}
-                               className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
+                               type="checkbox"
+                               id="defaultShipping"
+                               checked={addressForm.is_default_shipping || false}
+                               onChange={(e) => setAddressForm({ ...addressForm, is_default_shipping: e.target.checked })}
+                               className="w-6 h-6 border-2 border-black accent-black"
                              />
+                             <label htmlFor="defaultShipping" className="font-neo font-black text-[9px] uppercase tracking-widest text-black/60 italic">Register as primary retrieval point</label>
+                          </div>
+
+                          <div className="flex gap-4 pt-6 border-t-2 border-black/10">
+                            <NeoButton 
+                              variant="primary" 
+                              className="flex-1 py-5 text-[11px] italic tracking-[0.2em]"
+                              onClick={handleSaveAddress}
+                              disabled={isProcessing}
+                            >
+                               {isProcessing ? 'SYNCHRONIZING...' : (editingAddressId ? 'RE-VALIDATE RECORD' : 'AUTHENTICATE RECORD')}
+                            </NeoButton>
+                            <NeoButton 
+                              variant="outline" 
+                              className="px-10 py-5 text-[11px]"
+                              onClick={() => { setShowAddressForm(false); setEditingAddressId(null); }}
+                            >
+                               ABORT
+                            </NeoButton>
                           </div>
                         </div>
-
-                        <div className="space-y-4 relative z-10">
-                           <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Communication Proxy (Optional)</label>
-                           <input
-                             type="email"
-                             value={addressForm.email || ''}
-                             onChange={(e) => setAddressForm({ ...addressForm, email: e.target.value })}
-                             placeholder="identifier@artifact.io"
-                             className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
-                           />
-                        </div>
-
-                        <div className="space-y-4 relative z-10">
-                           <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Primary Coordinate <span className="text-sd-danger">*</span></label>
-                           <input
-                             type="text"
-                             value={addressForm.address_line_1}
-                             onChange={(e) => setAddressForm({ ...addressForm, address_line_1: e.target.value })}
-                             placeholder="Block, street, precinct..."
-                             className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
-                           />
-                        </div>
-
-                        <div className="grid md:grid-cols-3 gap-8 relative z-10">
-                           <div className="space-y-4">
-                              <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Metro Node</label>
-                              <select
-                                value={addressForm.city}
-                                onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                                className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all uppercase tracking-widest appearance-none outline-none"
-                              >
-                                {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Rangpur', 'Mymensingh'].map(city => (
-                                  <option key={city} value={city}>{city} Node</option>
-                                ))}
-                              </select>
-                           </div>
-
-                           <div className="space-y-4 col-span-2">
-                              <label className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.3em]">Sector Landmark</label>
-                              <input
-                                type="text"
-                                value={addressForm.landmark || ''}
-                                onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
-                                placeholder="Proximity markers..."
-                                className="w-full bg-white border border-sd-border-default/50 rounded-2xl px-6 py-4 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/30 uppercase tracking-widest"
-                              />
-                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 relative z-10">
-                          <input
-                            type="checkbox"
-                            id="defaultShipping"
-                            checked={addressForm.is_default_shipping || false}
-                            onChange={(e) => setAddressForm({ ...addressForm, is_default_shipping: e.target.checked })}
-                            className="w-5 h-5 accent-sd-gold bg-white border-sd-border-default rounded"
-                          />
-                          <label htmlFor="defaultShipping" className="font-mono text-[9px] font-bold uppercase tracking-widest text-sd-text-muted">Set as Primary Protocol Entry</label>
-                        </div>
-
-                        <div className="flex gap-4 pt-6 relative z-10">
-                          <button
-                            type="button"
-                            onClick={handleSaveAddress}
-                            disabled={isProcessing}
-                            className="flex-1 h-14 bg-sd-black text-sd-white rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:sd-depth-lift transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-                          >
-                            {isProcessing ? <Loader2 className="animate-spin" size={16} /> : (editingAddressId ? 'Finalize Revisions' : 'Approve Entry')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setShowAddressForm(false); setEditingAddressId(null); setAddressForm(getEmptyAddressForm()); setError(null); }}
-                            disabled={isProcessing}
-                            className="px-10 h-14 bg-sd-white text-sd-text-muted border border-sd-border-default rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:text-sd-black hover:border-sd-black transition-all"
-                          >
-                            Abort
-                          </button>
-                        </div>
-                      </div>
+                      </NeoCard>
                     )}
 
                     {!showAddressForm && addresses.length > 0 && (
                       <div className="grid grid-cols-1 gap-6">
                         {addresses.map((address) => (
-                          <label
+                          <div
                             key={address.id}
+                            onClick={() => setSelectedShippingAddressId(address.id!)}
                             className={`
-                               group block p-8 rounded-[32px] border-2 cursor-pointer transition-all duration-500
+                               group relative p-8 border-4 transition-all cursor-pointer bg-white
                                ${selectedShippingAddressId === address.id 
-                                 ? 'bg-sd-white border-sd-black sd-depth-lift' 
-                                 : 'bg-sd-white border-sd-border-default/20 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 hover:border-sd-gold'}
+                                 ? 'border-black shadow-[8px_8px_0_0_rgba(0,0,0,1)] translate-x-[-4px] translate-y-[-4px]' 
+                                 : 'border-black/5 hover:border-sd-gold/40'}
                             `}
                           >
-                            <div className="flex items-start gap-8">
-                              <div className="flex-1">
-                                <div className="flex items-start justify-between gap-6 mb-8">
-                                   <div className="flex flex-col gap-2">
-                                      <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Coordinate Entry {String(address.id).padStart(2,'0')}</span>
-                                      <h3 className="font-display text-3xl text-sd-black">{address.name}</h3>
-                                   </div>
-                                   <div className="flex gap-2">
-                                      <button onClick={(e) => { e.preventDefault(); handleEditAddress(address); }} className="w-10 h-10 rounded-full bg-sd-ivory-dark/10 flex items-center justify-center hover:bg-sd-black hover:text-sd-white transition-all"><Edit2 size={14} /></button>
-                                      <button onClick={(e) => { e.preventDefault(); handleDeleteAddress(address.id!); }} className="w-10 h-10 rounded-full bg-sd-danger/10 text-sd-danger flex items-center justify-center hover:bg-sd-danger hover:text-sd-white transition-all"><Trash2 size={14} /></button>
-                                   </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-6">
-                                   <input type="radio" value={address.id} checked={selectedShippingAddressId === address.id} onChange={() => setSelectedShippingAddressId(address.id!)} className="w-6 h-6 accent-sd-black" />
-                                   <div className="flex flex-col">
-                                      <p className="font-mono text-[11px] font-bold text-sd-black uppercase tracking-widest">{address.phone}</p>
-                                      <p className="font-mono text-[10px] text-sd-text-muted uppercase tracking-tighter mt-1">{address.address_line_1}, {address.city}</p>
-                                   </div>
-                                </div>
-                              </div>
+                            <div className="flex items-start justify-between mb-8">
+                               <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2">
+                                     <div className={`w-2 h-2 rounded-full ${selectedShippingAddressId === address.id ? 'bg-sd-gold animate-pulse' : 'bg-black/10'}`} />
+                                     <span className="font-neo font-black text-[9px] uppercase tracking-[0.4em] text-black/40 italic">Entry Index 00{address.id}</span>
+                                  </div>
+                                  <h3 className="font-neo font-black text-2xl uppercase italic tracking-tighter text-black">{address.name}</h3>
+                               </div>
+                               <div className="flex gap-2">
+                                  <button onClick={(e) => { e.stopPropagation(); handleEditAddress(address); }} className="w-10 h-10 border-2 border-black/10 flex items-center justify-center hover:bg-black hover:text-white transition-all"><Edit2 size={14} /></button>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteAddress(address.id!); }} className="w-10 h-10 border-2 border-black/10 text-sd-gold flex items-center justify-center hover:bg-sd-gold hover:text-black transition-all"><Trash2 size={14} /></button>
+                               </div>
                             </div>
-                          </label>
+                            
+                            <div className="flex flex-col gap-1">
+                               <p className="font-neo font-bold text-[11px] uppercase tracking-widest text-black">{address.phone}</p>
+                               <p className="font-neo font-black text-[10px] text-black/40 uppercase tracking-tighter mt-1 italic leading-relaxed">
+                                  {address.address_line_1}<br/>{address.city.toUpperCase()} NODE • BD
+                               </p>
+                            </div>
+
+                            {selectedShippingAddressId === address.id && (
+                               <div className="absolute top-0 right-0 w-0 h-0 border-t-[40px] border-l-[40px] border-t-black border-l-transparent" />
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
@@ -1428,230 +1277,194 @@ export default function CheckoutClient() {
                 )}
 
                 {addresses.length > 0 && !showAddressForm && (
-                  <button
-                    onClick={() => setCurrentStep('payment')}
-                    disabled={!selectedShippingAddressId}
-                    className="w-full h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift mt-12 flex items-center justify-center gap-4"
-                  >
-                    Authorize Payment Protocol <ChevronRight size={16} strokeWidth={3} />
-                  </button>
+                   <div className="pt-8">
+                      <NeoButton 
+                        variant="primary" 
+                        className="w-full py-8 text-lg italic tracking-[0.3em] uppercase group"
+                        onClick={() => setCurrentStep('payment')}
+                        disabled={!selectedShippingAddressId}
+                      >
+                         Initiate Operational Status <ArrowRight className="ml-4 group-hover:translate-x-2 transition-transform" />
+                      </NeoButton>
+                   </div>
                 )}
               </div>
             )}
 
-            {/* ── Transaction Protocol (Payment) ── */}
+            {/* Step 2: Transaction Protocol (Payment) */}
             {currentStep === 'payment' && (
-              <div className="ec-anim-fade-up space-y-12">
-                <div className="flex flex-col gap-2">
-                   <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 02</span>
-                   <h2 className="text-5xl font-display text-sd-black italic leading-none">Transaction Protocol</h2>
-                </div>
+              <div className="space-y-12">
+                <CheckoutStepTitle 
+                  number={2} 
+                  label="Settlement Authorization" 
+                  title="Transaction Protocol" 
+                />
 
                 <div className="grid grid-cols-1 gap-6">
                   {paymentMethods.map((method) => (
-                    <label
+                    <div
                       key={method.id}
+                      onClick={() => setSelectedPaymentMethod(method.code)}
                       className={`
-                        group block p-8 rounded-[32px] border-2 cursor-pointer transition-all duration-500 relative overflow-hidden
+                        group relative p-8 border-4 transition-all cursor-pointer bg-white overflow-hidden
                         ${selectedPaymentMethod === method.code 
-                          ? 'bg-sd-white border-sd-black sd-depth-lift' 
-                          : 'bg-sd-white border-sd-border-default/20 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 hover:border-sd-gold'}
+                          ? 'border-black shadow-[8px_8px_0_0_rgba(0,0,0,1)] translate-x-[-4px] translate-y-[-4px]' 
+                          : 'border-black/5 hover:border-sd-gold/40'}
                       `}
                     >
                       <div className="flex items-center gap-8 relative z-10">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${selectedPaymentMethod === method.code ? 'bg-sd-black text-sd-white' : 'bg-sd-ivory-dark/20 text-sd-text-muted'}`}>
-                          {method.code === 'cod' ? <Package size={24} /> : <CreditCard size={24} />}
+                        <div className={`w-16 h-16 border-2 flex items-center justify-center transition-colors ${selectedPaymentMethod === method.code ? 'bg-black text-sd-gold border-black' : 'bg-sd-ivory border-black/10 text-black/40'}`}>
+                          {method.code === 'cod' ? <Package size={28} /> : <CreditCard size={28} />}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-display text-2xl text-sd-black">{method.name}</h3>
-                          <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-widest mt-1">{method.description || 'Secure authorized gateway'}</p>
+                          <h3 className="font-neo font-black text-2xl uppercase italic tracking-tighter text-black">{method.name}</h3>
+                          <p className="font-neo font-black text-[9px] text-black/40 uppercase tracking-widest mt-1 italic">{method.description || 'Secure authenticated gateway'}</p>
                         </div>
-                        <input
-                          type="radio"
-                          value={method.code}
-                          checked={selectedPaymentMethod === method.code}
-                          onChange={() => setSelectedPaymentMethod(method.code)}
-                          className="w-6 h-6 accent-sd-black"
-                        />
+                        <div className={`w-8 h-8 border-2 border-black flex items-center justify-center ${selectedPaymentMethod === method.code ? 'bg-black text-sd-gold' : 'bg-white text-transparent'}`}>
+                           <CheckCircle size={16} strokeWidth={3} />
+                        </div>
                       </div>
-                    </label>
+                      
+                      {selectedPaymentMethod === method.code && (
+                         <div className="absolute top-0 right-0 w-0 h-0 border-t-[40px] border-l-[40px] border-t-black border-l-transparent" />
+                      )}
+                    </div>
                   ))}
                 </div>
 
-                <div className="flex gap-6 mt-12">
-                   <button
+                <div className="flex gap-6 pt-12">
+                   <NeoButton 
+                    variant="outline" 
+                    className="px-12 py-8 text-[11px] italic tracking-[0.2em]"
                     onClick={() => setCurrentStep('shipping')}
-                    className="px-12 h-20 bg-sd-white text-sd-black border border-sd-border-default rounded-[24px] font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-sd-ivory-dark transition-all"
                   >
-                    Return
-                  </button>
-                  <button
+                    RETURN TO REGISTRY
+                  </NeoButton>
+                  <NeoButton 
+                    variant="primary" 
+                    className="flex-1 py-8 text-lg italic tracking-[0.3em] uppercase group"
                     onClick={() => setCurrentStep('review')}
                     disabled={!selectedPaymentMethod}
-                    className="flex-1 h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.5em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift flex items-center justify-center gap-4"
                   >
-                    Proceed to Audit <ChevronRight size={16} strokeWidth={3} />
-                  </button>
+                    Finalize Audit <ArrowRight className="ml-4 group-hover:translate-x-2 transition-transform" />
+                  </NeoButton>
                 </div>
               </div>
             )}
 
-            {/* ── Final Audit (Review) ── */}
+            {/* Step 3: Final Audit (Review) */}
             {currentStep === 'review' && (
-              <div className="ec-anim-fade-up space-y-12">
-                <div className="flex flex-col gap-2">
-                   <span className="font-mono text-[9px] font-bold text-sd-gold uppercase tracking-[0.4em]">Step 03</span>
-                   <h2 className="text-5xl font-display text-sd-black italic leading-none">Final Audit</h2>
-                </div>
+              <div className="space-y-12">
+                <CheckoutStepTitle 
+                  number={3} 
+                  label="Operational Clearance" 
+                  title="Final Audit" 
+                />
 
-                <div className="sd-depth-recess bg-sd-ivory-dark/10 p-12 rounded-[40px] space-y-10">
-                   <div className="grid md:grid-cols-2 gap-12">
-                      <div className="space-y-4">
-                         <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Dispatch Destination</h4>
-                         <p className="font-display text-2xl text-sd-black">{addresses.find(a => a.id === selectedShippingAddressId)?.name}</p>
-                         <p className="font-mono text-[11px] text-sd-text-muted leading-relaxed uppercase tracking-tighter">
-                            {addresses.find(a => a.id === selectedShippingAddressId)?.address_line_1}<br/>
-                            {addresses.find(a => a.id === selectedShippingAddressId)?.city}, Bangladesh
-                         </p>
+                <NeoCard variant="white" className="p-12 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] space-y-12 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-48 h-48 bg-black/[0.02] -rotate-45 translate-x-12 -translate-y-12 pointer-events-none flex items-center justify-center">
+                      <Archive size={120} className="text-black/5" />
+                   </div>
+
+                   <div className="grid md:grid-cols-2 gap-12 relative z-10">
+                      <div className="space-y-6">
+                         <div className="flex items-center gap-3">
+                            <MapPin size={14} className="text-sd-gold" />
+                            <h4 className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-black/40 italic">Retrieval Node</h4>
+                         </div>
+                         <div className="pl-6 border-l-2 border-black/10">
+                            <p className="font-neo font-black text-2xl uppercase italic text-black leading-tight mb-2">
+                               {addresses.find(a => a.id === selectedShippingAddressId)?.name}
+                            </p>
+                            <p className="font-neo font-bold text-[11px] text-black/60 uppercase tracking-tighter leading-relaxed italic">
+                               {addresses.find(a => a.id === selectedShippingAddressId)?.address_line_1}<br/>
+                               {addresses.find(a => a.id === selectedShippingAddressId)?.city.toUpperCase()} NODE • BD
+                            </p>
+                         </div>
                       </div>
-                      <div className="space-y-4">
-                         <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Settlement Method</h4>
-                         <p className="font-display text-2xl text-sd-black">
-                            {paymentMethods.find(m => m.code === selectedPaymentMethod)?.name}
-                         </p>
-                         <p className="font-mono text-[11px] text-sd-text-muted uppercase tracking-widest">Authorized Transaction</p>
+                      <div className="space-y-6">
+                         <div className="flex items-center gap-3">
+                            <CreditCard size={14} className="text-sd-gold" />
+                            <h4 className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-black/40 italic">Settlement Protocol</h4>
+                         </div>
+                         <div className="pl-6 border-l-2 border-black/10">
+                            <p className="font-neo font-black text-2xl uppercase italic text-black leading-tight mb-2">
+                               {paymentMethods.find(m => m.code === selectedPaymentMethod)?.name}
+                            </p>
+                            <p className="font-neo font-bold text-[11px] text-black/60 uppercase tracking-widest italic">AUTHORIZED TRANSACTION</p>
+                         </div>
                       </div>
                    </div>
                    
-                   <div className="pt-10 border-t border-sd-border-default/20">
-                      <h4 className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em] mb-6">Internal Notes</h4>
+                   <div className="pt-10 border-t-4 border-black relative z-10">
+                      <div className="flex items-center gap-3 mb-6">
+                         <Edit2 size={14} className="text-sd-gold" />
+                         <h4 className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-black/40 italic">Archival Notes</h4>
+                      </div>
                       <textarea
                         value={orderNotes}
                         onChange={(e) => setOrderNotes(e.target.value)}
-                        placeholder="Add handling requirements..."
-                        className="w-full bg-white/50 border border-sd-border-default/30 rounded-3xl p-8 font-mono text-[11px] text-sd-black focus:outline-none focus:border-sd-gold transition-all min-h-[160px] uppercase tracking-widest"
+                        placeholder="SPECIFY HANDLING REQUIREMENTS..."
+                        className="w-full bg-sd-ivory border-2 border-black p-8 font-neo font-bold text-[11px] text-black focus:outline-none focus:bg-white transition-colors min-h-[160px] uppercase tracking-[0.2em] placeholder:text-black/10"
                       />
                    </div>
-                </div>
+                </NeoCard>
 
                 <div className="flex gap-6">
-                   <button
+                   <NeoButton 
+                    variant="outline" 
+                    className="px-12 py-8 text-[11px] italic tracking-[0.2em]"
                     onClick={() => setCurrentStep('payment')}
-                    className="px-12 h-20 bg-sd-white text-sd-black border border-sd-border-default rounded-[24px] font-mono text-[10px] font-bold uppercase tracking-[0.4em] hover:bg-sd-ivory-dark transition-all"
                   >
-                    Revision
-                  </button>
-                  <button
+                    REVISION
+                  </NeoButton>
+                  <NeoButton 
+                    variant="primary" 
+                    className="flex-1 py-8 text-xl italic tracking-[0.4em] uppercase group"
                     onClick={handlePlaceOrder}
                     disabled={isProcessing}
-                    className="flex-1 h-20 bg-sd-black text-sd-white rounded-[24px] font-mono text-[11px] font-bold uppercase tracking-[0.6em] hover:bg-sd-gold hover:text-sd-black transition-all duration-700 sd-depth-lift flex items-center justify-center gap-4 group"
                   >
                     {isProcessing ? (
-                       <Loader2 className="animate-spin" size={20} />
+                       'PROCESSING...'
                     ) : (
-                      <>Commit Transaction <CheckCircle size={18} strokeWidth={3} className="group-hover:scale-125 transition-transform" /></>
+                      <span className="flex items-center justify-center gap-4">
+                         Commit Transaction <CheckCircle size={24} strokeWidth={3} className="group-hover:scale-125 transition-transform" />
+                      </span>
                     )}
-                  </button>
+                  </NeoButton>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ── Order Summary Sidebar (The Registry) ── */}
+          {/* Step 4: The Registry Sidebar (Consolidated Summary) */}
           <div className="lg:col-span-5">
-            <div className="sticky top-24">
-              <div className="sd-depth-lift bg-sd-white rounded-[48px] overflow-hidden border border-sd-border-default/10">
-                <div className="p-10 pb-6 border-b border-sd-border-default/10">
-                   <div className="flex items-center gap-4 mb-2">
-                      <ShoppingBag size={18} className="text-sd-gold" />
-                      <span className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.4em]">Audit Summary</span>
-                   </div>
-                   <h2 className="text-4xl font-display text-sd-black leading-none">The Registry</h2>
-                </div>
+            <div className="sticky top-40">
+               <CheckoutOrderSummary 
+                  items={selectedItems}
+                  summary={summary}
+                  shippingCharge={shippingCharge}
+                  couponCode={couponCode}
+                  setCouponCode={setCouponCode}
+                  handleApplyCoupon={handleApplyCoupon}
+                  couponApplyLoading={couponApplyLoading}
+                  couponError={couponError}
+                  handleRemoveItem={handleRemoveItem}
+                  handleUpdateQuantity={handleUpdateQuantity}
+               />
 
-                <div className="p-10 pt-8 space-y-8">
-                  <div className="space-y-6 max-h-[400px] overflow-y-auto pr-4 scrollbar-hide">
-                    {selectedItems.map((item: any) => (
-                      <div key={item.id} className="flex gap-6 items-start group">
-                        <div className="w-20 h-24 rounded-2xl overflow-hidden bg-sd-ivory-dark/10 flex-shrink-0 border border-sd-border-default/10 relative">
-                          <img
-                            src={item.image || item.images?.find((i: any) => i?.is_primary)?.image_url || (item.images?.[0] as any)?.image_url || '/placeholder-product.png'}
-                            alt={item.name}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0 py-1">
-                          <div className="flex justify-between items-start gap-4 mb-2">
-                             <h4 className="font-mono text-[10px] font-bold text-sd-black uppercase tracking-widest leading-relaxed line-clamp-2">{item.name}</h4>
-                             <button onClick={() => handleRemoveItem(item.id)} className="text-sd-danger/30 hover:text-sd-danger transition-colors"><Trash2 size={12} /></button>
-                          </div>
-                          
-                          <div className="flex items-center justify-between mt-auto">
-                             <div className="flex items-center gap-3 bg-sd-ivory-dark/20 h-8 px-3 rounded-full">
-                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1} className="text-sd-text-muted hover:text-sd-black disabled:opacity-20">-</button>
-                                <span className="font-mono text-[9px] font-bold">{item.quantity}</span>
-                                <button onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= (item.available_inventory ?? 999)} className="text-sd-text-muted hover:text-sd-black disabled:opacity-20">+</button>
-                             </div>
-                             <span className="font-mono text-[11px] font-bold text-sd-black">৳{(item.unit_price * item.quantity).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-4 pt-8 border-t border-sd-border-default/10">
-                     <div className="flex gap-3">
-                        <input
-                          type="text"
-                          placeholder="ASSIGN COUPON"
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          className="flex-1 bg-sd-ivory-dark/10 border-none rounded-2xl px-6 py-4 font-mono text-[10px] font-bold uppercase tracking-widest focus:ring-1 focus:ring-sd-gold transition-all"
-                        />
-                        <button
-                          onClick={handleApplyCoupon}
-                          disabled={couponApplyLoading || !couponCode}
-                          className="px-8 bg-sd-black text-sd-white rounded-2xl font-mono text-[9px] font-bold uppercase tracking-widest hover:bg-sd-gold hover:text-sd-black transition-all"
-                        >
-                          {couponApplyLoading ? '...' : 'Link'}
-                        </button>
+               {/* Security Protocol Block */}
+               <div className="mt-12 group">
+                  <div className="border-4 border-black p-8 flex items-center gap-8 bg-white shadow-[8px_8px_0_0_rgba(0,0,0,1)] transition-transform group-hover:scale-[1.02]">
+                     <div className="w-16 h-16 border-2 border-black bg-black text-sd-gold flex items-center justify-center">
+                        <Lock size={28} strokeWidth={2.5} />
                      </div>
-                     {couponError && <p className="text-[9px] text-sd-danger font-mono uppercase tracking-widest text-center">{couponError}</p>}
+                     <div>
+                        <h4 className="font-neo font-black text-xs uppercase tracking-[0.3em] text-black italic">Security Protocol</h4>
+                        <p className="font-neo font-bold text-[9px] text-black/40 uppercase tracking-tighter mt-1">SSL 256-BIT ENCRYPTED ARCHIVE</p>
+                     </div>
                   </div>
-
-                  <div className="pt-4 space-y-4 font-mono text-[10px] uppercase tracking-[0.2em] text-sd-text-muted">
-                    <div className="flex justify-between">
-                      <span>Valuation</span>
-                      <span className="text-sd-black">৳{summary.subtotal.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Dispatch Fee</span>
-                      <span className="text-sd-black">+ ৳{shippingCharge.toLocaleString()}</span>
-                    </div>
-                    {summary.discount_amount > 0 && (
-                      <div className="flex justify-between text-sd-success">
-                        <span>Provision Save</span>
-                        <span className="font-bold">- ৳{summary.discount_amount.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between items-center pt-8 border-t border-sd-border-default/10">
-                      <span className="text-[11px] font-bold text-sd-black tracking-[0.4em]">Collective Total</span>
-                      <span className="text-3xl font-display italic text-sd-black tracking-normal lowercase">৳{summary.total_amount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Security Protocol */}
-              <div className="mt-8 flex items-center gap-6 p-8 rounded-[32px] bg-sd-black/5 border border-sd-border-default/10">
-                <div className="w-12 h-12 rounded-full bg-sd-black flex items-center justify-center text-sd-gold">
-                  <Lock size={18} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="font-mono text-[10px] font-bold text-sd-black uppercase tracking-widest italic">Security Protocol</h4>
-                  <p className="font-mono text-[9px] text-sd-text-muted uppercase tracking-tighter mt-1">SSL Encrypted Transaction</p>
-                </div>
-              </div>
+               </div>
             </div>
           </div>
         </div>

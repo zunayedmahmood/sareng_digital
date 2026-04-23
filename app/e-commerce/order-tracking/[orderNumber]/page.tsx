@@ -2,9 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Package, Truck, CheckCircle, Clock, MapPin, Phone, Mail, Home, Loader2, AlertCircle } from 'lucide-react';
+import { 
+  Package, 
+  Truck, 
+  CheckCircle, 
+  Clock, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Loader2, 
+  AlertCircle,
+  ArrowRight
+} from 'lucide-react';
 import Navigation from '@/components/ecommerce/Navigation';
 import checkoutService, { Order, OrderTracking } from '@/services/checkoutService';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
 
 export default function OrderTrackingPage() {
   const params = useParams();
@@ -35,7 +48,7 @@ export default function OrderTrackingPage() {
       setTracking(data.tracking);
     } catch (err: any) {
       console.error('Failed to fetch tracking:', err);
-      setError('Order not found. Please check your order number and try again.');
+      setError('PROTOCOL ERROR: ENTRY NOT FOUND IN REGISTRY');
     } finally {
       setLoading(false);
     }
@@ -50,99 +63,73 @@ export default function OrderTrackingPage() {
 
   const getStatusIcon = (status: string, completed: boolean) => {
     if (!completed) {
-      return <Clock className="text-gray-400" size={24} />;
+      return <Clock className="text-black/20" size={24} />;
     }
 
     switch (status) {
       case 'pending':
-        return <CheckCircle className="text-green-600" size={24} />;
+        return <CheckCircle className="text-black" size={24} strokeWidth={3} />;
       case 'processing':
-        return <Package className="text-blue-600" size={24} />;
+        return <Package className="text-black" size={24} strokeWidth={3} />;
       case 'shipped':
-        return <Truck className="text-orange-600" size={24} />;
+        return <Truck className="text-black" size={24} strokeWidth={3} />;
       case 'delivered':
-        return <CheckCircle className="text-green-600" size={24} />;
+        return <CheckCircle className="text-black" size={24} strokeWidth={3} />;
       default:
-        return <Clock className="text-gray-400" size={24} />;
+        return <Clock className="text-black" size={24} strokeWidth={3} />;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'text-yellow-600 bg-yellow-50';
-      case 'processing':
-        return 'text-blue-600 bg-blue-50';
-      case 'shipped':
-        return 'text-orange-600 bg-orange-50';
       case 'delivered':
-        return 'text-green-600 bg-green-50';
+      case 'paid':
+        return 'bg-black text-sd-gold border-black';
       case 'cancelled':
-        return 'text-rose-600 bg-rose-50';
+        return 'bg-red-500 text-white border-black';
+      case 'shipped':
+      case 'pending':
+        return 'bg-sd-gold text-black border-black';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'bg-white text-black border-black';
     }
   };
 
-  // Search Form (when no order number in URL)
   if (!orderNumber || (!loading && !order)) {
     return (
-      <div className="ec-root min-h-screen">
+      <div className="min-h-screen bg-sd-ivory pb-40">
         <Navigation />
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center">
-                  <Package className="text-neutral-900" size={32} />
-                </div>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Track Your Order</h1>
-              <p className="text-gray-600">Enter your order number to track your delivery</p>
-            </div>
+        <div className="container mx-auto px-6 lg:px-12 pt-40">
+          <NeoCard variant="white" className="max-w-xl mx-auto p-12 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] text-center relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-2 h-full bg-sd-gold" />
+             <div className="w-20 h-20 border-4 border-black bg-sd-ivory flex items-center justify-center mx-auto mb-8">
+               <Package className="text-black" size={32} />
+             </div>
+             <h1 className="font-neo font-black text-4xl uppercase italic mb-4">Registry Search</h1>
+             <p className="font-neo font-bold text-[11px] uppercase tracking-widest text-black/40 mb-12">Search order parameters to initiate displacement tracking.</p>
 
-            {error && (
-              <div className="mb-6 bg-rose-50 border border-rose-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="text-rose-600 flex-shrink-0 mt-0.5" size={20} />
-                <p className="text-neutral-900">{error}</p>
-              </div>
-            )}
+             {error && (
+               <div className="mb-8 border-2 border-black bg-red-500/10 p-4 text-left flex items-start gap-3">
+                 <AlertCircle className="text-black flex-shrink-0 mt-0.5" size={18} strokeWidth={3} />
+                 <p className="font-neo font-black text-[10px] uppercase tracking-widest leading-loose">{error}</p>
+               </div>
+             )}
 
-            <form onSubmit={handleSearch} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Order Number
-                </label>
-                <input
-                  type="text"
-                  value={searchOrderNumber}
-                  onChange={(e) => setSearchOrderNumber(e.target.value)}
-                  placeholder="e.g., ORD-241118-1234"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-neutral-200 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-neutral-900 text-white py-3 rounded-lg font-semibold hover:bg-neutral-800 transition-colors"
-              >
-                Track Order
-              </button>
-            </form>
-
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                You can find your order number in the confirmation email or SMS
-              </p>
-              <button
-                onClick={() => router.push('/')}
-                className="text-neutral-900 text-sm font-medium hover:underline"
-              >
-                Continue Shopping
-              </button>
-            </div>
-          </div>
+             <form onSubmit={handleSearch} className="space-y-6">
+               <div className="text-left">
+                 <label className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 mb-2 block italic">Protocol ID (Order Number)</label>
+                 <input
+                   type="text"
+                   value={searchOrderNumber}
+                   onChange={(e) => setSearchOrderNumber(e.target.value)}
+                   placeholder="e.g. ORD-..."
+                   className="w-full bg-sd-ivory border-4 border-black px-6 py-4 font-neo font-black text-lg focus:outline-none focus:bg-white transition-all placeholder:text-black/10"
+                   required
+                 />
+               </div>
+               <NeoButton variant="primary" className="w-full py-5 text-lg italic uppercase">Initialize Protocol</NeoButton>
+             </form>
+          </NeoCard>
         </div>
       </div>
     );
@@ -150,261 +137,188 @@ export default function OrderTrackingPage() {
 
   if (loading) {
     return (
-      <div className="ec-root min-h-screen">
+      <div className="min-h-screen bg-sd-ivory">
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center">
-            <Loader2 className="animate-spin h-12 w-12 text-neutral-900 mx-auto mb-4" />
-            <p className="text-gray-600">Loading tracking information...</p>
-          </div>
+        <div className="container mx-auto px-6 lg:px-12 pt-40 text-center py-40">
+           <div className="w-16 h-16 border-4 border-black border-t-sd-gold animate-spin mx-auto mb-8" />
+           <h2 className="font-neo font-black text-xs uppercase tracking-[0.5em] italic">Accessing Displacement Logs...</h2>
         </div>
       </div>
     );
   }
 
-  if (!order || !tracking) {
-    return null;
-  }
-
   return (
-    <div className="ec-root min-h-screen">
+    <div className="min-h-screen bg-sd-ivory pb-40 selection:bg-sd-gold selection:text-black">
       <Navigation />
       
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Order Tracking</h1>
-              <p className="text-gray-600">Order Number: <span className="font-semibold text-gray-900">{order.order_number}</span></p>
-            </div>
-            
-            <div className="flex flex-col items-start md:items-end gap-2">
-              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
-                {order.status.toUpperCase()}
-              </span>
-              {tracking.estimated_delivery && (
-                <p className="text-sm text-gray-600">
-                  Est. Delivery: <span className="font-semibold">{tracking.estimated_delivery}</span>
-                </p>
-              )}
-            </div>
-          </div>
-
-          {tracking.tracking_number && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-600">
-                Tracking Number: <span className="font-semibold text-gray-900">{tracking.tracking_number}</span>
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Tracking Timeline */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Delivery Status</h2>
-          
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-gray-200"></div>
-            
-            {/* Timeline Steps */}
-            <div className="space-y-8">
-              {(tracking.steps || []).map((step, index) => (
-                <div key={index} className="relative flex gap-6">
-                  {/* Icon */}
-                  <div className={`relative z-10 flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
-                    step.completed ? 'bg-green-100' : 'bg-gray-100'
-                  }`}>
-                    {getStatusIcon(step.status, step.completed)}
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 pb-8">
-                    <h3 className={`font-semibold mb-1 ${
-                      step.completed ? 'text-gray-900' : 'text-gray-500'
-                    }`}>
-                      {step.label}
-                    </h3>
-                    {step.date && (
-                      <p className="text-sm text-gray-600">
-                        {new Date(step.date).toLocaleString('en-US', {
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    )}
-                    {!step.completed && index === (tracking.steps || []).findIndex(s => !s.completed) && (
-                      <p className="text-sm text-gray-500 mt-1">In progress...</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          {/* Shipping Address */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <MapPin className="text-neutral-900" size={20} />
-              Delivery Address
-            </h3>
-            <div className="text-gray-700 space-y-1">
-              <p className="font-semibold">{order.shipping_address.name}</p>
-              <p className="flex items-center gap-2">
-                <Phone size={16} />
-                {order.shipping_address.phone}
-              </p>
-              {order.shipping_address.email && (
-                <p className="flex items-center gap-2">
-                  <Mail size={16} />
-                  {order.shipping_address.email}
-                </p>
-              )}
-              <p className="pt-2">
-                {order.shipping_address.address_line_1}
-                {order.shipping_address.address_line_2 && `, ${order.shipping_address.address_line_2}`}
-              </p>
-              <p>
-                {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}
-              </p>
-              {order.shipping_address.landmark && (
-                <p className="text-sm text-gray-600 pt-1">
-                  Landmark: {order.shipping_address.landmark}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Order Summary */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <Package className="text-neutral-900" size={20} />
-              Order Summary
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Items ({(order.items || []).length})</span>
-                <span className="font-medium">৳{order.subtotal.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
+      <div className="container mx-auto px-6 lg:px-12 pt-40">
+        
+        {/* ── Status Monument ── */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-24 border-b-4 border-black pb-12">
+           <div className="flex-1">
+              <span className="font-neo font-black text-[10px] uppercase tracking-[0.6em] text-sd-gold italic block mb-6">Active Displacement Monitor</span>
+              <h1 className="text-7xl font-neo font-black text-black uppercase italic leading-[0.8] tracking-tighter">
+                 Asset <br/> Tracking
+              </h1>
+              <div className="flex items-center gap-6 mt-10">
+                 <div className="px-6 py-2 border-2 border-black bg-black text-sd-gold font-neo font-black text-[11px] uppercase tracking-widest italic">
+                    REF: {order?.order_number}
+                 </div>
+                 {tracking?.estimated_delivery && (
+                   <span className="font-neo font-black text-[11px] uppercase tracking-widest text-black/40 italic">
+                      ETA: {tracking.estimated_delivery}
+                   </span>
+                 )}
               </div>
-              
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Shipping</span>
-                <span className="font-medium">৳{(order.shipping_amount || 0).toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
-              </div>
-              
-              {order.discount_amount > 0 && (
-                <div className="flex justify-between text-sm text-green-600">
-                  <span>Discount</span>
-                  <span className="font-medium">-৳{order.discount_amount.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
-                </div>
-              )}
-              
-              <div className="border-t pt-3 flex justify-between">
-                <span className="font-bold text-gray-900">Total</span>
-                <span className="font-bold text-neutral-900 text-lg">
-                  ৳{order.total_amount.toLocaleString('en-BD', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
+           </div>
 
-              <div className="border-t pt-3">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-600">Payment Method</span>
-                  <span className="font-medium capitalize">{order.payment_method.replace('_', ' ')}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Payment Status</span>
-                  <span className={`font-medium capitalize ${
-                    order.payment_status === 'paid' ? 'text-green-600' : 'text-orange-600'
-                  }`}>
-                    {order.payment_status}
-                  </span>
-                </div>
+           <div className="flex flex-col items-start md:items-end gap-6">
+              <div className={`px-10 py-5 border-4 border-black shadow-[6px_6px_0_0_rgba(0,0,0,1)] font-neo font-black text-xl uppercase italic ${getStatusStyle(order!.status)}`}>
+                 {order?.status.toUpperCase()}
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Order Items */}
-        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
-          <h3 className="font-bold text-gray-900 mb-4">Items in This Order</h3>
-          <div className="space-y-4">
-            {(order.items || []).map((item, index) => (
-              <div key={index} className="flex gap-4 pb-4 border-b last:border-b-0">
-                {item.product_image && (
-                  <img
-                    src={item.product_image}
-                    alt={item.product_name}
-                    className="w-20 h-20 object-cover rounded"
-                    onError={(e) => {
-                      if (!e.currentTarget.src.includes('/placeholder-product.png')) {
-                        e.currentTarget.src = '/placeholder-product.png';
-                      }
-                    }}
-                  />
-                )}
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{item.product_name}</h4>
-                  {item.sku && <p className="text-sm text-gray-600">SKU: {item.sku}</p>}
-                  {(item.color || item.size) && (
-                    <p className="text-sm text-gray-600">
-                      {item.color && `Color: ${item.color}`}
-                      {item.color && item.size && ' | '}
-                      {item.size && `Size: ${item.size}`}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                </div>
+              {tracking?.tracking_number && (
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">
-                    ৳{(item.total || 0).toLocaleString('en-BD', { minimumFractionDigits: 2 })}
-                  </p>
+                   <span className="font-neo font-black text-[9px] uppercase tracking-widest text-black/40 block mb-1">Carrier Reference</span>
+                   <p className="font-neo font-black text-lg text-black uppercase">{tracking.tracking_number}</p>
                 </div>
+              )}
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-24 items-start">
+           
+           {/* ── Displacement Timeline ── */}
+           <div className="lg:col-span-2">
+              <NeoCard variant="white" className="p-12 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-full h-2 bg-black" />
+                 <h2 className="font-neo font-black text-2xl uppercase italic text-black mb-12 flex items-center gap-4">
+                    <Truck size={28} /> Operational Logs
+                 </h2>
+                 
+                 <div className="relative space-y-12">
+                    <div className="absolute left-6 top-8 bottom-8 w-[4px] bg-black/10" />
+                    
+                    {(tracking?.steps || []).map((step: any, index: number) => (
+                      <div key={index} className="relative flex gap-10">
+                        <div className={`relative z-10 w-12 h-12 border-4 border-black flex items-center justify-center shadow-[4px_4px_0_0_rgba(0,0,0,1)] transition-colors ${
+                          step.completed ? 'bg-black text-sd-gold' : 'bg-white text-black/20'
+                        }`}>
+                          {getStatusIcon(step.status, step.completed)}
+                        </div>
+                        
+                        <div className="flex-1 pt-1">
+                          <h3 className={`font-neo font-black text-xl uppercase italic leading-none mb-3 ${
+                            step.completed ? 'text-black' : 'text-black/30'
+                          }`}>
+                            {step.label}
+                          </h3>
+                          {step.date && (
+                            <p className="font-neo font-bold text-[11px] text-black/40 uppercase tracking-widest italic">
+                              {new Date(step.date).toLocaleString('en-US', {
+                                weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                              })}
+                            </p>
+                          )}
+                          {!step.completed && index === (tracking?.steps || []).findIndex((s: any) => !s.completed) && (
+                            <div className="mt-4 flex items-center gap-3">
+                               <div className="w-2 h-2 rounded-full bg-sd-gold animate-pulse" />
+                               <span className="font-neo font-black text-[9px] uppercase tracking-[0.3em] text-sd-gold italic">Synchronizing...</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </NeoCard>
+           </div>
+
+           {/* ── Retrieval Pointer & Economic Deck ── */}
+           <div className="space-y-12">
+              {/* Receiver Info */}
+              <div className="border-4 border-black bg-white p-10 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-black/[0.02] flex items-center justify-center -rotate-12 translate-x-12 -translate-y-12">
+                    <MapPin size={48} />
+                 </div>
+                 <h4 className="font-neo font-black text-xs uppercase tracking-[0.4em] text-sd-gold italic mb-10 flex items-center gap-3">
+                    Retrieval Node
+                 </h4>
+                 <div className="space-y-6">
+                    <p className="font-neo font-black text-3xl uppercase italic text-black leading-tight border-b-2 border-black pb-4">{order?.shipping_address.name}</p>
+                    <div className="space-y-1 pt-2">
+                       <p className="font-neo font-bold text-[11px] text-black/60 uppercase tracking-tighter italic">
+                          {order?.shipping_address.address_line_1}
+                       </p>
+                       <p className="font-neo font-bold text-[11px] text-black/60 uppercase tracking-tighter italic">
+                          {order?.shipping_address.city.toUpperCase()} NODE • BD
+                       </p>
+                    </div>
+                    <div className="pt-4 flex flex-col gap-3 border-t-2 border-black/5 mt-6">
+                       <div className="flex items-center gap-3 text-black/40">
+                          <Phone size={14} />
+                          <span className="font-neo font-black text-[10px] tracking-widest">{order?.shipping_address.phone}</span>
+                       </div>
+                       {order?.shipping_address.email && (
+                         <div className="flex items-center gap-3 text-black/40">
+                            <Mail size={14} />
+                            <span className="font-neo font-black text-[10px] tracking-widest lowercase">{order?.shipping_address.email}</span>
+                         </div>
+                       )}
+                    </div>
+                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Economic Deck */}
+              <div className="border-4 border-black bg-black p-10 shadow-[8px_8px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/[0.05] flex items-center justify-center -rotate-12 translate-x-12 -translate-y-12">
+                    <Package size={48} />
+                 </div>
+                 <h4 className="font-neo font-black text-xs uppercase tracking-[0.4em] text-sd-gold italic mb-10">
+                    Net Valuation
+                 </h4>
+                 <div className="space-y-8">
+                    <div className="flex justify-between items-end">
+                       <span className="font-neo font-black text-[9px] uppercase tracking-widest text-sd-gold/40 italic">Registry Total</span>
+                       <span className="text-5xl font-neo font-black italic text-sd-gold leading-none">
+                          ৳{Math.floor(order!.total_amount).toLocaleString()}
+                       </span>
+                    </div>
+                    <div className="flex justify-between font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold/20 italic">
+                       <span>Unit Count</span>
+                       <span className="text-sd-gold/60">{(order?.items || []).length} OBJECTS</span>
+                    </div>
+                    <div className="pt-6 border-t border-sd-gold/10">
+                       <span className="font-neo font-black text-[8px] uppercase tracking-widest text-sd-gold/40 italic block mb-3">Audit Protocol</span>
+                       <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${order?.payment_status === 'paid' ? 'bg-green-500' : 'bg-sd-gold'}`} />
+                          <span className="font-neo font-black text-[10px] uppercase tracking-[0.3em] text-sd-gold">{order?.payment_status} via {order?.payment_method.replace('_', ' ')}</span>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4 mt-8">
-          <button
-            onClick={() => router.push('/')}
-            className="flex-1 bg-neutral-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2"
-          >
-            <Home size={20} />
-            Continue Shopping
-          </button>
-          
-          <button
-            onClick={() => router.push(`/e-commerce/order-confirmation/${order.order_number}`)}
-            className="flex-1 bg-white border-2 border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-          >
-            View Order Details
-          </button>
+        {/* ── Operational Deck Footer ── */}
+        <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+           <NeoButton 
+              variant="primary"
+              className="px-20 py-8 text-lg italic uppercase group bg-black text-sd-gold w-full md:w-auto"
+              onClick={() => router.push('/e-commerce')}
+           >
+              Continue Acquisition <ArrowRight size={24} className="ml-4 group-hover:translate-x-3 transition-transform" />
+           </NeoButton>
+           
+           <NeoButton 
+              variant="outline"
+              className="px-20 py-8 text-lg italic uppercase w-full md:w-auto"
+              onClick={() => router.push(`/e-commerce/order-confirmation/${order?.order_number}`)}
+           >
+              Legacy Registry Link
+           </NeoButton>
         </div>
 
-        {/* Help Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="font-semibold text-blue-900 mb-2">Need Help?</h3>
-          <p className="text-sm text-blue-800 mb-3">
-            If you have any questions about your order, please contact our customer support team.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2 text-sm">
-            <div className="flex items-center gap-2 text-blue-900">
-              <Phone size={16} />
-              <span className="font-semibold">+880 1234-567890</span>
-            </div>
-            <div className="flex items-center gap-2 text-blue-900">
-              <Mail size={16} />
-              <span className="font-semibold">support@yourstore.com</span>
-            </div>
-          </div>
+        <div className="mt-40 pt-20 border-t-4 border-black text-center">
+            <p className="font-neo font-black text-[10px] uppercase tracking-[0.8em] text-black/30 italic">Errum Digital Registry Systems • Displacement Monitor • MMXXVI</p>
         </div>
       </div>
     </div>

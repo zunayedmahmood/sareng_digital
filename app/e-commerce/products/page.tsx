@@ -10,7 +10,8 @@ import {
   Loader2,
   ArrowRight,
   SlidersHorizontal,
-  X
+  X,
+  History
 } from 'lucide-react';
 
 import Navigation from '@/components/ecommerce/Navigation';
@@ -20,23 +21,22 @@ import catalogService, {
   SimpleProduct,
   PaginationMeta
 } from '@/services/catalogService';
-import PremiumProductCard from '@/components/ecommerce/ui/PremiumProductCard';
+import NeoProductCard from '@/components/ecommerce/ui/NeoProductCard';
 import CategorySidebar from '@/components/ecommerce/category/CategorySidebar';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import NeoBadge from '@/components/ecommerce/ui/NeoBadge';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
 import { fireToast } from '@/lib/globalToast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const PRODUCTS_PER_PAGE = 30;
 
-/**
- * Product Feed Page
- * 
- * A high-end, high-performance product feed leveraging server-side 
- * SKU grouping and filtering for a seamless shopping experience.
- */
 export default function ProductsPage() {
   return (
     <Suspense fallback={
-      <div className="ec-root ec-bg-texture min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--gold)]" />
+      <div className="min-h-screen bg-sd-ivory flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 border-4 border-black border-t-sd-gold animate-spin" />
+        <span className="font-neo font-black text-[10px] uppercase tracking-widest">Initializing Registry...</span>
       </div>
     }>
       <ProductsPageContent />
@@ -54,7 +54,6 @@ function ProductsPageContent() {
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
   const fetchIdRef = useRef(0);
 
   // --- Filter State (Synced with URL) ---
@@ -66,9 +65,7 @@ function ProductsPageContent() {
 
   // --- Local UI State ---
   const [searchInput, setSearchInput] = useState(query);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [isClosingFilters, setIsClosingFilters] = useState(false);
   
   // Notify navigation about mobile sidebar state
   useEffect(() => {
@@ -89,7 +86,6 @@ function ProductsPageContent() {
       }
     });
 
-    // If changing filters, reset to page 1
     if (!updates.page) {
       params.delete('page');
     }
@@ -114,10 +110,8 @@ function ProductsPageContent() {
 
   useEffect(() => {
     fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, categoryId, sortBy, priceRange, currentPage]);
 
-  // Update local search input if URL query changes (e.g. back button)
   useEffect(() => {
     setSearchInput(query);
   }, [query]);
@@ -154,11 +148,8 @@ function ProductsPageContent() {
       }
 
       const response = await catalogService.getProducts(params);
-
-      // Check if this is still the most recent request
       if (currentFetchId !== fetchIdRef.current) return;
 
-      // We use grouped_products if the backend grouping logic is active
       const displayProducts = response.grouped_products?.length
         ? response.grouped_products.map(gp => gp.main_variant)
         : response.products;
@@ -168,12 +159,11 @@ function ProductsPageContent() {
     } catch (error) {
       if (currentFetchId === fetchIdRef.current) {
         console.error('Failed to load products:', error);
-        fireToast('Error loading products. Please try again.', 'error');
+        fireToast('Registry Access Denied. Re-syncing...', 'error');
       }
     } finally {
       if (currentFetchId === fetchIdRef.current) {
         setIsLoading(false);
-        setIsRefreshing(false);
       }
     }
   };
@@ -183,37 +173,13 @@ function ProductsPageContent() {
     updateURL({ search: searchInput || null });
   };
 
-  const handleCategoryChange = (val: string) => {
-    updateURL({ category: val });
-  };
-
-  const handleSortChange = (val: string) => {
-    updateURL({ sort: val });
-  };
-
-  const handlePriceChange = (val: string) => {
-    updateURL({ price: val });
-  };
-
   const handlePageChange = (page: number) => {
     updateURL({ page });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleImageError = (id: number) => {
-    setImageErrors(prev => new Set(prev).add(id));
-  };
-
   const handleProductClick = (product: SimpleProduct) => {
     router.push(`/e-commerce/product/${product.id}`);
-  };
-
-  const closeFilters = () => {
-    setIsClosingFilters(true);
-    setTimeout(() => {
-      setShowMobileFilters(false);
-      setIsClosingFilters(false);
-    }, 450);
   };
 
   const handleAddToCart = async (product: SimpleProduct, e: React.MouseEvent) => {
@@ -225,286 +191,258 @@ function ProductsPageContent() {
 
     try {
       await addToCart(product.id, 1);
-      fireToast(`Added ${product.name} to cart`, 'success');
+      fireToast(`Artifact ${product.name} Secured`, 'success');
     } catch (err: any) {
-      fireToast(err.message || 'Failed to add to cart', 'error');
+      fireToast(err.message || 'Transfer Failed', 'error');
     }
-  };
-
-  // Rendering pagination numbers
-  const renderPaginationRange = () => {
-    if (!pagination || pagination.last_page <= 1) return null;
-
-    const pages = [];
-    const maxVisible = 5;
-    let start = Math.max(1, pagination.current_page - 2);
-    let end = Math.min(pagination.last_page, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(
-        <button
-          key={i}
-          onClick={() => handlePageChange(i)}
-          className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-xs sm:text-sm font-medium transition-all ${pagination.current_page === i
-              ? 'bg-[var(--gold)] text-white shadow-lg'
-              : 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--ivory-ghost)]'
-            }`}
-        >
-          {i}
-        </button>
-      );
-    }
-    return pages;
   };
 
   return (
-    <div className="ec-root min-h-screen bg-[var(--bg-root)]">
+    <div className="min-h-screen bg-sd-ivory">
       <Navigation />
 
-      {/* Hero Section */}
-      <header className="relative py-16 md:py-24 border-b border-[var(--border-default)] bg-[var(--bg-depth)]">
-        <div className="ec-container text-center relative z-10 ec-anim-fade-up">
-          <span className="ec-eyebrow mb-4 text-[var(--cyan)]">Discover the Collection</span>
-          <h1 className="text-4xl md:text-6xl font-medium text-[var(--text-primary)] mb-6" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
-            Curated <span style={{ color: 'var(--gold)', fontStyle: 'italic' }}>Excellence</span>
-          </h1>
-          <p className="max-w-2xl mx-auto text-[var(--text-secondary)] text-lg leading-relaxed font-light">
-            Explore our premium selection of handcrafted items and digital masterpieces,
-            blending timeless aesthetics with modern functionality.
-          </p>
+      {/* ── Registry Header ── */}
+      <header className="relative pt-32 pb-16 border-b-4 border-black bg-white overflow-hidden">
+        {/* Abstract Background Elements */}
+        <div className="absolute top-0 right-0 w-64 h-full bg-sd-gold/5 -skew-x-12 translate-x-20" />
+        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-sd-gold/20" />
+        
+        <div className="container mx-auto px-6 lg:px-12 relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <History size={16} className="text-sd-gold" />
+                <span className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-sd-gold italic">Source: Central Registry</span>
+              </div>
+              <h1 className="text-5xl md:text-7xl font-neo font-black uppercase tracking-tighter text-black leading-[0.85]">
+                Master <span className="text-sd-gold">Catalog</span>
+              </h1>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <NeoBadge variant="black" className="text-[10px]">Protocol: Selective Discovery</NeoBadge>
+                <NeoBadge variant="violet" className="text-[10px]">Updated: Real-time</NeoBadge>
+              </div>
+            </div>
+            
+            <div className="flex flex-col items-end gap-1">
+              <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Total Entries</span>
+              <span className="text-5xl font-neo font-black text-black">
+                {pagination?.total || '---'}
+              </span>
+            </div>
+          </div>
         </div>
       </header>
 
-      <main className="ec-container py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <main className="container mx-auto px-6 lg:px-12 py-16">
+        <div className="flex flex-col lg:flex-row gap-12">
 
-          {/* Sidebar / Filters (Left 3 columns) */}
-          <aside className="lg:col-span-3 space-y-10">
-            {/* Search Bar */}
-            <div className="space-y-4">
-              <h3 className="text-[11px] font-bold tracking-[0.25em] text-[var(--text-muted)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Search</h3>
-              <form onSubmit={handleSearchSubmit} className="relative group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)] group-focus-within:text-[var(--cyan)] transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Find anything..."
-                  value={searchInput}
-                  onChange={e => setSearchInput(e.target.value)}
-                  className="w-full pl-11 pr-4 py-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--cyan-border)] transition-all text-sm"
-                />
-              </form>
-            </div>
-
-            {/* Unified Filters Sidebar */}
-            <div className="hidden lg:block">
-              <CategorySidebar
-                categories={categories}
-                activeCategory={String(categoryId)}
-                onCategoryChange={handleCategoryChange}
-                selectedPriceRange={priceRange}
-                onPriceRangeChange={handlePriceChange}
-                selectedStock="all"
-                onStockChange={() => {}}
-                useIdForRouting={true}
-              />
-
-              <div className="mt-10 space-y-4">
-                <h3 className="text-[11px] font-bold tracking-[0.25em] text-[var(--text-muted)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Sort By</h3>
-                <div className="ec-surface p-2">
-                  <select
-                    value={sortBy}
-                    onChange={e => handleSortChange(e.target.value)}
-                    className="w-full bg-transparent text-[var(--text-primary)] py-3 px-4 focus:outline-none cursor-pointer text-sm"
-                  >
-                    <option value="newest">Newest First</option>
-                    <option value="price_asc">Price: Low to High</option>
-                    <option value="price_desc">Price: High to Low</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Filters Trigger */}
-            <div className="lg:hidden">
-              <button
-                onClick={() => setShowMobileFilters(true)}
-                className="w-full py-5 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] flex items-center justify-center gap-3 text-sm font-bold tracking-widest"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                <SlidersHorizontal className="h-4 w-4 text-[var(--cyan)]" /> FILTERS & SORTING
-              </button>
-            </div>
+          {/* ── Sidebar (Desktop) ── */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+             <CategorySidebar
+               categories={categories}
+               activeCategory={String(categoryId)}
+               onCategoryChange={(val) => updateURL({ category: val })}
+               selectedPriceRange={priceRange}
+               onPriceRangeChange={(val) => updateURL({ price: val })}
+               selectedSort={sortBy}
+               onSortChange={(val) => updateURL({ sort: val })}
+               searchQuery={searchInput}
+               onSearchChange={setSearchInput}
+               useIdForRouting={true}
+             />
           </aside>
 
-          {/* Main Content (Right 9 columns) */}
-          <div className="lg:col-span-9">
-            {/* Results Header */}
-            <div className="mb-12 flex items-center justify-between border-b border-[var(--border-default)] pb-6">
-              {!isLoading && pagination && (
-                <p className="text-[11px] font-bold tracking-[0.25em] text-[var(--text-muted)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>
-                  Displaying {pagination.total} results
-                </p>
-              )}
-              {isRefreshing && (
-                <div className="flex items-center gap-2 text-[var(--cyan)] text-xs animate-pulse font-medium">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Synchronizing...
-                </div>
-              )}
+          {/* ── Main Feed ── */}
+          <div className="flex-1">
+            {/* Mobile Actions */}
+            <div className="lg:hidden flex flex-col gap-4 mb-10">
+              <form onSubmit={handleSearchSubmit} className="relative">
+                 <NeoCard variant="white" hasHover={false} className="p-0 border-2 neo-shadow-sm overflow-hidden">
+                    <div className="flex items-center px-4">
+                       <Search size={18} className="text-black/20" />
+                       <input 
+                         type="text" 
+                         placeholder="SCAN REGISTRY..."
+                         value={searchInput}
+                         onChange={e => setSearchInput(e.target.value)}
+                         className="w-full py-4 px-4 font-neo font-black text-xs uppercase tracking-widest focus:outline-none placeholder:text-black/10"
+                       />
+                    </div>
+                 </NeoCard>
+              </form>
+              <NeoButton 
+                variant="primary" 
+                className="w-full py-4 text-[10px]"
+                onClick={() => setShowMobileFilters(true)}
+              >
+                <Filter size={14} /> Refine Classification
+              </NeoButton>
             </div>
 
-            {/* Product Grid */}
-            {isLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8 min-h-[600px] content-start">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="aspect-[3/4] rounded-2xl animate-shimmer bg-[var(--bg-depth)] border border-[var(--border-default)]" />
-                ))}
-              </div>
-            ) : products.length === 0 ? (
-              <div className="min-h-[500px] flex flex-col items-center justify-center text-center ec-surface py-20">
-                <div className="p-10 rounded-full bg-[var(--bg-depth)] border border-[var(--border-default)] mb-8">
-                  <ShoppingBag className="h-12 w-12 text-[var(--text-muted)]" />
-                </div>
-                <h3 className="text-2xl font-medium text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Cormorant Garamond', serif" }}>No products found</h3>
-                <p className="text-[var(--text-secondary)] max-w-sm mb-10 text-sm font-light">
-                  We couldn&apos;t find items matching your criteria. Try adjusting your filters or search query.
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchInput('');
-                    updateURL({ search: null, category: 'all', sort: 'newest', price: 'all' });
-                  }}
-                  className="px-10 py-5 rounded-2xl bg-[var(--gold)] text-white font-bold hover:bg-[var(--gold-strong)] transition-all text-[12px] tracking-[0.2em] uppercase"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
-                >
-                  Reset All Filters
-                </button>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8">
-                  {products.map((product, idx) => (
-                    <div
-                      key={product.id}
-                      className="ec-anim-fade-up"
-                      style={{ animationDelay: `${(idx % 8) * 0.05}s` }}
-                    >
-                      <PremiumProductCard
-                        product={product}
-                        imageErrored={imageErrors.has(product.id)}
-                        onImageError={handleImageError}
-                        onOpen={handleProductClick}
-                        onAddToCart={handleAddToCart}
-                      />
+            {/* Grid Header */}
+            <div className="flex items-center justify-between mb-10 border-b-2 border-black pb-4">
+               <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 bg-sd-gold animate-pulse" />
+                  <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black">
+                    Registry Stream: <span className="opacity-40 italic">Active</span>
+                  </span>
+               </div>
+               <div className="hidden md:flex gap-4">
+                  <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Sorted by: {sortBy.replace('_', ' ')}</span>
+               </div>
+            </div>
+
+            {/* Product Feed */}
+            <div className="relative min-h-[600px]">
+              {isLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-8">
+                  {Array.from({ length: 9 }).map((_, i) => (
+                    <div key={i} className="aspect-[3/4] border-4 border-black bg-white/50 animate-pulse relative">
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="font-neo font-black text-[8px] uppercase tracking-widest opacity-20">Scanning...</span>
+                       </div>
                     </div>
                   ))}
                 </div>
+              ) : products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-40 border-4 border-black border-dashed rounded-[40px] bg-white/30">
+                   <NeoBadge variant="black" className="mb-6">0 Results Detected</NeoBadge>
+                   <h3 className="text-3xl font-neo font-black uppercase italic mb-4">No Retrieval Matches</h3>
+                   <p className="font-neo text-[10px] uppercase tracking-widest text-black/40 mb-10 text-center max-w-xs leading-loose">
+                     Your specific parameters did not yield any archival matches in the current sectors.
+                   </p>
+                   <NeoButton 
+                     variant="outline" 
+                     className="px-10 py-4 text-[10px]"
+                     onClick={() => {
+                        setSearchInput('');
+                        updateURL({ search: null, category: 'all', sort: 'newest', price: 'all' });
+                     }}
+                   >
+                     Reset All Protocol
+                   </NeoButton>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                  {products.map((product, idx) => (
+                     <NeoProductCard
+                       key={product.id}
+                       product={product}
+                       onOpen={handleProductClick}
+                       onAddToCart={handleAddToCart}
+                       animDelay={idx * 50}
+                     />
+                  ))}
+                </div>
+              )}
+            </div>
 
-                {/* Pagination */}
-                {pagination && pagination.last_page > 1 && (
-                  <div className="mt-24 flex flex-col items-center gap-6">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      <button
-                        disabled={pagination.current_page === 1}
-                        onClick={() => handlePageChange(pagination.current_page - 1)}
-                        className="h-9 px-4 sm:h-11 sm:px-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--ivory-ghost)] disabled:opacity-30 transition-all text-[10px] sm:text-xs font-bold tracking-widest uppercase"
-                        style={{ fontFamily: "'DM Mono', monospace" }}
-                      >
-                        Prev
-                      </button>
-
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        {renderPaginationRange()}
-                      </div>
-
-                      <button
-                        disabled={pagination.current_page === pagination.last_page}
-                        onClick={() => handlePageChange(pagination.current_page + 1)}
-                        className="h-9 px-4 sm:h-11 sm:px-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--ivory-ghost)] disabled:opacity-30 transition-all text-[10px] sm:text-xs font-bold tracking-widest uppercase"
-                        style={{ fontFamily: "'DM Mono', monospace" }}
-                      >
-                        Next
-                      </button>
-                    </div>
+            {/* Pagination Controls */}
+            {pagination && pagination.last_page > 1 && (
+              <div className="mt-24 pt-10 border-t-4 border-black flex flex-col items-center gap-10">
+                <div className="flex items-center gap-4">
+                  <NeoButton 
+                    variant="outline" 
+                    size="sm"
+                    className="w-16 h-16 p-0"
+                    disabled={currentPage === 1}
+                    onClick={() => handlePageChange(currentPage - 1)}
+                  >
+                    <ArrowRight className="rotate-180" size={20} />
+                  </NeoButton>
+                  
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.min(5, pagination.last_page) }).map((_, i) => {
+                       const pNum = i + 1;
+                       return (
+                         <button
+                           key={pNum}
+                           onClick={() => handlePageChange(pNum)}
+                           className={`w-12 h-12 border-2 border-black font-neo font-black text-[11px] transition-all
+                             ${currentPage === pNum ? 'bg-sd-black text-sd-gold' : 'bg-white text-black hover:bg-sd-gold/10'}
+                           `}
+                         >
+                           {String(pNum).padStart(2, '0')}
+                         </button>
+                       );
+                    })}
                   </div>
-                )}
-              </>
+
+                  <NeoButton 
+                    variant="outline" 
+                    size="sm"
+                    className="w-16 h-16 p-0"
+                    disabled={currentPage === pagination.last_page}
+                    onClick={() => handlePageChange(currentPage + 1)}
+                  >
+                    <ArrowRight size={20} />
+                  </NeoButton>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                   <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40">Page</span>
+                   <span className="font-neo font-black text-xl text-black">{currentPage}</span>
+                   <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40">of {pagination.last_page}</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </main>
 
-      {/* Mobile Filters Drawer */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 z-[100] xl:hidden">
-          <div 
-            className={`fixed inset-0 bg-black/40 backdrop-blur-sm ${isClosingFilters ? 'ec-anim-backdrop-out' : 'ec-anim-backdrop'}`}
-            onClick={closeFilters}
-          />
-          <div className={`fixed top-0 right-0 bottom-0 z-[101] w-[85%] max-w-sm bg-[var(--bg-root)] shadow-2xl flex flex-col ${isClosingFilters ? 'ec-anim-slide-out-right' : 'ec-anim-slide-in-right'}`}>
-            <div className="flex items-center justify-between p-8 border-b border-[var(--border-default)]">
-              <h2 className="text-xl font-medium text-[var(--text-primary)] uppercase tracking-widest" style={{ fontFamily: "'Cormorant Garamond', serif" }}>Filters</h2>
-              <button 
-                onClick={closeFilters} 
-                className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-depth)] border border-[var(--border-default)] transition-all"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto ec-scrollbar p-8 space-y-12 pb-32">
-                <CategorySidebar
-                categories={categories}
-                activeCategory={String(categoryId)}
-                onCategoryChange={(val) => {
-                  handleCategoryChange(val);
-                  closeFilters();
-                }}
-                selectedPriceRange={priceRange}
-                onPriceRangeChange={(val) => {
-                  handlePriceChange(val);
-                  closeFilters();
-                }}
-                selectedStock="all"
-                onStockChange={() => { }}
-                useIdForRouting={true}
-              />
-
-              <div className="mt-8 space-y-4">
-                 <h3 className="text-[10px] font-bold tracking-[0.25em] text-[var(--text-muted)] uppercase" style={{ fontFamily: "'DM Mono', monospace" }}>Sort By</h3>
-                 <div className="grid grid-cols-1 gap-3">
-                   {[
-                     { id: 'newest', label: 'Newest First' },
-                     { id: 'price_asc', label: 'Price: Low to High' },
-                     { id: 'price_desc', label: 'Price: High to Low' },
-                   ].map(opt => (
-                     <button
-                       key={opt.id}
-                       onClick={() => handleSortChange(opt.id)}
-                       className={`text-left p-5 rounded-2xl border transition-all text-sm font-medium ${sortBy === opt.id ? 'border-[var(--cyan-border)] bg-[var(--cyan-pale)] text-[var(--cyan)]' : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)]'}`}
-                     >
-                       {opt.label}
-                     </button>
-                   ))}
-                 </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 p-8 bg-[var(--bg-root)] border-t border-[var(--border-default)]">
-              <button 
-                onClick={closeFilters}
-                className="w-full py-5 rounded-2xl bg-[var(--gold)] text-white font-bold shadow-lg tracking-widest uppercase text-xs"
-                style={{ fontFamily: "'DM Mono', monospace" }}
-              >
-                Show Results
-              </button>
-            </div>
+      {/* ── Mobile Filters Overlay ── */}
+      <AnimatePresence>
+        {showMobileFilters && (
+          <div className="fixed inset-0 z-[100] flex flex-col">
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-black/60 backdrop-blur-md"
+               onClick={() => setShowMobileFilters(false)}
+            />
+            <motion.div 
+               initial={{ y: '100%' }}
+               animate={{ y: 0 }}
+               exit={{ y: '100%' }}
+               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+               className="mt-auto relative bg-sd-ivory border-t-4 border-black rounded-t-[40px] max-h-[90vh] overflow-hidden flex flex-col"
+            >
+               <div className="flex items-center justify-between p-8 border-b-2 border-black/10">
+                  <h3 className="font-neo font-black text-xl uppercase italic">Refinement</h3>
+                  <button onClick={() => setShowMobileFilters(false)} className="w-10 h-10 border-2 border-black flex items-center justify-center">
+                     <X size={20} />
+                  </button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-8 pb-32">
+                  <CategorySidebar
+                    categories={categories}
+                    activeCategory={String(categoryId)}
+                    onCategoryChange={(val) => { updateURL({ category: val }); setShowMobileFilters(false); }}
+                    selectedPriceRange={priceRange}
+                    onPriceRangeChange={(val) => { updateURL({ price: val }); setShowMobileFilters(false); }}
+                    selectedSort={sortBy}
+                    onSortChange={(val) => { updateURL({ sort: val }); setShowMobileFilters(false); }}
+                    searchQuery={searchInput}
+                    onSearchChange={setSearchInput}
+                    useIdForRouting={true}
+                  />
+               </div>
+               
+               <div className="absolute bottom-0 left-0 right-0 p-8 pt-4 bg-sd-ivory border-t-2 border-black/10">
+                  <NeoButton 
+                    variant="primary" 
+                    className="w-full py-5 text-[10px]"
+                    onClick={() => setShowMobileFilters(false)}
+                  >
+                    Execute Parameters
+                  </NeoButton>
+               </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

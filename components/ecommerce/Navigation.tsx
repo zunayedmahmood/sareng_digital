@@ -7,18 +7,19 @@ import {
   Menu, 
   Search, 
   ShoppingBag, 
-  Heart, 
   User, 
-  Home, 
-  Store,
   X,
-  ChevronRight
+  Plus
 } from 'lucide-react';
 import { useCart } from '@/app/CartContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import NeoButton from './ui/NeoButton';
+import NeoBadge from './ui/NeoBadge';
+import NeoCard from './ui/NeoCard';
+import { cn } from '@/lib/utils';
 
 const CATEGORIES = [
-  { name: 'Collections', slug: 'products' },
+  { name: 'Index', slug: 'products' },
   { name: 'Earbuds', slug: 'earbuds' },
   { name: 'Mice', slug: 'mice' },
   { name: 'Keyboards', slug: 'keyboards' },
@@ -34,9 +35,7 @@ const Navigation: React.FC = () => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 30);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -45,221 +44,173 @@ const Navigation: React.FC = () => {
     setIsDrawerOpen(false);
   }, [pathname]);
 
-  const cartBadge = cartCount > 0 && (
-    <motion.span 
-      key={cartCount}
-      initial={{ opacity: 0, scale: 0.8, y: 4 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      className="absolute -top-1.5 -right-1.5 bg-sd-gold text-sd-black text-[9px] font-mono font-bold h-4 w-4 flex items-center justify-center rounded-full border border-sd-black/5 shadow-sm"
-    >
-      {cartCount}
-    </motion.span>
-  );
+  const navLinks = [
+    { name: 'Archival', href: '/e-commerce/products' },
+    { name: 'Identity', href: '/e-commerce/my-account' },
+    { name: 'Registry', href: '/e-commerce/search' },
+  ];
 
   return (
     <>
-      {/* ── DESKTOP MASTHEAD ── */}
-      <header className={`fixed top-0 left-0 right-0 z-[200] hidden lg:block transition-all duration-500 ease-in-out ${
-        isScrolled ? 'h-16 py-2' : 'h-24 py-4'
-      }`}>
-        <div className={`absolute inset-0 transition-all duration-500 ${
-          isScrolled 
-            ? 'bg-sd-white/95 backdrop-blur-md shadow-sd-lift border-b border-sd-border-default/30' 
-            : 'bg-transparent'
-        }`} />
-
-        <div className="container mx-auto px-12 h-full relative z-10 flex items-center justify-between">
-          {/* Left: Collections (Tactile Labels) */}
-          <nav className="flex items-center gap-10">
-            {['Archive', 'Artifacts'].map((link) => (
-              <Link 
-                key={link}
-                href={link === 'Archive' ? '/e-commerce/products' : '/e-commerce/search'}
-                className="group relative py-2"
-              >
-                <span className="text-[10px] font-mono uppercase tracking-[0.3em] text-sd-text-secondary group-hover:text-sd-black transition-colors block">
-                  {link}
-                </span>
-                <motion.div 
-                  className="absolute bottom-0 left-0 h-[1px] bg-sd-gold"
-                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  initial={{ width: 0 }}
-                  whileHover={{ width: '100%' }}
-                />
-              </Link>
-            ))}
-          </nav>
-
-          {/* Center: Branding (The Deep Cut) */}
-          <Link href="/e-commerce" className="flex flex-col items-center group perspective-1000">
-            <motion.div 
-              className="flex flex-col items-center gap-0"
-              whileHover={{ scale: 1.05 }}
-            >
-              <span className="text-sd-black font-display italic text-4xl lg:text-5xl leading-none">
-                Sareng
-              </span>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="h-[1px] w-4 bg-sd-gold/30" />
-                <span className="text-sd-black text-[9px] font-mono tracking-[0.6em] uppercase opacity-40">
-                  Digital
-                </span>
-                <div className="h-[1px] w-4 bg-sd-gold/30" />
-              </div>
-            </motion.div>
-          </Link>
-
-          {/* Right: Actions (Lifting UI) */}
-          <div className="flex items-center gap-8">
-            <button 
-              onClick={() => router.push('/e-commerce/search')}
-              className="group p-2 text-sd-black hover:sd-depth-lift transition-all rounded-lg"
-            >
-              <Search className="w-5 h-5 stroke-[1.5px] opacity-40 group-hover:opacity-100 transition-opacity" />
-            </button>
-
-            <div className="h-4 w-[1px] bg-sd-border-default/20" />
-
-            <div className="flex items-center gap-4">
+      {/* ── GLOBAL HEADER (Neo-Brutalist) ── */}
+      <header className={cn(
+        "fixed top-0 left-0 right-0 z-[200] transition-all duration-300",
+        isScrolled ? "py-2 sm:py-4" : "py-4 sm:py-6"
+      )}>
+        <div className="container mx-auto px-4 sm:px-6">
+          <NeoCard 
+            variant="white" 
+            hasHover={false}
+            className="flex items-center justify-between h-16 sm:h-20 px-4 sm:px-8 neo-shadow-md sm:neo-shadow-lg"
+          >
+            {/* Mobile Menu Trigger */}
+            <div className="flex items-center gap-4 lg:hidden">
               <button 
-                onClick={() => setIsCartOpen(true)}
-                className="relative p-2.5 bg-sd-white shadow-sd-card border border-sd-border-default/10 rounded-xl hover:shadow-sd-lift transition-all group overflow-hidden"
+                onClick={() => setIsDrawerOpen(true)}
+                className="neo-border-2 p-2 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none bg-white neo-shadow-sm transition-all"
               >
-                <div className="absolute inset-0 bg-sd-gold/5 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                <ShoppingBag className="w-5 h-5 stroke-[1.5px] text-sd-black relative z-10" />
-                {cartBadge}
+                <Menu className="w-6 h-6 text-black" />
+              </button>
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <Link 
+                  key={link.name}
+                  href={link.href}
+                  className="group relative"
+                >
+                  <span className="font-neo font-black uppercase text-sm tracking-widest text-black/60 group-hover:text-black transition-colors">
+                    {link.name}
+                  </span>
+                  <div className="absolute -bottom-1 left-0 h-[2px] w-0 bg-sd-gold transition-all group-hover:w-full" />
+                </Link>
+              ))}
+            </nav>
+
+            {/* Branding */}
+            <Link href="/e-commerce" className="flex flex-col items-center">
+              <span className="font-neo font-black text-2xl sm:text-4xl text-black leading-none uppercase tracking-tighter">
+                Sareng <span className="text-sd-gold italic">Digital</span>
+              </span>
+              <div className="hidden sm:flex items-center gap-2 mt-1">
+                <div className="h-[2px] w-2 sm:w-4 bg-black" />
+                <span className="text-black text-[8px] sm:text-[10px] font-neo font-bold tracking-[0.3em] uppercase">
+                  Character Artifacts
+                </span>
+                <div className="h-[2px] w-2 sm:w-4 bg-black" />
+              </div>
+            </Link>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 sm:gap-6">
+              <button 
+                onClick={() => router.push('/e-commerce/search')}
+                className="hidden sm:flex neo-border-2 p-2 bg-white neo-shadow-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+              >
+                <Search className="w-5 h-5" />
               </button>
 
+              <div className="relative">
+                <button 
+                  onClick={() => setIsCartOpen(true)}
+                  className="neo-border-2 p-2 sm:p-3 bg-black text-white neo-shadow-sm shadow-sd-gold/30 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
+                >
+                  <ShoppingBag className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+                {cartCount > 0 && (
+                  <NeoBadge 
+                    variant="gold" 
+                    className="absolute -top-3 -right-3 px-1.5 min-w-[24px] h-6 flex items-center justify-center font-neo font-black shadow-none border-2"
+                  >
+                    {cartCount}
+                  </NeoBadge>
+                )}
+              </div>
+
               <Link 
-                href="/e-commerce/my-account" 
-                className="p-2.5 text-sd-text-secondary hover:text-sd-black transition-colors"
+                href="/e-commerce/my-account"
+                className="hidden lg:flex neo-border-2 p-3 bg-sd-gold neo-shadow-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
               >
-                <User className="w-5 h-5 stroke-[1.5px]" />
+                <User className="w-5 h-5" />
               </Link>
             </div>
-          </div>
+          </NeoCard>
         </div>
       </header>
 
-      {/* ── MOBILE HEADER (Paper Stack) ── */}
-      <div className={`fixed top-0 left-0 right-0 h-20 z-[200] flex lg:hidden items-end pb-4 px-6 transition-all duration-500 ${
-        isScrolled ? 'bg-sd-white shadow-sd-lift' : 'bg-transparent pb-6'
-      }`}>
-        <div className="flex items-center justify-between w-full">
-          <button 
-            onClick={() => setIsDrawerOpen(true)} 
-            className="p-2.5 bg-sd-white/90 backdrop-blur-sm shadow-sd-card border border-sd-border-default/10 rounded-xl"
-          >
-            <Menu className="w-6 h-6 stroke-[1.5px] text-sd-black" />
-          </button>
-          
-          <Link href="/e-commerce" className="flex flex-col items-center">
-            <span className="text-sd-black font-display italic text-3xl leading-none">Sareng</span>
-            <span className="text-[7px] font-mono tracking-[0.4em] text-sd-gold uppercase font-bold">Archive</span>
-          </Link>
-
-          <button 
-            onClick={() => setIsCartOpen(true)} 
-            className="p-2.5 bg-sd-white/90 backdrop-blur-sm shadow-sd-card border border-sd-border-default/10 rounded-xl relative"
-          >
-            <ShoppingBag className="w-6 h-6 stroke-[1.2px] text-sd-black" />
-            {cartBadge}
-          </button>
-        </div>
-      </div>
-
-      {/* ── MOBILE BOTTOM BAR (The Lifted Shelf) ── */}
-      <div className="fixed bottom-0 left-0 right-0 h-24 pointer-events-none z-[190] lg:hidden">
-        <div className="absolute inset-x-4 bottom-4 h-16 bg-sd-white shadow-sd-float border border-sd-border-default/10 rounded-2xl flex items-center justify-around px-2 pointer-events-auto overflow-hidden">
-          <div className="absolute inset-0 bg-sd-ivory-dark/10 pointer-events-none" />
-          {[
-            { icon: Home, label: 'Home', href: '/e-commerce' },
-            { icon: Store, label: 'Store', href: '/e-commerce/products' },
-            { icon: Search, label: 'Find', href: '/e-commerce/search' },
-            { icon: Heart, label: 'Saved', href: '/e-commerce/wishlist' },
-            { icon: User, label: 'User', href: '/e-commerce/my-account' },
-          ].map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href}
-                className={`flex flex-col items-center justify-center gap-1 w-12 h-12 rounded-xl transition-all relative ${
-                  isActive ? 'text-sd-black' : 'text-sd-text-muted opacity-60'
-                }`}
-              >
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-sd-gold/10 rounded-xl"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <item.icon className={`w-5 h-5 relative z-10 ${isActive ? 'stroke-[2px]' : 'stroke-[1.5px]'}`} />
-                <span className="text-[7px] font-mono tracking-widest uppercase relative z-10 font-bold">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── SIDE CATALOG DRAWER (Recessed Well) ── */}
-      <AnimatePresence mode="wait">
+      {/* ── MOBILE DRAWER (Neo-Brutalist Drawer) ── */}
+      <AnimatePresence>
         {isDrawerOpen && (
           <div className="fixed inset-0 z-[300]">
+            {/* Background Blur Overlay */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDrawerOpen(false)}
-              className="absolute inset-0 bg-sd-black/60 backdrop-blur-md"
+              className="absolute inset-0 bg-white/20 backdrop-blur-sm"
             />
+
+            {/* Drawer Content */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="absolute top-0 left-0 bottom-0 w-[85%] max-w-sm bg-sd-ivory sd-depth-recess flex flex-col"
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="absolute top-0 left-0 bottom-0 w-[90%] max-w-sm bg-sd-ivory neo-border-r-8 border-black flex flex-col p-6 overflow-hidden"
             >
-              <div className="p-8 flex items-center justify-between border-b border-sd-border-default/20">
+              <div className="flex items-center justify-between mb-12">
                 <div className="flex flex-col">
-                  <span className="text-sd-black font-display italic text-3xl leading-none">Sareng</span>
-                  <span className="text-sd-gold text-[8px] font-mono tracking-[0.4em] uppercase font-bold">Registry</span>
+                  <span className="font-neo font-black text-3xl text-black uppercase leading-none">Catalog</span>
+                  <NeoBadge variant="gold" className="mt-2 text-[10px]">Registry v.2.6</NeoBadge>
                 </div>
                 <button 
-                  onClick={() => setIsDrawerOpen(false)} 
-                  className="p-3 bg-sd-white shadow-sd-card border border-sd-border-default/10 rounded-xl"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="neo-border-2 p-3 bg-black text-white neo-shadow-sm active:translate-x-[1px] active:translate-y-[1px] active:shadow-none transition-all"
                 >
-                  <X className="w-5 h-5 stroke-[1.5px] text-sd-black" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto py-12 px-10">
-                <div className="space-y-12">
-                  {CATEGORIES.map((cat, idx) => (
-                    <Link 
-                      key={cat.slug} 
-                      href={cat.slug === 'products' ? '/e-commerce/products' : `/e-commerce/${cat.slug}`}
-                      className="group flex flex-col gap-2"
+              <nav className="flex-1 space-y-4">
+                {CATEGORIES.map((cat, idx) => (
+                  <Link 
+                    key={cat.slug}
+                    href={cat.slug === 'products' ? '/e-commerce/products' : `/e-commerce/${cat.slug}`}
+                    className="block group"
+                  >
+                    <NeoCard 
+                      variant={idx % 2 === 0 ? 'white' : 'gold'}
+                      className="p-5 flex items-center justify-between group-hover:translate-x-2 transition-transform"
                     >
                       <div className="flex items-center gap-4">
-                        <span className="text-[9px] font-mono text-sd-gold font-bold">0{idx + 1}</span>
-                        <div className="h-[1px] w-6 bg-sd-border-default/30 group-hover:w-full group-hover:bg-sd-gold/30 transition-all duration-700" />
+                        <span className="font-neo font-black text-sm text-black/30">0{idx + 1}</span>
+                        <span className="font-neo font-black text-xl uppercase text-black">{cat.name}</span>
                       </div>
-                      <span className="text-3xl font-display group-hover:italic group-hover:translate-x-3 transition-transform duration-500 text-sd-black flex items-center justify-between">
-                        {cat.name}
-                        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
+                      {cat.isNew && (
+                        <NeoBadge variant="black" isRotated className="text-[8px] animate-pulse">New Arrival</NeoBadge>
+                      )}
+                    </NeoCard>
+                  </Link>
+                ))}
+              </nav>
 
-              <div className="p-10 bg-sd-ivory-dark/30 border-t border-sd-border-default/20">
-                <p className="text-[9px] font-mono text-sd-text-muted leading-relaxed uppercase tracking-wider">
-                  © 2026 SARENG ARCHIVE.<br />
-                  <span className="text-sd-black/40">CURATED CHARACTER ARTIFACTS.</span>
-                </p>
+              <div className="mt-12 space-y-4">
+                <div className="flex items-center gap-4">
+                  <NeoButton variant="black" className="flex-1 h-14">
+                    <User size={18} /> Account
+                  </NeoButton>
+                  <NeoButton variant="gold" className="h-14 w-14 p-0">
+                    <Search size={22} />
+                  </NeoButton>
+                </div>
+                
+                <div className="p-4 neo-border-2 bg-white flex flex-col gap-2">
+                  <p className="font-neo font-black text-[10px] uppercase tracking-tighter text-black/40">Sareng Digital Registry</p>
+                  <p className="font-neo font-black text-xs uppercase leading-tight">Curated character artifacts for the modern archival.</p>
+                </div>
               </div>
             </motion.aside>
           </div>

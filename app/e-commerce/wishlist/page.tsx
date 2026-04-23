@@ -7,6 +7,8 @@ import { wishlistUtils, WishlistItem } from '@/lib/wishlistUtils';
 import { useCart } from '@/app/e-commerce/CartContext';
 import Navigation from '@/components/ecommerce/Navigation';
 import CartSidebar from '@/components/ecommerce/cart/CartSidebar';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -30,8 +32,6 @@ export default function WishlistPage() {
 
   const handleAddToCart = (item: WishlistItem) => {
     setAddingToCartId(item.id);
-    
-    // Add to persisted cart (works for both logged-in and guest users)
     addToCart(Number(item.id), 1);
 
     setTimeout(() => {
@@ -45,7 +45,7 @@ export default function WishlistPage() {
   };
 
   const handleClearAll = () => {
-    if (confirm('Are you sure you want to clear your wishlist?')) {
+    if (confirm('AUTHORIZE DELETION: Are you sure you want to purge all stored asset shortcuts?')) {
       wishlistUtils.clear();
     }
   };
@@ -54,137 +54,135 @@ export default function WishlistPage() {
     router.push(`/e-commerce/product/${id}`);
   };
 
-  if (wishlistItems.length === 0) {
-    return (
-      <>
-        <Navigation />
-        <div className="ec-root min-h-screen py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <button
-              onClick={() => router.push('/e-commerce')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span>Back to Shopping</span>
-            </button>
-
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">My Wishlist</h1>
-            
-            <div className="ec-dark-card p-12 text-center">
-              <div className="max-w-md mx-auto">
-                <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <Heart size={48} className="text-gray-300" />
-                </div>
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">Your wishlist is empty</h2>
-                <p className="text-gray-600 mb-8">
-                  Save your favorite items here to buy them later or share with friends
-                </p>
-                <button 
-                  onClick={() => router.push('/e-commerce')}
-                  className="ec-btn ec-btn-gold"
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          </div>
-        </div></>
-    );
-  }
-
   return (
-    <>
+    <div className="min-h-screen bg-sd-ivory pb-40 selection:bg-sd-gold selection:text-black">
       <Navigation />
-      <div className="ec-root min-h-screen py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <button
-            onClick={() => router.push('/e-commerce')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-          >
-            <ArrowLeft size={20} />
-            <span>Back to Shopping</span>
-          </button>
+      
+      <div className="container mx-auto px-6 lg:px-12 pt-40">
+        
+        {/* ── Title Deck ── */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-12 mb-24 border-b-4 border-black pb-12">
+           <div className="flex-1">
+              <span className="font-neo font-black text-[10px] uppercase tracking-[0.6em] text-sd-gold italic block mb-6">Local Storage Interface</span>
+              <h1 className="text-7xl font-neo font-black text-black uppercase italic leading-[0.8] tracking-tighter">
+                 Saved <br/> Assets
+              </h1>
+              <p className="font-neo font-bold text-[11px] text-black/40 uppercase tracking-widest mt-10">Persistent registry of hardware acquisitions pending authorization.</p>
+           </div>
 
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              My Wishlist ({wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'})
-            </h1>
-            <button
-              onClick={handleClearAll}
-              className="text-rose-600 hover:text-neutral-900 font-medium text-sm transition-colors"
-            >
-              Clear All
-            </button>
+           <div className="flex flex-col items-start md:items-end gap-8">
+              <div className="flex flex-col items-end">
+                 <span className="font-neo font-black text-[9px] uppercase tracking-widest text-black/40 mb-1 italic">Registry Count</span>
+                 <p className="font-neo font-black text-5xl text-black italic uppercase leading-none">{wishlistItems.length}</p>
+              </div>
+              {wishlistItems.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-red-500 hover:text-black transition-colors border-b-2 border-red-500 hover:border-black py-1"
+                >
+                  Purge Registry
+                </button>
+              )}
+           </div>
+        </div>
+
+        {wishlistItems.length === 0 ? (
+          <div className="py-40">
+            <NeoCard variant="white" className="max-w-xl mx-auto p-16 border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] text-center relative overflow-hidden group">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-black/[0.02] flex items-center justify-center -rotate-12 translate-x-12 -translate-y-12 group-hover:rotate-0 transition-transform duration-700">
+                  <Heart size={80} strokeWidth={1} />
+               </div>
+               <div className="w-24 h-24 border-4 border-black bg-sd-ivory flex items-center justify-center mx-auto mb-10 shadow-[6px_6px_0_0_rgba(0,0,0,1)]">
+                 <Heart size={40} className="text-black/10" />
+               </div>
+               <h2 className="font-neo font-black text-3xl uppercase italic mb-6">Registry Empty</h2>
+               <p className="font-neo font-bold text-[11px] uppercase tracking-widest text-black/40 mb-12 leading-loose">
+                 Initialize hardware discovery to populate your saved asset registry.
+               </p>
+               <NeoButton 
+                 variant="primary" 
+                 className="w-full py-5 text-lg uppercase italic"
+                 onClick={() => router.push('/e-commerce')}
+               >
+                 Initialize Discovery
+               </NeoButton>
+            </NeoCard>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
             {wishlistItems.map((item) => (
-              <div
+              <NeoCard
                 key={item.id}
-                className="ec-dark-card ec-dark-card-hover overflow-hidden group" style={{ borderRadius: '14px' }}
+                variant="white"
+                className="group border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] flex flex-col p-8 hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[16px_16px_0_0_rgba(0,0,0,1)] transition-all"
               >
                 <div 
                   onClick={() => handleNavigateToProduct(item.id)}
-                  className="relative aspect-square overflow-hidden cursor-pointer" style={{ background: 'rgba(255,255,255,0.04)' }}
+                  className="relative aspect-[4/5] border-4 border-black bg-white overflow-hidden cursor-pointer mb-8"
                 >
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      e.currentTarget.src =
-                        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="400"%3E%3Crect fill="%23f3f4f6" width="300" height="400"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-size="16"%3E' +
-                        encodeURIComponent(item.name) +
-                        '%3C/text%3E%3C/svg%3E';
-                    }}
+                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
                   />
+                  <div className="absolute top-0 left-0 w-full h-full bg-black/10 mix-blend-overlay opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRemove(item.id);
                     }}
-                    className="absolute top-3 right-3 p-2 rounded-full z-10 transition-colors" style={{ background: 'rgba(13,13,13,0.7)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}
-                    title="Remove from wishlist"
+                    className="absolute top-4 right-4 w-12 h-12 border-4 border-black bg-white text-black flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors z-20 shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none"
                   >
-                    <X size={16} className="text-gray-700 hover:text-rose-600" />
+                    <X size={20} strokeWidth={3} />
                   </button>
+                  
+                  <div className="absolute bottom-4 left-4 font-neo font-black text-[9px] uppercase tracking-widest bg-black text-sd-gold px-4 py-2 border-2 border-sd-gold shadow-[4px_4px_0_0_rgba(0,0,0,1)] opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 transition-all">
+                     Record #{item.id}
+                  </div>
                 </div>
 
-                <div className="p-4">
+                <div className="flex-1 flex flex-col">
                   <h3 
                     onClick={() => handleNavigateToProduct(item.id)}
-                    className="text-sm font-semibold mb-2 line-clamp-2 min-h-[2.5rem] cursor-pointer transition-colors text-white"
+                    className="font-neo font-black text-2xl uppercase italic text-black leading-none mb-4 min-h-[3rem] cursor-pointer hover:text-sd-gold transition-colors"
                   >
                     {item.name}
                   </h3>
-                  <p className="text-lg font-bold text-neutral-900 mb-4">
-                    {item.price.toLocaleString()}.00৳
-                  </p>
                   
-                  <button
+                  <div className="flex items-center justify-between gap-4 mb-8 pt-4 border-t-4 border-black/5">
+                     <div className="flex flex-col">
+                        <span className="font-neo font-black text-[8px] uppercase tracking-widest text-black/40 italic">Valuation</span>
+                        <span className="font-neo font-black text-2xl text-black">৳{item.price.toLocaleString()}</span>
+                     </div>
+                  </div>
+                  
+                  <NeoButton
+                    variant={addingToCartId === item.id ? "gold" : "primary"}
                     onClick={() => handleAddToCart(item)}
                     disabled={addingToCartId === item.id}
-                    className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 ${
-                      addingToCartId === item.id
-                        ? 'bg-green-600 text-white'
-                        : 'bg-neutral-900 text-white hover:bg-neutral-800'
-                    }`}
+                    className="w-full py-5 text-lg group"
                   >
                     {addingToCartId === item.id ? (
-                      <>✓ Added</>
+                      <span className="flex items-center gap-3 italic uppercase animate-pulse">✓ Allocated</span>
                     ) : (
-                      <>
-                        <ShoppingCart size={16} />
-                        Add to Cart
-                      </>
+                      <span className="flex items-center gap-3 italic uppercase">
+                        Allocate Assets <ShoppingCart size={20} className="ml-2 group-hover:rotate-12 transition-transform" />
+                      </span>
                     )}
-                  </button>
+                  </NeoButton>
                 </div>
-              </div>
+              </NeoCard>
             ))}
           </div>
+        )}
+
+        <div className="mt-40 pt-20 border-t-4 border-black text-center">
+            <p className="font-neo font-black text-[10px] uppercase tracking-[0.8em] text-black/30 italic">Errum Digital Registry Systems • MMXXVI</p>
         </div>
-      </div><CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-    </>
+      </div>
+      
+      <CartSidebar isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+    </div>
   );
 }

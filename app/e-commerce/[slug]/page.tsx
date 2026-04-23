@@ -1,757 +1,371 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import {
+  Search,
+  Filter,
+  ChevronDown,
+  ShoppingBag,
+  Loader2,
+  ArrowRight,
+  SlidersHorizontal,
+  X,
+  History,
+  Layers,
+  Hash
+} from 'lucide-react';
+
 import Navigation from '@/components/ecommerce/Navigation';
 import CategorySidebar from '@/components/ecommerce/category/CategorySidebar';
 import { useCart } from '@/app/e-commerce/CartContext';
 import catalogService, {
   CatalogCategory,
-  Product,
   SimpleProduct,
   GetProductsParams,
 } from '@/services/catalogService';
-import PremiumProductCard from '@/components/ecommerce/ui/PremiumProductCard';
+import NeoProductCard from '@/components/ecommerce/ui/NeoProductCard';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import NeoBadge from '@/components/ecommerce/ui/NeoBadge';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
 import { groupProductsByMother } from '@/lib/ecommerceProductGrouping';
-import { X } from 'lucide-react';
+import { fireToast } from '@/lib/globalToast';
+import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * Normalizes keys for comparison (slugs, names, etc.)
- */
-const normalizeKey = (value: string) =>
-  decodeURIComponent(value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[-_]+/g, ' ')
-    .replace(/\s+/g, ' ');
+const UI_CARDS_PER_PAGE = 30;
 
-/**
- * Flattens nested category tree into a flat list
- */
-const flattenCategories = (cats: CatalogCategory[]): CatalogCategory[] => {
-  const result: CatalogCategory[] = [];
-
-  const walk = (items: CatalogCategory[]) => {
-    items.forEach((cat) => {
-      result.push(cat);
-      if (Array.isArray(cat.children) && cat.children.length > 0) {
-        walk(cat.children);
-      }
-    });
-  };
-
-  walk(cats);
-  return result;
-};
-
-/**
- * Gets all descendant category nodes including the root
- */
-const getDescendantCategoryNodes = (category: CatalogCategory | null | undefined): CatalogCategory[] => {
-  if (!category) return [];
-  const nodes: CatalogCategory[] = [];
-  const walk = (node: CatalogCategory) => {
-    nodes.push(node);
-    if (Array.isArray(node.children)) node.children.forEach(walk);
-  };
-  walk(category);
-  return nodes;
-};
-
-/**
- * Builds a set of allowed category IDs and normalized keys for a given category
- */
-const buildAllowedCategoryKeys = (category: CatalogCategory | null, slugFallback: string) => {
-  const ids = new Set<number>();
-  const keys = new Set<string>();
-
-  const addKey = (v: string | undefined | null) => {
-    const k = normalizeKey(String(v || ''));
-    if (k) keys.add(k);
-  };
-
-  if (category) {
-    for (const node of getDescendantCategoryNodes(category)) {
-      const id = Number((node as any)?.id || 0);
-      if (id > 0) ids.add(id);
-      addKey(node.name);
-      addKey(node.slug);
-    }
-  }
-
-  addKey(slugFallback);
-
-  return { ids, keys };
-};
-
-/**
- * Verifies if a product belongs to the allowed categories
- */
-const productMatchesAllowedCategory = (
-  product: Product | SimpleProduct,
-  allowed: { ids: Set<number>; keys: Set<string> }
-) => {
-  if ((!allowed.ids || allowed.ids.size === 0) && (!allowed.keys || allowed.keys.size === 0)) return true;
-
-  const cat: any = (product as any)?.category;
-  const catId = Number(cat?.id || 0);
-  if (catId > 0 && allowed.ids.has(catId)) return true;
-
-  const candidateKeys = [
-    cat?.slug,
-    cat?.name,
-    (product as any)?.category_slug,
-    (product as any)?.category_name,
-  ]
-    .map((v) => normalizeKey(String(v || '')))
-    .filter(Boolean);
-
-  return candidateKeys.some((k) => allowed.keys.has(k));
-};
-
-const UI_CARDS_PER_PAGE = 20;
-const MAX_API_PAGES = 50;
-const API_PER_PAGE = 60;
-
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-
-/**
- * Fetches products from the service without noisy error logging
- */
-const getProductsSilent = (params: GetProductsParams) =>
-  catalogService.getProducts({ ...(params as any), _suppressErrorLog: true } as GetProductsParams);
-
-/**
- * Groups flat products into representative mother products for display
- */
-const buildCardProductsFromFlatCatalog = (rawProducts: (Product | SimpleProduct)[]): SimpleProduct[] => {
-  const grouped = groupProductsByMother(rawProducts as any[], {
-    useCategoryInKey: true,
-    preferSkuGrouping: true,
-  });
-
-  return grouped.map((group) => {
-    const rawVariants = (group.variants || [])
-      .map((variant) => variant.raw)
-      .filter(Boolean) as SimpleProduct[];
-
-    const uniqueVariants = new Map<number, SimpleProduct>();
-    rawVariants.forEach((variant) => {
-      const id = Number((variant as any)?.id) || 0;
-      if (!id) return;
-      if (!uniqueVariants.has(id)) uniqueVariants.set(id, variant);
-    });
-
-    const all = Array.from(uniqueVariants.values());
-
-    // Propagate images across variants
-    const fallbackImages =
-      all.find((v) => (v as any).images?.some((img: any) => img?.is_primary))?.images ||
-      all.find((v) => Array.isArray((v as any).images) && (v as any).images.length > 0)?.images ||
-      [];
-    const allWithImages = fallbackImages.length
-      ? all.map((v) =>
-        Array.isArray((v as any).images) && (v as any).images.length > 0
-          ? v
-          : { ...(v as any), images: fallbackImages }
-      )
-      : all;
-
-    const representative =
-      (allWithImages.find((v) => Number(v.id) === Number((group.representative as any)?.id)) as SimpleProduct) ||
-      (group.representative as SimpleProduct) ||
-      allWithImages.find((variant) => Number(variant.stock_quantity || 0) > 0) ||
-      allWithImages[0];
-
-    if (!representative) {
-      return {
-        id: Number(group.representativeId || 0),
-        name: group.baseName || 'Product',
-        display_name: group.baseName || 'Product',
-        base_name: group.baseName || 'Product',
-        sku: '',
-        selling_price: 0,
-        stock_quantity: 0,
-        description: '',
-        images: [],
-        in_stock: false,
-        has_variants: false,
-        total_variants: 0,
-        variants: [],
-      } as SimpleProduct;
-    }
-
-    const variantsWithoutRepresentative = allWithImages.filter(
-      (variant) => Number(variant.id) !== Number(representative.id)
-    );
-
-    return {
-      ...representative,
-      name: group.baseName || (representative as any).base_name || representative.name,
-      display_name: group.baseName || (representative as any).display_name || (representative as any).base_name || representative.name,
-      base_name: group.baseName || (representative as any).base_name || representative.name,
-      has_variants: all.length > 1,
-      total_variants: all.length,
-      variants: variantsWithoutRepresentative,
-    } as SimpleProduct;
-  });
-};
-
-/**
- * Category feed page component
- */
 export default function CategoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-sd-ivory flex flex-col items-center justify-center gap-4">
+        <div className="w-16 h-16 border-4 border-black border-t-sd-gold animate-spin" />
+        <span className="font-neo font-black text-[10px] uppercase tracking-widest">Scanning Sector...</span>
+      </div>
+    }>
+      <CategoryPageContent />
+    </Suspense>
+  );
+}
+
+function CategoryPageContent() {
   const params = useParams() as any;
   const router = useRouter();
-  const { addToCart, setIsCartOpen } = useCart();
+  const searchParams = useSearchParams();
+  const { addToCart } = useCart();
 
   const categorySlug = params.slug || '';
 
-  const [products, setProducts] = useState<(Product | SimpleProduct)[]>([]);
+  // --- State ---
+  const [products, setProducts] = useState<SimpleProduct[]>([]);
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
-  const [activeCategoryName, setActiveCategoryName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [partialLoadWarning, setPartialLoadWarning] = useState<string | null>(null);
-
-  const [selectedSort, setSelectedSort] = useState<GetProductsParams['sort_by']>('newest');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalResults, setTotalResults] = useState(0);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [isClosingFilters, setIsClosingFilters] = useState(false);
-  
-  // Notify navigation about mobile sidebar state
-  useEffect(() => {
-    window.dispatchEvent(new CustomEvent('mobile-sidebar-toggle', { detail: { open: isFiltersOpen } }));
-    return () => {
-      window.dispatchEvent(new CustomEvent('mobile-sidebar-toggle', { detail: { open: false } }));
-    };
-  }, [isFiltersOpen]);
-
-  const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
-  const [imageErrors, setImageErrors] = useState<Set<number>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState<CatalogCategory | null>(null);
   const fetchProductsIdRef = useRef(0);
 
-  type CacheEntry = {
-    key: string;
-    attemptParams: Record<string, any>;
-    fetchedApiPages: number;
-    apiLastPage: number | null;
-    hasMore: boolean;
-    rawById: Map<number, Product | SimpleProduct>;
-    rawOrdered: Array<Product | SimpleProduct>;
-    cards: SimpleProduct[];
-    partialWarning: string | null;
-  };
+  // --- Filter State (Synced with URL) ---
+  const query = searchParams.get('search') || '';
+  const sortBy = (searchParams.get('sort') as 'newest' | 'price_asc' | 'price_desc') || 'newest';
+  const priceRange = searchParams.get('price') || 'all';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
-  const cacheRef = useRef<Record<string, CacheEntry>>({});
+  // --- Local UI State ---
+  const [searchInput, setSearchInput] = useState(query);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  const normalizedSlug = useMemo(() => normalizeKey(categorySlug), [categorySlug]);
-  const flatCategories = useMemo(() => flattenCategories(categories), [categories]);
-
-  /**
-   * Identifies the current active category from the flat list
-   */
-  const activeCategory = useMemo(() => {
-    return (
-      flatCategories.find((cat) => {
-        const slugKey = normalizeKey(cat.slug || '');
-        const nameKey = normalizeKey(cat.name || '');
-        return slugKey === normalizedSlug || nameKey === normalizedSlug;
-      }) || null
-    );
-  }, [flatCategories, normalizedSlug]);
-
-  /**
-   * Fetches the category tree for the sidebar
-   */
-  const fetchCategories = async () => {
-    try {
-      setCategoriesLoading(true);
-      const categoryData = await catalogService.getCategories();
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-      setError('Failed to load categories');
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  /**
-   * Builds the API parameters for the catalog request
-   */
-  const buildAttemptParams = (): Record<string, any> => {
-    const baseParams: GetProductsParams & Record<string, any> = {
-      page: 1,
-      per_page: API_PER_PAGE,
-      sort_by: selectedSort,
-      search: searchQuery || undefined,
-    };
-
-    if (selectedPriceRange !== 'all') {
-      const [min, max] = selectedPriceRange.split('-').map(Number);
-      if (!Number.isNaN(min)) baseParams.min_price = min;
-      if (!Number.isNaN(max)) baseParams.max_price = max;
-    }
-
-    if (activeCategory?.id || activeCategory?.slug) {
-      return {
-        ...baseParams,
-        category_id: activeCategory?.id,
-        category_slug: activeCategory?.slug,
-      };
-    }
-    if (categorySlug) {
-      return {
-        ...baseParams,
-        category_slug: categorySlug,
-      };
-    }
-    return { ...baseParams };
-  };
-
-  /**
-   * Generates a unique key for caching product results
-   */
-  const getCacheKey = () => {
-    const slugKey = normalizeKey(categorySlug || '');
-    return [
-      'cat',
-      slugKey,
-      String(activeCategory?.id || ''),
-      selectedSort || '',
-      selectedPriceRange,
-      searchQuery,
-    ].join('::');
-  };
-
-  /**
-   * Ensures enough cards are loaded/grouped to fill the requested UI page
-   */
-  const ensureCardsForUiPage = async (entry: CacheEntry, uiPage: number) => {
-    const targetCards = uiPage * UI_CARDS_PER_PAGE;
-    const allowedCategory = buildAllowedCategoryKeys(activeCategory || null, categorySlug);
-    const serverSideCategoryFiltered = Boolean(
-      (entry.attemptParams as any)?.category_slug || (entry.attemptParams as any)?.category_id
-    );
-
-    const appendFilteredUniqueProducts = (items: (Product | SimpleProduct)[] | undefined | null) => {
-      if (!Array.isArray(items) || items.length === 0) return 0;
-      let added = 0;
-      for (const rawItem of items) {
-        if (!rawItem) continue;
-        if (!serverSideCategoryFiltered) {
-          if (!productMatchesAllowedCategory(rawItem, allowedCategory)) continue;
-        }
-
-        const itemId = Number((rawItem as any).id || 0);
-        if (itemId > 0) {
-          if (entry.rawById.has(itemId)) continue;
-          entry.rawById.set(itemId, rawItem);
-        }
-
-        entry.rawOrdered.push(rawItem);
-        added += 1;
+  // --- Navigation Helper ---
+  const updateURL = (updates: Record<string, string | number | null>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === 'all' || (key === 'page' && value === 1)) {
+        newParams.delete(key);
+      } else {
+        newParams.set(key, String(value));
       }
-      return added;
-    };
+    });
 
-    while (entry.cards.length < targetCards && entry.hasMore && entry.fetchedApiPages < MAX_API_PAGES) {
-      const nextApiPage = entry.fetchedApiPages + 1;
+    if (!updates.page) newParams.delete('page');
 
-      try {
-        const res = await getProductsSilent({ ...(entry.attemptParams as any), page: nextApiPage } as GetProductsParams);
-        entry.fetchedApiPages = nextApiPage;
-
-        const nextProducts = Array.isArray(res?.products) ? (res.products as any[]) : [];
-        const lastPage = Number(res?.pagination?.last_page || 0);
-        if (Number.isFinite(lastPage) && lastPage > 0) entry.apiLastPage = lastPage;
-
-        appendFilteredUniqueProducts(nextProducts);
-
-        if (nextProducts.length === 0) {
-          entry.hasMore = false;
-        } else if (res?.pagination?.has_more_pages === false) {
-          entry.hasMore = false;
-        } else if (entry.apiLastPage && entry.fetchedApiPages >= entry.apiLastPage) {
-          entry.hasMore = false;
-        }
-
-        entry.cards = buildCardProductsFromFlatCatalog(entry.rawOrdered);
-      } catch (err) {
-        console.warn(`Error fetching products api page ${nextApiPage}`, err);
-        entry.hasMore = false;
-        entry.partialWarning = 'Some products could not be loaded due to a server data issue.';
-        break;
-      }
-    }
+    router.push(`/e-commerce/${categorySlug}?${newParams.toString()}`);
   };
 
-  /**
-   * Main function to fetch products for the display
-   */
-  const fetchProducts = async (uiPage = 1) => {
-    if (categoriesLoading) return;
-
-    const currentFetchId = ++fetchProductsIdRef.current;
-    setLoading(true);
-    setPartialLoadWarning(null);
-    try {
-      const key = getCacheKey();
-      let entry = cacheRef.current[key];
-      if (!entry) {
-        entry = {
-          key,
-          attemptParams: buildAttemptParams(),
-          fetchedApiPages: 0,
-          apiLastPage: null,
-          hasMore: true,
-          rawById: new Map(),
-          rawOrdered: [],
-          cards: [],
-          partialWarning: null,
-        };
-        cacheRef.current[key] = entry;
-      }
-
-      await ensureCardsForUiPage(entry, uiPage);
-
-      // Check if this is still the latest request before state updates
-      if (currentFetchId !== fetchProductsIdRef.current) return;
-
-      const computedTotalPages = Math.max(1, Math.ceil(entry.cards.length / UI_CARDS_PER_PAGE));
-      const safeUiPage = clamp(uiPage, 1, Math.max(computedTotalPages, entry.hasMore ? uiPage : computedTotalPages));
-      const startIndex = (safeUiPage - 1) * UI_CARDS_PER_PAGE;
-      const pageCards = entry.cards.slice(startIndex, startIndex + UI_CARDS_PER_PAGE);
-
-      setProducts(pageCards);
-      setTotalResults(entry.cards.length);
-      setCurrentPage(safeUiPage);
-      setTotalPages(entry.hasMore ? Math.max(computedTotalPages, safeUiPage + 1) : computedTotalPages);
-      setError(null);
-      setPartialLoadWarning(entry.partialWarning);
-    } catch (err) {
-      if (currentFetchId === fetchProductsIdRef.current) {
-        console.error('Error fetching products:', err);
-        setError('Failed to load products');
-        setPartialLoadWarning(null);
-        setProducts([]);
-        setTotalResults(0);
-      }
-    } finally {
-      if (currentFetchId === fetchProductsIdRef.current) {
-        setLoading(false);
-      }
-    }
-  };
-
+  // --- Effects ---
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1);
-    setImageErrors(new Set());
-    cacheRef.current = {};
-    fetchProducts(1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategory?.id, categoriesLoading, selectedPriceRange, selectedSort, searchQuery]);
+    fetchProducts();
+  }, [categorySlug, query, sortBy, priceRange, currentPage, categories]);
 
-  const handleImageError = (productId: number) => {
-    setImageErrors((prev) => {
-      if (prev.has(productId)) return prev;
-      const next = new Set(prev);
-      next.add(productId);
-      return next;
-    });
-  };
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
 
-  /**
-   * Handles adding a product to the cart
-   */
-  const handleAddToCart = async (product: SimpleProduct, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // --- Actions ---
+  const fetchCategories = async () => {
     try {
-      if (product.has_variants) {
-        router.push(`/e-commerce/product/${product.id}`);
-        return;
-      }
-      await addToCart(product.id, 1);
-      setIsCartOpen(true);
-    } catch (err) {
-      console.error('Error adding to cart:', err);
+      const data = await catalogService.getCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
     }
   };
 
-  /**
-   * Navigates to the product detail page
-   */
+  const fetchProducts = async () => {
+    if (categories.length === 0) return;
+    
+    const currentFetchId = ++fetchProductsIdRef.current;
+    setIsLoading(true);
+
+    // Find active category to get its ID
+    const findCategory = (cats: CatalogCategory[]): CatalogCategory | null => {
+      for (const cat of cats) {
+        if (cat.slug === categorySlug) return cat;
+        if (cat.children?.length) {
+          const found = findCategory(cat.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    
+    const foundCat = findCategory(categories);
+    setActiveCategory(foundCat);
+
+    try {
+      const apiParams: any = {
+        page: currentPage,
+        per_page: UI_CARDS_PER_PAGE,
+        category_id: foundCat?.id,
+        sort_by: sortBy === 'newest' ? 'created_at' : sortBy,
+        sort_order: sortBy === 'price_asc' ? 'asc' : 'desc',
+        group_by_sku: true,
+      };
+
+      if (query) apiParams.search = query;
+      if (priceRange !== 'all') {
+        const [min, max] = priceRange.split('-');
+        if (min) apiParams.min_price = min;
+        if (max) apiParams.max_price = max;
+      }
+
+      const response = await catalogService.getProducts(apiParams);
+      if (currentFetchId !== fetchProductsIdRef.current) return;
+
+      const displayProducts = response.grouped_products?.length
+        ? response.grouped_products.map(gp => gp.main_variant)
+        : response.products;
+
+      setProducts(displayProducts as SimpleProduct[]);
+    } catch (error) {
+      if (currentFetchId === fetchProductsIdRef.current) {
+        console.error('Failed to load products:', error);
+        fireToast('Sector Synchronization Failed', 'error');
+      }
+    } finally {
+      if (currentFetchId === fetchProductsIdRef.current) {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    updateURL({ page });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleProductClick = (product: SimpleProduct) => {
     router.push(`/e-commerce/product/${product.id}`);
   };
 
-  /**
-   * Handles category selection change
-   */
-  const handleCategoryChange = (categoryNameOrSlug: string) => {
-    if (categoryNameOrSlug === 'all') {
-      router.push('/e-commerce/products');
+  const handleAddToCart = async (product: SimpleProduct, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (product.has_variants) {
+      handleProductClick(product);
       return;
     }
-    router.push(`/e-commerce/${encodeURIComponent(categoryNameOrSlug)}`);
-  };
-
-  const closeFilters = () => {
-    setIsClosingFilters(true);
-    setTimeout(() => {
-      setIsFiltersOpen(false);
-      setIsClosingFilters(false);
-    }, 450);
-  };
-
-  /**
-   * Handles pagination page change
-   */
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      fetchProducts(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      await addToCart(product.id, 1);
+      fireToast(`Artifact ${product.name} Secured`, 'success');
+    } catch (err: any) {
+      fireToast(err.message || 'Transfer Failed', 'error');
     }
   };
 
-  if (loading && products.length === 0) {
-    return (
-      <>
-        <Navigation />
-        <div className="ec-root bg-[var(--bg-root)] min-h-screen">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="animate-pulse">
-              <div className="h-8 rounded w-1/4 mb-8 animate-pulse" style={{ background: 'var(--ivory-ghost)' }}></div>
-              <div className="flex gap-8">
-                <div className="w-64 h-96 rounded-lg animate-pulse" style={{ background: 'var(--bg-surface)' }}></div>
-                <div className="flex-1 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {[...Array(10)].map((_, i) => (
-                    <div key={i} className="aspect-[2/3] rounded-lg animate-pulse bg-gray-100" />
-                  ))}
-                </div>
+  const handleCategoryChange = (val: string) => {
+    if (val === 'all') {
+      router.push('/e-commerce/products');
+    } else {
+      router.push(`/e-commerce/${val}`);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-sd-ivory">
+      <Navigation />
+
+      {/* ── Category Header ── */}
+      <header className="relative pt-32 pb-16 border-b-4 border-black bg-white overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-full bg-sd-gold/5 -skew-x-12 translate-x-20" />
+        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-sd-gold/20" />
+        
+        <div className="container mx-auto px-6 lg:px-12 relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <Layers size={16} className="text-sd-gold" />
+                <span className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-sd-gold italic">Department Classification</span>
+              </div>
+              <h1 className="text-5xl md:text-7xl font-neo font-black uppercase tracking-tighter text-black leading-[0.85]">
+                {activeCategory?.name || categorySlug.replace(/-/g, ' ')}
+              </h1>
+              <div className="flex flex-wrap gap-2 mt-2">
+                <NeoBadge variant="black" className="text-[10px]">Sector: {categorySlug.toUpperCase()}</NeoBadge>
+                <NeoBadge variant="violet" className="text-[10px]">Protocol: Selective Discovery</NeoBadge>
               </div>
             </div>
           </div>
         </div>
-      </>
-    );
-  }
+      </header>
 
-  return (
-    <div className="min-h-screen bg-sd-ivory relative overflow-hidden">
-      <Navigation />
-      
-      {/* ── Background Typography ── */}
-      <div className="absolute top-[5%] right-[-5%] opacity-[0.02] pointer-events-none select-none">
-        <span className="text-[25vw] font-display italic font-light text-sd-black leading-none whitespace-nowrap">
-           Registry
-        </span>
-      </div>
-
-      <main className="pt-32 pb-40 relative z-10">
-        <div className="container mx-auto px-6 lg:px-12">
+      <main className="container mx-auto px-6 lg:px-12 py-16">
+        <div className="flex flex-col lg:flex-row gap-12">
           
-          {/* Header Strip */}
-          <div className="bg-sd-white sd-depth-lift rounded-[32px] mb-20 overflow-hidden relative border border-sd-border-default/20">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-sd-gold/5 rounded-bl-full pointer-events-none" />
-             <div className="px-10 py-16 flex flex-col md:flex-row md:items-end justify-between gap-10">
-                <div>
-                   <div className="flex items-center gap-4 mb-6">
-                      <span className="font-mono text-[10px] font-bold text-sd-gold uppercase tracking-[0.5em]">Dept classification</span>
-                      <div className="h-[1px] w-12 bg-sd-gold/30" />
-                   </div>
-                   <h1 className="text-6xl lg:text-8xl font-display text-sd-black italic leading-[0.8]">
-                      {activeCategory?.name || 'Anthology'}
-                   </h1>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                   <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-sd-text-muted">Archives Found</span>
-                   <span className="font-mono text-3xl font-bold text-sd-black">{totalResults}</span>
-                </div>
+          {/* ── Sidebar (Desktop) ── */}
+          <aside className="hidden lg:block w-72 flex-shrink-0">
+             <CategorySidebar
+               categories={categories}
+               activeCategory={categorySlug}
+               onCategoryChange={handleCategoryChange}
+               selectedPriceRange={priceRange}
+               onPriceRangeChange={(val) => updateURL({ price: val })}
+               selectedSort={sortBy}
+               onSortChange={(val) => updateURL({ sort: val })}
+               searchQuery={searchInput}
+               onSearchChange={setSearchInput}
+               useIdForRouting={false}
+             />
+          </aside>
+
+          {/* ── Main Feed ── */}
+          <div className="flex-1">
+             {/* Mobile Actions */}
+             <div className="lg:hidden flex flex-col gap-4 mb-10">
+               <NeoButton 
+                 variant="primary" 
+                 className="w-full py-4 text-[10px]"
+                 onClick={() => setShowMobileFilters(true)}
+               >
+                 <Filter size={14} /> Refine Classification
+               </NeoButton>
              </div>
-          </div>
 
-          <div className="flex flex-col xl:flex-row gap-16 items-start">
-            {/* ── 1. Registry Filters (Sidebar) ── */}
-            <aside className="hidden xl:block w-72 lg:sticky lg:top-32">
-               <div className="sd-depth-recess bg-sd-ivory-dark/10 rounded-[40px] p-8">
-                  <CategorySidebar
-                    categories={categories}
-                    activeCategory={categorySlug}
-                    onCategoryChange={handleCategoryChange}
-                    selectedPriceRange={selectedPriceRange}
-                    onPriceRangeChange={setSelectedPriceRange}
-                    selectedStock="all"
-                    onStockChange={() => { }}
-                    selectedSort={selectedSort}
-                    onSortChange={setSelectedSort}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                  />
+             {/* Grid Header */}
+             <div className="flex items-center justify-between mb-10 border-b-2 border-black pb-4">
+               <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 bg-sd-gold animate-pulse" />
+                  <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">
+                    Retrieving artifacts for sector: <span className="text-black not-italic">{activeCategory?.name}</span>
+                  </span>
                </div>
-            </aside>
+            </div>
 
-            {/* ── 2. Artifact Registry (Main Feed) ── */}
-            <div className="flex-1 w-full">
-              {partialLoadWarning && !error && (
-                <div className="mb-10 p-4 border border-sd-gold/20 bg-sd-gold/5 rounded-2xl">
-                   <p className="font-mono text-[10px] text-sd-gold uppercase tracking-widest text-center">{partialLoadWarning}</p>
-                </div>
-              )}
-
-              {error ? (
-                <div className="sd-depth-recess bg-sd-white/50 rounded-[40px] py-32 text-center flex flex-col items-center">
-                   <div className="w-20 h-20 rounded-full border-2 border-sd-gold/20 flex items-center justify-center mb-8">
-                      <X className="text-sd-gold" size={32} strokeWidth={1} />
-                   </div>
-                   <h2 className="font-display text-4xl italic text-sd-black mb-6">Synchronization Failed</h2>
-                   <button 
-                     onClick={() => fetchProducts(currentPage)}
-                     className="bg-sd-black text-sd-white h-14 px-10 rounded-2xl font-mono text-[10px] uppercase tracking-[0.4em] hover:sd-depth-lift transition-all"
-                   >
-                     Re-Sync Registry
-                   </button>
-                </div>
-              ) : products.length === 0 && !loading ? (
-                <div className="sd-depth-recess bg-sd-white/50 rounded-[40px] py-32 text-center flex flex-col items-center border border-dashed border-sd-border-default/30">
-                   <div className="w-20 h-20 rounded-full border border-sd-border-default flex items-center justify-center mb-8 opacity-40">
-                      <Hash className="text-sd-text-muted" size={32} strokeWidth={1} />
-                   </div>
-                   <h2 className="font-display text-4xl italic text-sd-black mb-4 opacity-40">Registry Empty</h2>
-                   <p className="font-mono text-[10px] text-sd-text-muted uppercase tracking-widest mb-10">No items detected for the current parameters.</p>
-                   <button 
-                     onClick={() => {
-                        setSelectedPriceRange('all');
-                        handleCategoryChange('all');
-                     }}
-                     className="border border-sd-black h-14 px-10 rounded-2xl font-mono text-[10px] uppercase tracking-[0.4em] hover:bg-sd-black hover:text-sd-white transition-all"
-                   >
-                     Clear Fragments
-                   </button>
-                </div>
-              ) : (
-                <div className="space-y-20">
-                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-y-16 gap-x-8">
-                      {products.map((item, idx) => (
-                        <PremiumProductCard 
-                          key={item.id} 
-                          product={item as SimpleProduct} 
-                          animDelay={idx * 50}
+            {/* Product Feed */}
+            <div className="relative min-h-[600px]">
+               {isLoading ? (
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="aspect-[3/4] border-4 border-black bg-white/50 animate-pulse relative">
+                         <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="font-neo font-black text-[8px] uppercase tracking-widest opacity-20">Scanning...</span>
+                         </div>
+                      </div>
+                    ))}
+                  </div>
+               ) : products.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-40 border-4 border-black border-dashed rounded-[40px] bg-white/30">
+                    <NeoBadge variant="black" className="mb-6">0 Results Detected</NeoBadge>
+                    <h3 className="text-3xl font-neo font-black uppercase italic mb-4">Sector Depleted</h3>
+                    <p className="font-neo text-[10px] uppercase tracking-widest text-black/40 mb-10 text-center max-w-xs leading-loose">
+                      No archival matches remain in this classified sector with the current refinement parameters.
+                    </p>
+                    <NeoButton 
+                      variant="outline" 
+                      className="px-10 py-4 text-[10px]"
+                      onClick={() => {
+                         setSearchInput('');
+                         updateURL({ search: null, price: 'all', sort: 'newest' });
+                      }}
+                    >
+                      Reset Refinement
+                    </NeoButton>
+                  </div>
+               ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                     {products.map((product, idx) => (
+                        <NeoProductCard
+                          key={product.id}
+                          product={product}
                           onOpen={handleProductClick}
                           onAddToCart={handleAddToCart}
+                          animDelay={idx * 50}
                         />
-                      ))}
-                   </div>
-
-                   {/* Registry Pagination */}
-                   {totalPages > 1 && (
-                      <div className="pt-20 border-t border-sd-border-default/10 flex items-center justify-center gap-4">
-                         <button
-                           onClick={() => handlePageChange(currentPage - 1)}
-                           disabled={currentPage === 1}
-                           className="w-14 h-14 rounded-2xl border border-sd-border-default flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all disabled:opacity-20 mr-4"
-                         >
-                            <ChevronLeft size={20} />
-                         </button>
-
-                         <div className="flex items-center gap-2">
-                            {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                               const pageNum = i + 1;
-                               return (
-                                 <button
-                                   key={pageNum}
-                                   onClick={() => handlePageChange(pageNum)}
-                                   className={`
-                                      w-12 h-12 rounded-xl font-mono text-[10px] font-bold transition-all
-                                      ${currentPage === pageNum 
-                                        ? 'bg-sd-gold text-sd-black sd-depth-lift' 
-                                        : 'bg-sd-white text-sd-text-muted border border-sd-border-default/50 hover:border-sd-gold hover:text-sd-black'}
-                                   `}
-                                 >
-                                    {String(pageNum).padStart(2, '0')}
-                                 </button>
-                               );
-                            })}
-                         </div>
-
-                         <button
-                           onClick={() => handlePageChange(currentPage + 1)}
-                           disabled={currentPage === totalPages}
-                           className="w-14 h-14 rounded-2xl border border-sd-border-default flex items-center justify-center text-sd-black hover:bg-sd-black hover:text-sd-white transition-all disabled:opacity-20 ml-4"
-                         >
-                            <ChevronRight size={20} />
-                         </button>
-                      </div>
-                   )}
-                </div>
-              )}
+                     ))}
+                  </div>
+               )}
             </div>
           </div>
         </div>
       </main>
 
-      {/* Mobile Registry Control Pad */}
-      <div className="xl:hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] w-full px-6 max-w-[280px]">
-        <button
-          onClick={() => setIsFiltersOpen(true)}
-          className="w-full h-16 bg-sd-black text-sd-white rounded-full font-mono text-[10px] font-bold uppercase tracking-[0.4em] flex items-center justify-center gap-4 shadow-2xl active:scale-95 transition-all border border-sd-white/10"
-        >
-          <Filter size={14} className="text-sd-gold" />
-          Refine Search
-        </button>
-      </div>
-
-      {/* Mobile Filter Drawer */}
+      {/* ── Mobile Filters Overlay ── */}
       <AnimatePresence>
-        {isFiltersOpen && (
-          <div className="fixed inset-0 z-[200]">
+        {showMobileFilters && (
+          <div className="fixed inset-0 z-[100] flex flex-col">
             <motion.div 
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="absolute inset-0 bg-sd-black/80 backdrop-blur-xl"
-               onClick={closeFilters}
+               className="absolute inset-0 bg-black/60 backdrop-blur-md"
+               onClick={() => setShowMobileFilters(false)}
             />
             <motion.div 
                initial={{ y: '100%' }}
                animate={{ y: 0 }}
                exit={{ y: '100%' }}
                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-               className="absolute bottom-0 left-0 right-0 bg-sd-ivory rounded-t-[48px] max-h-[90vh] overflow-hidden flex flex-col"
+               className="mt-auto relative bg-sd-ivory border-t-4 border-black rounded-t-[40px] max-h-[90vh] overflow-hidden flex flex-col"
             >
-               <div className="w-12 h-1.5 bg-sd-border-default/20 rounded-full mx-auto my-6" />
-               <div className="px-10 pb-10 overflow-y-auto no-scrollbar">
+               <div className="flex items-center justify-between p-8 border-b-2 border-black/10">
+                  <h3 className="font-neo font-black text-xl uppercase italic">Refinement</h3>
+                  <button onClick={() => setShowMobileFilters(false)} className="w-10 h-10 border-2 border-black flex items-center justify-center">
+                     <X size={20} />
+                  </button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-8 pb-32">
                   <CategorySidebar
                     categories={categories}
                     activeCategory={categorySlug}
-                    onCategoryChange={(v) => { closeFilters(); handleCategoryChange(v); }}
-                    selectedPriceRange={selectedPriceRange}
-                    onPriceRangeChange={setSelectedPriceRange}
-                    selectedStock="all"
-                    onStockChange={() => { }}
-                    selectedSort={selectedSort}
-                    onSortChange={setSelectedSort}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
+                    onCategoryChange={(val) => { handleCategoryChange(val); setShowMobileFilters(false); }}
+                    selectedPriceRange={priceRange}
+                    onPriceRangeChange={(val) => { updateURL({ price: val }); setShowMobileFilters(false); }}
+                    selectedSort={sortBy}
+                    onSortChange={(val) => { updateURL({ sort: val }); setShowMobileFilters(false); }}
+                    searchQuery={searchInput}
+                    onSearchChange={setSearchInput}
+                    useIdForRouting={false}
                   />
                </div>
-               <div className="px-10 pb-10 pt-4 bg-sd-ivory border-t border-sd-border-default/10">
-                  <button 
-                     onClick={closeFilters}
-                     className="w-full h-16 bg-sd-black text-sd-white rounded-2xl font-mono text-[10px] font-bold uppercase tracking-[0.4em]"
+               
+               <div className="absolute bottom-0 left-0 right-0 p-8 pt-4 bg-sd-ivory border-t-2 border-black/10">
+                  <NeoButton 
+                    variant="primary" 
+                    className="w-full py-5 text-[10px]"
+                    onClick={() => setShowMobileFilters(false)}
                   >
-                     Review Registry
-                  </button>
+                    Execute Parameters
+                  </NeoButton>
                </div>
             </motion.div>
           </div>

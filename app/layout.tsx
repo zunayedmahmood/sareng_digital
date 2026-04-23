@@ -17,7 +17,8 @@ export const metadata: Metadata = {
   title: "Sareng Digital",
   description: "Curated Character Artifacts • Official Store",
   icons: {
-    icon: "/logo.png",
+    icon: "/logo.webp",
+
   },
 };
 

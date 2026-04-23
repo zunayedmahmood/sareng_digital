@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronDown, ChevronRight, Hash, Filter, DollarSign, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, ChevronRight, Hash, DollarSign, Layers, Check } from 'lucide-react';
+import NeoCard from '../ui/NeoCard';
+import NeoBadge from '../ui/NeoBadge';
 
 interface Category {
   id: number;
@@ -17,8 +19,8 @@ interface CategorySidebarProps {
   onCategoryChange: (category: string) => void;
   selectedPriceRange: string;
   onPriceRangeChange: (range: string) => void;
-  selectedStock: string;
-  onStockChange: (stock: string) => void;
+  selectedStock?: string;
+  onStockChange?: (stock: string) => void;
   selectedSort?: string;
   onSortChange?: (sort: any) => void;
   searchQuery?: string;
@@ -74,33 +76,34 @@ export default function CategorySidebar({
     const active = isActive(category);
 
     return (
-      <div key={category.id} className="mb-px group">
-        <div
+      <div key={category.id} className="group">
+        <button
+          onClick={() => onCategoryChange(categoryRouteValue(category))}
           className={`
-            flex items-center justify-between py-3 px-4 transition-all duration-300 relative
+            w-full flex items-center justify-between py-3 px-4 transition-all duration-100
             ${active 
-              ? 'bg-sd-white text-sd-black font-bold z-10 border-l-4 border-sd-gold' 
-              : 'hover:bg-sd-ivory-dark/10 text-sd-text-muted hover:text-sd-black border-l-4 border-transparent'}
+              ? 'bg-sd-black text-sd-gold font-black z-10' 
+              : 'hover:bg-sd-gold/10 text-black font-bold'}
           `}
           style={{ paddingLeft: `${16 + level * 16}px` }}
         >
-          <span
-            onClick={() => onCategoryChange(categoryRouteValue(category))}
-            className="flex-1 font-mono text-[10px] uppercase tracking-widest cursor-pointer"
-          >
+          <span className="font-neo text-[10px] uppercase tracking-widest text-left">
             {category.name}
           </span>
           {hasChildren && (
-            <button
-               onClick={() => toggleCategory(category.id)}
+            <div
+               onClick={(e) => {
+                 e.stopPropagation();
+                 toggleCategory(category.id);
+               }}
                className="p-1 hover:text-sd-gold transition-colors"
             >
                {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </button>
+            </div>
           )}
-        </div>
+        </button>
         {hasChildren && isExpanded && (
-          <div className="bg-sd-ivory-dark/5 border-l border-sd-border-default/10">
+          <div className="border-l-2 border-black ml-4">
             {category.children!.map(child => renderCategory(child, level + 1))}
           </div>
         )}
@@ -109,67 +112,67 @@ export default function CategorySidebar({
   };
 
   return (
-    <div className="space-y-12">
-      {/* ── Search Artifacts ── */}
+    <div className="flex flex-col gap-10">
+      {/* ── Search Protocol ── */}
       {onSearchChange && (
         <section className="space-y-4">
-           <div className="flex items-center gap-2 mb-4">
-              <Hash size={12} className="text-sd-gold" />
-              <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Query Registry</h3>
+           <div className="flex items-center gap-2">
+              <Hash size={14} className="text-sd-gold" />
+              <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Query Engine</h3>
            </div>
-           <div className="sd-depth-recess bg-sd-ivory-dark/20 p-2 rounded-2xl">
+           <NeoCard variant="white" hasHover={false} className="p-1 neo-shadow-sm border-2">
               <input 
                 type="text" 
-                placeholder="Fragment keywords..."
+                placeholder="REGISTRY FILTER..."
                 value={searchQuery || ''}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full bg-white border border-sd-border-default/50 rounded-xl px-4 py-3 font-mono text-[10px] text-sd-black focus:outline-none focus:border-sd-gold transition-all placeholder:text-sd-text-muted/40 uppercase tracking-widest"
+                className="w-full bg-white px-4 py-3 font-neo text-[11px] font-black text-black focus:outline-none placeholder:text-black/20 uppercase tracking-widest"
               />
-           </div>
+           </NeoCard>
         </section>
       )}
 
-      {/* ── Category Anthology ── */}
+      {/* ── Sections ── */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-           <Layers size={12} className="text-sd-gold" />
-           <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Sections</h3>
+        <div className="flex items-center gap-2">
+           <Layers size={14} className="text-sd-gold" />
+           <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Archival Nodes</h3>
         </div>
-        <div className="sd-depth-recess bg-sd-white overflow-hidden rounded-3xl border border-sd-border-default/30">
-          <div
+        <NeoCard variant="white" hasHover={false} className="overflow-hidden border-2 p-0 neo-shadow-sm">
+          <button
             className={`
-              py-4 px-5 text-[10px] font-mono font-bold uppercase tracking-widest cursor-pointer transition-all border-l-4
+              w-full text-left py-4 px-5 text-[11px] font-neo font-black uppercase tracking-widest transition-all
               ${activeCategory === 'products' || activeCategory === 'all' || activeCategory === ''
-                ? 'bg-sd-white text-sd-black border-sd-gold'
-                : 'bg-sd-ivory-dark/5 text-sd-text-muted border-transparent hover:bg-sd-ivory-dark/10 hover:text-sd-black'}
+                ? 'bg-sd-black text-sd-gold'
+                : 'bg-white text-black hover:bg-sd-gold/10'}
             `}
             onClick={() => onCategoryChange('all')}
           >
-            All Anthology
-          </div>
-          <div className="divide-y divide-sd-border-default/5">
+            All Collections
+          </button>
+          <div className="divide-y-2 divide-black border-t-2 border-black">
             {categories.map(category => renderCategory(category))}
           </div>
-        </div>
+        </NeoCard>
       </section>
 
-      {/* ── Price Matrix ── */}
+      {/* ── Value Tiers ── */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-           <DollarSign size={12} className="text-sd-gold" />
-           <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Value Tiers</h3>
+        <div className="flex items-center gap-2">
+           <DollarSign size={14} className="text-sd-gold" />
+           <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Investment Range</h3>
         </div>
-        <div className="sd-depth-recess bg-sd-ivory-dark/20 p-4 rounded-3xl space-y-2">
+        <NeoCard variant="white" hasHover={false} className="p-4 border-2 neo-shadow-sm space-y-2">
            {[
-             { value: 'all', label: 'Complete Catalog' },
+             { value: 'all', label: 'Full Spectrum' },
              { value: '0-500', label: 'Under ৳500' },
              { value: '500-1000', label: '৳500 — ৳1,000' },
              { value: '1000-2000', label: '৳1,000 — ৳2,000' },
              { value: '2000-5000', label: '৳2,000 — ৳5,000' },
-             { value: '5000-999999', label: 'Above ৳5,000' },
+             { value: '5000-999999', label: 'Premium ৳5,000+' },
            ].map((range) => (
-             <label key={range.value} className="flex items-center justify-between group cursor-pointer py-1">
-               <span className={`font-mono text-[9px] uppercase tracking-widest transition-all ${selectedPriceRange === range.value ? 'text-sd-black font-bold border-b border-sd-gold' : 'text-sd-text-muted group-hover:text-sd-black'}`}>
+             <label key={range.value} className="flex items-center justify-between group cursor-pointer py-1.5 px-3 hover:bg-sd-gold/10 transition-colors">
+               <span className={`font-neo text-[10px] font-black uppercase tracking-widest transition-all ${selectedPriceRange === range.value ? 'text-sd-black' : 'text-black/50 group-hover:text-black'}`}>
                   {range.label}
                </span>
                <input
@@ -178,39 +181,39 @@ export default function CategorySidebar({
                  value={range.value}
                  checked={selectedPriceRange === range.value}
                  onChange={(e) => onPriceRangeChange(e.target.value)}
-                 className="opacity-0 w-0 h-0"
+                 className="hidden"
                />
-               <div className={`w-3 h-3 rounded-full border-2 transition-all ${selectedPriceRange === range.value ? 'bg-sd-gold border-sd-gold' : 'border-sd-border-default group-hover:border-sd-gold/50'}`} />
+               <div className={`w-4 h-4 border-2 border-black flex items-center justify-center transition-all ${selectedPriceRange === range.value ? 'bg-sd-gold' : 'bg-white'}`}>
+                  {selectedPriceRange === range.value && <Check size={10} strokeWidth={4} />}
+               </div>
              </label>
            ))}
-        </div>
+        </NeoCard>
       </section>
 
-      {/* ── Registry Sequence ── */}
+      {/* ── Sequence ── */}
       {onSortChange && (
         <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-             <Filter size={12} className="text-sd-gold" />
-             <h3 className="font-mono text-[9px] font-bold uppercase tracking-[0.4em] text-sd-black">Sequence</h3>
+          <div className="flex items-center gap-2">
+             <Layers size={14} className="text-sd-gold" />
+             <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Registry Order</h3>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {[
-              { id: 'newest', label: 'Recency' },
-              { id: 'price_asc', label: 'Ascending' },
-              { id: 'price_desc', label: 'Descending' },
+              { id: 'newest', label: 'Newest Retrieval' },
+              { id: 'price_asc', label: 'Price: Low-High' },
+              { id: 'price_desc', label: 'Price: High-Low' },
             ].map((option) => (
-              <button
+              <NeoCard
                 key={option.id}
+                variant={selectedSort === option.id ? 'black' : 'white'}
                 onClick={() => onSortChange(option.id)}
-                className={`
-                  px-3 py-1.5 rounded-lg font-mono text-[9px] uppercase tracking-widest border transition-all
-                  ${selectedSort === option.id 
-                    ? 'bg-sd-black text-sd-white border-sd-black sd-depth-lift' 
-                    : 'bg-sd-white text-sd-text-muted border-sd-border-default hover:border-sd-gold hover:text-sd-black'}
-                `}
+                className={`py-3 px-4 text-center cursor-pointer border-2 neo-shadow-sm ${selectedSort === option.id ? 'text-sd-gold' : 'text-black font-black'}`}
               >
-                {option.label}
-              </button>
+                <span className="font-neo text-[10px] uppercase tracking-widest">
+                   {option.label}
+                </span>
+              </NeoCard>
             ))}
           </div>
         </section>

@@ -2,9 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { CatalogCategory } from '@/services/catalogService';
 import { motion } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ArrowUpRight } from 'lucide-react';
+import NeoCard from './ui/NeoCard';
+import NeoBadge from './ui/NeoBadge';
 
 interface Collection {
   id: string | number;
@@ -36,7 +39,7 @@ const DEFAULT_COLLECTIONS: Collection[] = [
     id: '3',
     title: 'Keystroke Poetry',
     subtitle: 'Mechanical masterpieces for daily prose.',
-    image: '/images/product_images/transparent_themed_keyboard.png',
+    image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?q=80&w=2071&auto=format&fit=crop',
     href: '/e-commerce/keyboards',
     index: '03',
   },
@@ -44,7 +47,7 @@ const DEFAULT_COLLECTIONS: Collection[] = [
     id: '4',
     title: 'Archival Storage',
     subtitle: 'Safe passage for your digital memories.',
-    image: '/images/product_images/camera_themed_pendrive.png',
+    image: 'https://images.unsplash.com/photo-1591405351990-4726e331f141?q=80&w=2070&auto=format&fit=crop',
     href: '/e-commerce/pendrives',
     index: '04',
   }
@@ -60,93 +63,87 @@ export default function CollectionTiles({ categories }: CollectionTilesProps) {
         id: cat.id,
         title: cat.name,
         subtitle: cat.description || `Explore our curated ${cat.name} artifacts.`,
-        image: cat.image_url || '/images/product_images/duck_themed_earbuds.png',
+        image: cat.image_url || DEFAULT_COLLECTIONS[i % DEFAULT_COLLECTIONS.length].image,
         href: `/e-commerce/${cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-')}`,
         index: `0${i + 1}`
       }))
     : DEFAULT_COLLECTIONS;
 
   return (
-    <section className="py-32 bg-sd-ivory overflow-hidden">
-      <div className="container mx-auto px-6 lg:px-12">
-        <div className="flex flex-col lg:flex-row items-baseline justify-between mb-24 gap-8">
+    <section className="py-24 sm:py-32 bg-sd-ivory overflow-hidden px-4 sm:px-6 lg:px-12">
+      <div className="container mx-auto">
+        <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between mb-20 gap-8">
           <div className="max-w-2xl relative">
-            <span className="font-mono text-[10px] text-sd-gold uppercase tracking-[0.4em] mb-4 block">Archive Classification</span>
-            <h2 className="text-6xl lg:text-8xl font-display text-sd-black leading-[0.85] tracking-tight">
-              Selected <br />
-              <span className="italic font-medium text-sd-gold">Departments</span>
+            <NeoBadge variant="black" className="mb-6">Archive Classification</NeoBadge>
+            <h2 className="font-neo font-black text-6xl sm:text-8xl lg:text-[100px] uppercase leading-[0.8] tracking-tighter text-black">
+              Departmental <br />
+              <span className="text-sd-gold italic">Registry</span>
             </h2>
-            <div className="absolute -top-12 -left-8 text-[120px] font-display italic opacity-[0.03] pointer-events-none select-none">
-              Index
-            </div>
           </div>
-          <div className="flex flex-col items-end gap-4 max-w-xs text-right">
-            <div className="h-[1px] w-24 bg-sd-gold/30" />
-            <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-sd-text-muted leading-relaxed">
-              Every category is a deliberate collection of form and function. Curated for character.
-            </p>
+          <div className="flex flex-col items-start lg:items-end gap-6 max-w-sm">
+             <div className="neo-border-2 bg-white p-4 neo-shadow-sm rotate-2 hover:rotate-0 transition-transform">
+                <p className="font-neo font-bold text-sm uppercase leading-tight text-black">
+                  Every category is a deliberate collection of form and function. Curated for character.
+                </p>
+             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 pt-12">
           {displayCollections.map((item, idx) => (
             <Link
               key={item.id}
               href={item.href}
-              className="group relative"
+              className="group block"
             >
-              <motion.div
-                whileHover={{ y: -12 }}
-                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="flex flex-col h-full rounded-[30px] p-2 bg-sd-ivory-dark/30 border border-sd-border-default/10"
+              <NeoCard 
+                variant={idx % 2 === 0 ? 'white' : 'ivory'}
+                className={idx % 2 === 0 ? 'rotate-2 group-hover:rotate-0' : '-rotate-2 group-hover:rotate-0'}
               >
-                {/* Image Section (Recessed Well) */}
-                <div className="sd-depth-recess rounded-[26px] p-2 aspect-[4/5] overflow-hidden relative group-hover:sd-depth-lift transition-all duration-700">
-                  <div className="w-full h-full rounded-[18px] overflow-hidden relative">
-                    <motion.img
-                      whileHover={{ scale: 1.15 }}
-                      transition={{ duration: 10 }}
-                      src={item.image}
+                {/* Image Section */}
+                <div className="neo-border-b-4 border-black aspect-[4/5] overflow-hidden relative">
+                   <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.5 }}
+                      className="w-full h-full relative"
+                   >
+                     <Image 
+                      src={item.image} 
                       alt={item.title}
-                      className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-1000"
-                    />
-                    <div className="absolute inset-0 bg-sd-gold/0 group-hover:bg-sd-gold/5 transition-colors duration-700" />
-                  </div>
+                      fill
+                      loading="lazy"
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                     />
+                   </motion.div>
 
-                  {/* Index Overlay */}
-                  <div className="absolute top-6 left-6 z-10 flex items-center gap-2">
-                    <span className="bg-sd-white/90 backdrop-blur-md px-3 py-1 text-[10px] font-mono text-sd-black font-bold rounded shadow-sm">
-                      #{item.index}
-                    </span>
-                  </div>
+                   <NeoBadge variant="gold" className="absolute top-4 left-4 z-10 shadow-none">
+                     #{item.index}
+                   </NeoBadge>
+                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 </div>
 
-                {/* Content Section (Layered Text) */}
-                <div className="p-6 pt-8 flex-1 flex flex-col relative">
-                  <div className="absolute top-0 right-8 h-10 w-[1px] bg-sd-gold/20" />
-                  
-                  <h3 className="text-3xl font-display text-sd-black mb-3 group-hover:italic transition-all duration-500 flex items-center justify-between">
-                    {item.title}
-                    <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all text-sd-gold" />
-                  </h3>
-                  
-                  <p className="font-sans text-sm text-sd-text-secondary leading-relaxed mb-8 flex-1">
-                    {item.subtitle}
-                  </p>
-                  
-                  <div className="flex items-center gap-3">
-                     <span className="font-mono text-[9px] uppercase tracking-[0.3em] text-sd-gold font-bold">Entry Path</span>
-                     <div className="h-[1px] flex-1 bg-sd-border-default/10 relative overflow-hidden">
-                        <motion.div 
-                          initial={{ x: '-100%' }}
-                          whileHover={{ x: '100%' }}
-                          transition={{ duration: 0.8, ease: "easeInOut" }}
-                          className="absolute inset-0 bg-sd-gold" 
-                        />
+                {/* Content Section */}
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                     <h3 className="font-neo font-black text-2xl sm:text-3xl uppercase tracking-tighter text-black">
+                        {item.title}
+                     </h3>
+                     <div className="w-10 h-10 neo-border-2 bg-white flex items-center justify-center group-hover:bg-sd-gold transition-colors">
+                        <ArrowUpRight size={20} className="text-black" />
                      </div>
                   </div>
+                  
+                  <p className="font-neo font-bold text-sm uppercase leading-tight text-black/60 line-clamp-2">
+                    {item.subtitle}
+                  </p>
+
+                  <div className="flex items-center gap-2 pt-4 border-t-2 border-black/10">
+                     <span className="font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold">Enter Path</span>
+                     <div className="h-[2px] flex-1 bg-black/10" />
+                  </div>
                 </div>
-              </motion.div>
+              </NeoCard>
             </Link>
           ))}
         </div>

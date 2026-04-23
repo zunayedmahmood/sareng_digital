@@ -1,15 +1,15 @@
 'use client';
 
 import React from 'react';
-import { X, Loader2, ShoppingCart, ShoppingBag } from 'lucide-react';
+import { X, Loader2, ShoppingCart, ShoppingBag, ArrowRight, Layers, History } from 'lucide-react';
 import { useCart } from '../../../app/CartContext';
 import { useRouter } from 'next/navigation';
 import CartItem from './CartItem';
 import checkoutService from '../../../services/checkoutService';
-
-const formatBDT = (value: number) => {
-  return `৳${value.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-};
+import { motion, AnimatePresence } from 'framer-motion';
+import NeoButton from '../ui/NeoButton';
+import NeoBadge from '../ui/NeoBadge';
+import Price from '../Price';
 
 interface CartSidebarProps {
   isOpen: boolean;
@@ -21,7 +21,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const router = useRouter();
 
   const subtotal = getTotalPrice();
-  const deliveryCharge = checkoutService.calculateDeliveryCharge('Dhaka');
+  // Simplified delivery charge for the sidebar summary
+  const deliveryCharge = 0; 
   const total = subtotal + deliveryCharge;
 
   const isAnyOverStock = cart.some(item => typeof item.maxQuantity === 'number' && item.quantity > item.maxQuantity);
@@ -29,7 +30,6 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const handleCheckout = () => {
     if (isAnyOverStock) return;
     
-    // Set all cart items as selected for checkout
     if (cart.length > 0) {
       localStorage.setItem('checkout-selected-items', JSON.stringify(cart.map(i => i.id)));
     }
@@ -38,215 +38,142 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     onClose();
   };
 
-
-
   return (
-    <>
-      {/* Backdrop */}
+    <AnimatePresence>
       {isOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 100,
-            background: 'rgba(0,0,0,0.35)',
-            backdropFilter: 'blur(2px)',
-          }}
-          className="ec-anim-backdrop"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Side Drawer */}
-      <div
-        style={{
-          position: 'fixed',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 101,
-          width: '100%',
-          maxWidth: '380px',
-          background: '#ffffff',
-          borderLeft: '1px solid rgba(0,0,0,0.10)',
-          display: 'flex',
-          flexDirection: 'column',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          transition: 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)',
-          boxShadow: '-8px 0 40px rgba(0,0,0,0.10)',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          height: '56px',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 20px',
-          borderBottom: '1px solid rgba(0,0,0,0.08)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShoppingBag style={{ width: '18px', height: '18px', color: '#111111' }} />
-            <h2 style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: '14px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-              color: '#111111',
-              margin: 0,
-            }}>
-              Shopping Cart
-            </h2>
-            <span style={{
-              fontFamily: "'Jost', sans-serif",
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#999999',
-            }}>
-              ({cart.length})
-            </span>
-          </div>
-          <button
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md"
             onClick={onClose}
-            style={{
-              display: 'flex',
-              width: '32px',
-              height: '32px',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              border: '1px solid rgba(0,0,0,0.15)',
-              color: '#999999',
-              background: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#111111'; (e.currentTarget as HTMLElement).style.color = '#111111'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,0,0,0.15)'; (e.currentTarget as HTMLElement).style.color = '#999999'; }}
+          />
+
+          {/* Slide Drawer */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 bottom-0 z-[101] w-full max-w-md bg-sd-ivory border-l-4 border-black flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.2)]"
           >
-            <X style={{ width: '14px', height: '14px' }} />
-          </button>
-        </div>
+            {/* Header Module */}
+            <div className="flex items-center justify-between p-6 border-b-4 border-black bg-white relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-2 h-full bg-sd-gold" />
+               <div className="flex items-center gap-3 relative z-10">
+                  <div className="w-10 h-10 border-2 border-black bg-sd-gold flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                     <ShoppingBag size={20} />
+                  </div>
+                  <div className="flex flex-col">
+                     <h2 className="font-neo font-black text-sm uppercase tracking-widest italic leading-none">Archival Bag</h2>
+                     <span className="font-neo font-black text-[10px] text-black/40 uppercase tracking-[0.3em] mt-1 italic">Registry Tracking</span>
+                  </div>
+               </div>
 
-        {/* Cart Items */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
-          {/* Loading State */}
-          {isLoading && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: '12px' }}>
-              <Loader2 style={{ animation: 'spin 1s linear infinite', color: '#111111', width: '28px', height: '28px' }} />
-              <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.15em', color: '#999999', textTransform: 'uppercase', fontFamily: "'Jost', sans-serif" }}>
-                Syncing bag...
-              </p>
+               <div className="flex items-center gap-4">
+                  <NeoBadge variant="black" className="font-neo font-black text-[10px] px-2 py-0.5">
+                     {cart.length} ITEMS
+                  </NeoBadge>
+                  <button 
+                    onClick={onClose}
+                    className="w-10 h-10 border-2 border-black flex items-center justify-center hover:bg-sd-gold active:translate-y-[2px] transition-all"
+                  >
+                     <X size={20} />
+                  </button>
+               </div>
             </div>
-          )}
 
-          {/* Empty State */}
-          {!isLoading && cart.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                background: '#f5f5f5',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '20px',
-              }}>
-                <ShoppingCart style={{ width: '32px', height: '32px', color: '#cccccc' }} />
-              </div>
-              <h3 style={{ fontFamily: "'Jost', sans-serif", fontSize: '16px', fontWeight: 700, color: '#111111', marginBottom: '8px' }}>Your cart is empty</h3>
-              <p style={{ fontSize: '13px', color: '#999999', marginBottom: '24px', lineHeight: 1.5, fontFamily: "'Jost', sans-serif" }}>
-                Add something to your collection to get started.
-              </p>
-              <button
-                onClick={() => { onClose(); router.push('/e-commerce/categories'); }}
-                style={{
-                  padding: '12px 28px',
-                  background: '#111111',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  fontFamily: "'Jost', sans-serif",
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  cursor: 'pointer',
-                }}
-              >
-                Start Shopping
-              </button>
+            {/* Cart Content Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 relative custom-scrollbar">
+               <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none overflow-hidden">
+                  <span className="text-[150px] font-neo font-black italic absolute -left-20 top-20 rotate-90 text-black">RETRIEVAL</span>
+               </div>
+               
+               {/* Loading Protocol */}
+               {isLoading && (
+                  <div className="flex flex-col items-center justify-center py-20 gap-4">
+                     <div className="w-12 h-12 border-4 border-black border-t-sd-gold animate-spin" />
+                     <span className="font-neo font-black text-[10px] uppercase tracking-[0.4em] italic">Syncing Registry...</span>
+                  </div>
+               )}
+
+               {/* Empty Archive State */}
+               {!isLoading && cart.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-32 text-center border-4 border-black border-dashed rounded-[40px] bg-white/30">
+                     <div className="w-20 h-20 border-2 border-black bg-sd-ivory flex items-center justify-center mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                        <History size={32} className="text-black/20" />
+                     </div>
+                     <h3 className="font-neo font-black text-xl uppercase italic mb-2">No Records Detected</h3>
+                     <p className="font-neo text-[10px] uppercase tracking-widest text-black/40 mb-8 max-w-[200px] leading-loose">
+                        Your retrieval bag is currently devoid of archival artifacts.
+                     </p>
+                     <NeoButton 
+                       variant="primary" 
+                       className="px-8 py-3 text-[10px]"
+                       onClick={() => { onClose(); router.push('/e-commerce/products'); }}
+                     >
+                        Initiate Protocol
+                     </NeoButton>
+                  </div>
+               )}
+
+               {/* Item Feed */}
+               {!isLoading && cart.length > 0 && (
+                  <div className="space-y-4">
+                     {cart.map((item) => (
+                        <CartItem key={`${item.id}-${item.sku}`} item={item} />
+                     ))}
+                  </div>
+               )}
             </div>
-          )}
 
-          {/* Cart Items */}
-          {!isLoading && cart.length > 0 && (
-            <div style={{ paddingTop: '16px', paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {cart.map((item) => (
-                <div key={`${item.id}-${item.sku}`} style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <CartItem item={item} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            {/* Footer Control Panel */}
+            {!isLoading && cart.length > 0 && (
+               <div className="p-6 border-t-4 border-black bg-white space-y-6">
+                  {/* Summary Module */}
+                  <div className="space-y-3">
+                     <div className="flex items-center justify-between">
+                        <span className="font-neo font-black text-[10px] uppercase tracking-[0.3em] text-black/40 italic">Accumulated Value</span>
+                        <Price amount={subtotal} className="font-neo font-black text-xl text-black" />
+                     </div>
+                     <div className="flex items-center justify-between border-t border-black/10 pt-3">
+                        <span className="font-neo font-black text-[10px] uppercase tracking-[0.3em] text-black/40 italic">Logistics Fee</span>
+                        <span className="font-neo font-black text-[10px] uppercase text-sd-gold italic tracking-widest">Protocol Inclusive</span>
+                     </div>
+                  </div>
 
-        {/* Footer */}
-        {!isLoading && cart.length > 0 && (
-          <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', padding: '16px 20px', background: '#ffffff' }}>
-            {/* Subtotal */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '13px', color: '#555555', fontFamily: "'Jost', sans-serif" }}>Subtotal</span>
-              <span style={{ fontSize: '16px', fontWeight: 700, color: '#111111', fontFamily: "'Jost', sans-serif" }}>
-                {formatBDT(subtotal)}
-              </span>
-            </div>
-            <p style={{ fontSize: '11px', color: '#999999', marginBottom: '16px', fontFamily: "'Jost', sans-serif" }}>
-              Includes standard delivery
-            </p>
-
-            {/* Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button
-                onClick={handleCheckout}
-                disabled={isAnyOverStock}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  background: '#111111',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  fontFamily: "'Jost', sans-serif",
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.10em',
-                  cursor: isAnyOverStock ? 'not-allowed' : 'pointer',
-                  opacity: isAnyOverStock ? 0.5 : 1,
-                  transition: 'opacity 0.15s',
-                }}
-                onMouseEnter={e => !isAnyOverStock && ((e.currentTarget as HTMLElement).style.opacity = '0.85')}
-                onMouseLeave={e => !isAnyOverStock && ((e.currentTarget as HTMLElement).style.opacity = '1')}
-              >
-                Checkout
-              </button>
-
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile scroll lock */}
-      <style jsx>{`
-        @media (max-width: 640px) {
-          body {
-            overflow: ${isOpen ? 'hidden' : 'auto'};
-          }
-        }
-      `}</style>
-    </>
+                  {/* Operational Controls */}
+                  <div className="flex flex-col gap-3">
+                     <NeoButton 
+                       variant="primary" 
+                       className="w-full py-5 text-sm uppercase italic tracking-[0.2em]"
+                       onClick={handleCheckout}
+                       disabled={isAnyOverStock}
+                     >
+                        Execute Transfer <ArrowRight size={18} className="ml-2" />
+                     </NeoButton>
+                     <NeoButton 
+                       variant="outline" 
+                       className="w-full py-4 text-[10px] uppercase tracking-widest"
+                       onClick={() => router.push('/e-commerce/cart')}
+                     >
+                        View Full Registry
+                     </NeoButton>
+                  </div>
+                  
+                  {isAnyOverStock && (
+                     <div className="flex items-center gap-2 p-3 bg-sd-gold/10 border-2 border-sd-gold text-sd-gold">
+                        <Layers size={14} />
+                        <span className="font-neo font-black text-[9px] uppercase tracking-widest leading-none">Resolution required: exceed stock capacity detected</span>
+                     </div>
+                  )}
+               </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

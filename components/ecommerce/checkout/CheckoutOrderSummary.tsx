@@ -2,8 +2,11 @@
 
 import React from 'react';
 import SdImage from '../SdImage';
-import Price from '../Price';
-import { Tag, Loader2, X } from 'lucide-react';
+import Price from '@/components/ecommerce/Price';
+import NeoCard from '../ui/NeoCard';
+import NeoButton from '../ui/NeoButton';
+import NeoBadge from '../ui/NeoBadge';
+import { Tag, Loader2, X, ShoppingBag, Layers, ShieldCheck, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CheckoutItem {
@@ -46,114 +49,160 @@ const CheckoutOrderSummary: React.FC<CheckoutOrderSummaryProps> = ({
   couponSuccess,
 }) => {
   return (
-    <div className="bg-white/[0.02] backdrop-blur-3xl rounded-[2.5rem] border border-white/5 overflow-hidden sticky top-32 shadow-2xl">
-        <div className="p-10">
-          <div className="flex flex-col gap-1 mb-8">
-              <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Manifest</span>
-              <h3 className="text-2xl font-display font-medium italic text-sd-ivory">The Selection</h3>
-            </div>
-            <div className="space-y-8 max-h-[440px] overflow-y-auto pr-4 scrollbar-none">
-             {items.map((item) => (
-                <div key={item.id} className="flex gap-6 group">
-                  <div className="relative w-24 h-28 rounded-2xl overflow-hidden bg-[#0D0D0D] border border-white/5 flex-shrink-0">
-                    <SdImage 
-                      src={item.product_image || ''} 
-                      alt={item.name} 
-                      fill 
-                      className="object-cover group-hover:scale-110 transition-transform duration-700"
-                    />
-                    <div className="absolute top-2 right-2 bg-sd-gold text-sd-black text-[9px] font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-2xl">
-                      {item.quantity}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h4 className="text-sd-ivory text-xs font-bold tracking-wider mb-1 line-clamp-1">{item.name}</h4>
-                    {item.variant_options && (
-                      <p className="text-[9px] text-sd-text-muted uppercase tracking-[0.2em] mb-2">
-                        {Object.values(item.variant_options).filter(Boolean).join(' / ')}
-                      </p>
-                    )}
-                    <div className="text-sd-gold text-xs font-bold tracking-tighter">
-                       <Price amount={item.total} showCurrency />
-                    </div>
-                  </div>
-                </div>
-             ))}
-            </div>
+    <div className="space-y-8 sticky top-32">
+      {/* ── Main Summary Card ── */}
+      <NeoCard variant="white" className="p-8 border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-24 h-24 bg-sd-gold/5 -rotate-45 translate-x-12 -translate-y-12 pointer-events-none" />
+        
+        {/* Header Module */}
+        <div className="flex flex-col gap-2 relative">
+           <div className="flex items-center gap-2">
+              <Database size={12} className="text-sd-gold" />
+              <span className="font-neo font-black text-[9px] uppercase tracking-[0.4em] text-sd-gold italic">Transfer Protocol</span>
+           </div>
+           <h3 className="text-2xl font-neo font-black uppercase italic tracking-tighter text-black leading-none">Order Registry</h3>
         </div>
 
-       {/* Coupon Section */}
-       <div className="p-10 border-b border-white/5 space-y-6">
-          <div className="flex flex-col gap-1 mb-4">
-            <span className="text-sd-gold text-[9px] font-bold tracking-[0.4em] uppercase">Privilege Code</span>
-          </div>
-          <div className="flex gap-4">
-             <div className="relative flex-1">
-                <input 
-                  type="text" 
-                  placeholder="CODE"
-                  value={couponCode}
-                  onChange={(e) => onCouponChange(e.target.value)}
-                  className="w-full bg-[#0D0D0D] border border-white/5 rounded-full py-4 px-8 text-[10px] tracking-[0.3em] font-bold text-sd-ivory focus:outline-none focus:border-sd-gold/30 transition-all uppercase placeholder:text-sd-text-muted/30"
+        {/* Item Retrieval Feed */}
+        <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          {items.map((item, idx) => (
+            <div key={`${item.id}-${idx}`} className="flex gap-4 group relative">
+              <div className="relative w-24 h-24 border-2 border-black bg-white flex-shrink-0 overflow-hidden group-hover:shadow-[4px_4px_0px_0px_rgba(212,175,55,0.4)] transition-all">
+                <SdImage 
+                  src={item.product_image || ''} 
+                  alt={item.name} 
+                  fill 
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
-             </div>
-             <button 
-               onClick={onApplyCoupon}
-               disabled={isApplyingCoupon || !couponCode.trim()}
-               className="bg-sd-gold hover:bg-sd-ivory text-sd-black px-8 rounded-full font-bold text-[10px] tracking-[0.2em] uppercase transition-all duration-500 disabled:opacity-20"
-             >
-               {isApplyingCoupon ? <Loader2 className="w-4 h-4 animate-spin mx-auto text-sd-black" /> : 'Redeem'}
-             </button>
-          </div>
-          {couponError && (
-              <p className="text-sd-danger text-[9px] font-bold uppercase tracking-widest pl-4">{couponError}</p>
-            )}
-          {couponSuccess && (
-              <div className="flex items-center justify-between bg-sd-gold/5 border border-sd-gold/20 p-4 rounded-2xl">
-                 <p className="text-sd-gold text-[9px] font-bold tracking-[0.2em] uppercase">{couponSuccess}</p>
-                 {onRemoveCoupon && (
-                   <button onClick={onRemoveCoupon} className="text-sd-gold hover:text-white transition-colors">
-                      <X className="w-4 h-4" />
-                   </button>
-                 )}
+                <div className="absolute top-1 right-1">
+                   <NeoBadge variant="black" className="text-[8px] px-1.5 py-0.5">X{item.quantity}</NeoBadge>
+                </div>
               </div>
-            )}
-       </div>
-
-       {/* Financial Summary */}
-       <div className="p-10 space-y-5 bg-white/[0.01]">
-          <div className="flex justify-between items-center text-[10px] font-bold tracking-[0.2em] uppercase text-sd-text-muted">
-             <span>Market Subtotal</span>
-             <span className="text-sd-ivory/80"><Price amount={subtotal} showCurrency /></span>
-          </div>
-          <div className="flex justify-between items-center text-[10px] font-bold tracking-[0.2em] uppercase text-sd-text-muted">
-             <span>Logistics</span>
-             <span className="text-sd-ivory/80">
-               {shipping === 0 ? <span className="text-sd-gold">Complimentary</span> : <Price amount={shipping} showCurrency />}
-             </span>
-          </div>
-          {discount > 0 && (
-            <div className="flex justify-between items-center text-sd-gold text-[10px] font-bold tracking-[0.2em] uppercase">
-               <span>Acquisition Reward</span>
-               <span>— <Price amount={discount} showCurrency /></span>
+              <div className="flex-1 flex flex-col justify-center gap-1">
+                <h4 className="font-neo font-black text-[10px] uppercase tracking-widest text-black/80 line-clamp-2 leading-relaxed">
+                  {item.name}
+                </h4>
+                {item.variant_options && (
+                  <span className="font-neo font-bold text-[8px] uppercase tracking-widest text-black/40 italic">
+                    {Object.values(item.variant_options).filter(Boolean).join(' / ')}
+                  </span>
+                )}
+                <Price amount={item.total} className="font-neo font-black text-[12px] mt-1" />
+              </div>
             </div>
-          )}
-          <div className="pt-8 border-t border-white/5 flex justify-between items-end">
-             <div>
-               <span className="text-sd-gold text-[8px] font-bold tracking-[0.4em] uppercase block mb-2">Total Dossier</span>
-               <span className="text-sd-ivory font-display italic text-2xl">Final Amount</span>
-             </div>
-             <div className="text-right">
-                <span className="block text-4xl font-bold text-sd-ivory tracking-tighter"><Price amount={total} showCurrency /></span>
-                <span className="text-[8px] text-sd-text-muted uppercase tracking-[0.4em] font-bold">Inc. Duty & Tax</span>
-             </div>
-          </div>
-       </div>
+          ))}
+        </div>
 
-       {/* Boutique Seal */}
-       <div className="py-6 bg-sd-gold/5 flex justify-center">
-          <span className="text-[8px] font-bold tracking-[0.6em] text-sd-gold/40 uppercase">Sareng Digital Official Boutique</span>
-       </div>
+        {/* Coupon Entry Module */}
+        <div className="border-t-4 border-black pt-8 space-y-4">
+           <div className="flex items-center gap-2 mb-2">
+              <Tag size={14} className="text-black" />
+              <span className="font-neo font-black text-[10px] uppercase tracking-widest italic">Inventory Reward Code</span>
+           </div>
+           <div className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="REGISTRY-CODE"
+                value={couponCode}
+                onChange={(e) => onCouponChange(e.target.value)}
+                className="flex-1 bg-sd-ivory border-2 border-black px-4 py-3 font-neo font-bold text-[10px] tracking-widest uppercase focus:outline-none focus:bg-white transition-colors placeholder:text-black/20"
+              />
+              <NeoButton 
+                variant="black" 
+                className="px-6 py-3 text-[10px] uppercase italic"
+                onClick={onApplyCoupon}
+                disabled={isApplyingCoupon || !couponCode.trim()}
+              >
+                {isApplyingCoupon ? <Loader2 size={14} className="animate-spin" /> : 'REDEEM'}
+              </NeoButton>
+           </div>
+           
+           <AnimatePresence mode="wait">
+              {couponError && (
+                <motion.p 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-sd-gold font-neo font-black text-[8px] uppercase tracking-widest pl-1"
+                >
+                  ERROR: {couponError}
+                </motion.p>
+              )}
+              {couponSuccess && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center justify-between bg-sd-gold/5 border-2 border-sd-gold/20 p-3"
+                >
+                   <span className="text-sd-gold font-neo font-black text-[8px] uppercase tracking-widest leading-none">
+                      SUCCESS: {couponSuccess}
+                   </span>
+                   {onRemoveCoupon && (
+                     <button onClick={onRemoveCoupon} className="text-sd-gold hover:text-black transition-colors">
+                        <X size={14} />
+                     </button>
+                   )}
+                </motion.div>
+              )}
+           </AnimatePresence>
+        </div>
+
+        {/* Financial Disclosure */}
+        <div className="space-y-4 border-t border-black/10 pt-4">
+           <div className="flex items-center justify-between">
+              <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Artifact Subtotal</span>
+              <Price amount={subtotal} className="font-neo font-black text-[12px]" />
+           </div>
+           <div className="flex items-center justify-between">
+              <span className="font-neo font-black text-[10px] uppercase tracking-widest text-black/40 italic">Logistics Allocation</span>
+              {shipping === 0 ? (
+                <span className="font-neo font-black text-[10px] uppercase text-sd-gold italic tracking-widest">Protocol Inclusive</span>
+              ) : (
+                <Price amount={shipping} className="font-neo font-black text-[12px]" />
+              )}
+           </div>
+           {discount > 0 && (
+             <div className="flex items-center justify-between text-sd-gold">
+                <span className="font-neo font-black text-[10px] uppercase tracking-widest italic">Acquisition Credit</span>
+                <div className="flex items-center font-neo font-black text-[12px]">
+                   <span className="mr-1">-</span>
+                   <Price amount={discount} />
+                </div>
+             </div>
+           )}
+
+           {/* Grand Total Module */}
+           <div className="bg-black text-white p-6 -mx-8 -mb-8 mt-4 relative overflow-hidden">
+              <div className="absolute top-0 right-0 opacity-10 rotate-12 translate-x-4 -translate-y-4">
+                 <ShoppingBag size={80} />
+              </div>
+              <div className="relative z-10">
+                 <div className="flex items-center justify-between mb-2">
+                    <span className="font-neo font-black text-[10px] uppercase tracking-[0.4em] text-white/40 italic">Final Assessment</span>
+                    <Price amount={total} className="text-3xl font-neo font-black text-sd-gold" />
+                 </div>
+                 <div className="flex items-center gap-2 pt-4 border-t border-white/10">
+                    <ShieldCheck size={14} className="text-sd-gold" />
+                    <span className="font-neo font-black text-[8px] uppercase tracking-[0.3em] text-white/60">
+                       Encrypted Transaction Protocol Active
+                    </span>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </NeoCard>
+
+      {/* Auxiliary Information */}
+      <div className="flex flex-col gap-2 px-4 opacity-50">
+         <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-black" />
+            <span className="font-neo font-black text-[8px] uppercase tracking-widest leading-none">Sareng Digital Official Registry Entry</span>
+         </div>
+         <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-black" />
+            <span className="font-neo font-black text-[8px] uppercase tracking-widest leading-none">Authentication Index: VERIFIED</span>
+         </div>
+      </div>
     </div>
   );
 };

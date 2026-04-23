@@ -2,11 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShoppingBag, Search, Filter, ArrowRight, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
 import MyAccountShell from '@/components/ecommerce/my-account/MyAccountShell';
+import NeoCard from '@/components/ecommerce/ui/NeoCard';
+import NeoButton from '@/components/ecommerce/ui/NeoButton';
 import checkoutService, { Order } from '@/services/checkoutService';
 
 export default function MyAccountOrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -23,11 +27,9 @@ export default function MyAccountOrdersPage() {
         status: status || undefined,
         search: search || undefined,
       } as any);
-
-      // backend returns { orders, pagination }
       setOrders((data as any).orders || []);
     } catch (e: any) {
-      setError(e.message || 'Failed to load orders');
+      setError('DECODING ERROR: FAILED TO RETRIEVE ASSET LOGS');
     } finally {
       setLoading(false);
     }
@@ -35,196 +37,181 @@ export default function MyAccountOrdersPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const getStatusStyle = (s: string) => {
+    const status = (s || 'pending').toLowerCase();
+    switch(status) {
+      case 'delivered':
+        return 'bg-green-500 text-white border-black';
+      case 'shipped':
+        return 'bg-sd-gold text-black border-black';
+      case 'processing':
+        return 'bg-sd-gold text-black border-black';
+      case 'cancelled':
+        return 'bg-red-500 text-white border-black';
+      default:
+        return 'bg-white text-black border-black';
+    }
+  };
+
+  const getStatusIcon = (s: string) => {
+    const status = (s || 'pending').toLowerCase();
+    switch(status) {
+      case 'delivered': return <CheckCircle size={18} strokeWidth={3} />;
+      case 'shipped': return <Truck size={18} strokeWidth={3} />;
+      case 'processing': return <Package size={18} strokeWidth={3} />;
+      case 'cancelled': return <XCircle size={18} strokeWidth={3} />;
+      default: return <Clock size={18} strokeWidth={3} />;
+    }
+  };
 
   return (
     <MyAccountShell
-      title="Orders"
-      subtitle="View your recent orders and track delivery status."
+      title="Asset Registry"
+      subtitle="Comprehensive history of all hardware procurement protocols and displacement statuses."
     >
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
-        <div className="flex gap-2">
+      {/* ── Deck Control ── */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-12 items-stretch">
+        <div className="flex-1 relative group">
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-black/20 group-focus-within:text-sd-gold transition-colors">
+             <Search size={24} />
+          </div>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search order number..."
-            className="border rounded-md px-3 py-2 text-sm w-64"
+            placeholder="PROTOCOL ID SEARCH..."
+            className="w-full bg-white border-4 border-black px-16 py-5 font-neo font-black text-lg focus:outline-none focus:bg-white transition-all placeholder:text-black/10 shadow-[6px_6px_0_0_rgba(0,0,0,1)] focus:translate-y-[-2px] focus:translate-x-[-2px] focus:shadow-[8px_8px_0_0_rgba(0,0,0,1)]"
           />
-          <button
-            onClick={load}
-            className="bg-neutral-900 text-white px-4 py-2 rounded-md text-sm hover:bg-neutral-800"
-          >
-            Search
-          </button>
         </div>
 
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="border rounded-md px-3 py-2 text-sm w-52"
+        <div className="lg:w-72 relative">
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-black/20 pointer-events-none">
+             <Filter size={20} />
+          </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="w-full bg-white border-4 border-black px-16 py-5 font-neo font-black text-xs uppercase tracking-widest appearance-none focus:outline-none shadow-[6px_6px_0_0_rgba(0,0,0,1)] cursor-pointer"
+          >
+            <option value="">Status: ALL</option>
+            <option value="pending">PENDING</option>
+            <option value="processing">PROCESSING</option>
+            <option value="shipped">SHIPPED</option>
+            <option value="delivered">DELIVERED</option>
+            <option value="cancelled">CANCELLED</option>
+          </select>
+        </div>
+
+        <NeoButton 
+          variant="primary" 
+          className="px-12 h-[72px] uppercase italic text-lg shadow-[6px_6px_0_0_rgba(0,0,0,1)]"
+          onClick={load}
         >
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
+          Execute
+        </NeoButton>
       </div>
 
-      <button
-        onClick={load}
-        className="mb-6 text-sm text-gray-700 underline"
-      >
-        Apply filters
-      </button>
-
-      {error ? (
-        <div className="border border-rose-200 bg-rose-50 text-neutral-900 rounded-md p-3 text-sm mb-4">
-          {error}
+      {error && (
+        <div className="mb-12 border-4 border-black bg-red-500 p-6 flex items-start gap-4 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+           <XCircle className="text-white flex-shrink-0 mt-0.5" size={20} strokeWidth={3} />
+           <p className="font-neo font-black text-[11px] uppercase tracking-widest text-white leading-relaxed">{error}</p>
         </div>
-      ) : null}
+      )}
 
       {loading ? (
-        <div className="flex flex-col gap-4">
+        <div className="space-y-12">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-48 w-full bg-neutral-100 rounded-xl animate-pulse" />
+            <div key={i} className="h-48 w-full border-4 border-black bg-black/5 animate-pulse shadow-[12px_12px_0_0_rgba(0,0,0,1)]" />
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-12">
           {orders.map((o) => {
-            const status = (o.status || 'pending').toLowerCase();
-            
-            const getStatusStyles = (s: string) => {
-              switch(s) {
-                case 'processing':
-                  return {
-                    bg: 'rgba(230, 168, 23, 0.12)',
-                    text: 'var(--status-warning)',
-                    border: '1px solid rgba(230,168,23,0.28)'
-                  };
-                case 'shipped':
-                  return {
-                    bg: 'var(--cyan-pale)',
-                    text: 'var(--cyan)',
-                    border: '1px solid var(--cyan-glow)'
-                  };
-                case 'delivered':
-                  return {
-                    bg: 'rgba(46, 204, 138, 0.12)',
-                    text: 'var(--status-success)',
-                    border: '1px solid rgba(46,204,138,0.28)'
-                  };
-                case 'cancelled':
-                  return {
-                    bg: 'rgba(224, 82, 82, 0.12)',
-                    text: 'var(--status-danger)',
-                    border: '1px solid rgba(224,82,82,0.28)'
-                  };
-                default:
-                  return {
-                    bg: 'var(--bg-lifted)',
-                    text: 'var(--text-muted)',
-                    border: '1px solid var(--border-default)'
-                  };
-              }
-            };
-
-            const sStyles = getStatusStyles(status);
-            const steps = ['pending', 'processing', 'shipped', 'delivered'];
-            const currentStepIdx = steps.indexOf(status);
-
+            const statusLabel = (o.status || 'pending').toUpperCase();
             return (
-              <div key={o.order_number} className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] overflow-hidden transition-all hover:bg-[var(--bg-surface-2)]">
-                <div className="p-6">
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <NeoCard 
+                key={o.order_number} 
+                variant="white" 
+                className="border-4 border-black shadow-[12px_12px_0_0_rgba(0,0,0,1)] overflow-hidden hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[16px_16px_0_0_rgba(0,0,0,1)] transition-all group"
+              >
+                <div className="p-10">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10 pb-8 border-b-4 border-black/5">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1" style={{ fontFamily: "'DM Mono', monospace" }}>Order #{o.order_number}</p>
-                      <p className="text-[14px] font-medium text-[var(--text-primary)]">{new Date(o.created_at).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                      <span className="font-neo font-black text-[9px] uppercase tracking-[0.4em] text-black/30 italic block mb-2">Protocol ID</span>
+                      <h3 className="text-3xl font-neo font-black text-black uppercase italic tracking-tighter">ORD-{o.order_number}</h3>
+                      <p className="font-neo font-bold text-[10px] text-sd-gold uppercase tracking-widest mt-2 italic">
+                        {new Date(o.created_at).toLocaleDateString(undefined, { dateStyle: 'full' }).toUpperCase()}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span 
-                        className="px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all"
-                        style={{ background: sStyles.bg, color: sStyles.text, border: sStyles.border, fontFamily: "'DM Mono', monospace" }}
-                      >
-                        {o.status}
-                      </span>
+                    
+                    <div className="flex flex-wrap items-center gap-6">
+                      <div className={`px-6 py-3 border-4 border-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] font-neo font-black text-[11px] uppercase tracking-widest italic flex items-center gap-3 ${getStatusStyle(o.status)}`}>
+                        {getStatusIcon(o.status)}
+                        {statusLabel}
+                      </div>
                       <Link
                         href={`/e-commerce/my-account/orders/${o.order_number}`}
-                        className="text-[11px] font-bold uppercase tracking-widest text-[var(--cyan)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-2"
-                        style={{ fontFamily: "'DM Mono', monospace" }}
+                        className="w-14 h-14 border-4 border-black bg-black text-sd-gold flex items-center justify-center hover:bg-sd-gold hover:text-black transition-all shadow-[4px_4px_0_0_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none"
                       >
-                        Details <span>→</span>
+                        <ArrowRight size={24} />
                       </Link>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between py-6 border-t border-[var(--border-default)]">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]" style={{ fontFamily: "'DM Mono', monospace" }}>Total Investment</p>
-                      <p className="text-2xl font-medium text-[var(--text-primary)]" style={{ fontFamily: "'Cormorant Garamond', serif" }}>{Number(o.total_amount).toLocaleString()} ৳</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-end">
+                    <div className="md:col-span-2 flex flex-wrap gap-12">
+                       <div className="space-y-2">
+                          <span className="font-neo font-black text-[8px] uppercase tracking-widest text-black/40 italic block">Valuation</span>
+                          <span className="text-4xl font-neo font-black text-black italic leading-none">৳{Number(o.total_amount).toLocaleString()}</span>
+                       </div>
+                       <div className="space-y-2 border-l-4 border-black/5 pl-8">
+                          <span className="font-neo font-black text-[8px] uppercase tracking-widest text-black/40 italic block">Units</span>
+                          <span className="text-2xl font-neo font-black text-black italic">{o.items_count || 0} OBJECTS</span>
+                       </div>
+                       <div className="space-y-2 border-l-4 border-black/5 pl-8">
+                          <span className="font-neo font-black text-[8px] uppercase tracking-widest text-black/40 italic block">Settlement</span>
+                          <span className="font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold italic">{o.payment_status?.toUpperCase()} via {o.payment_method?.toUpperCase()}</span>
+                       </div>
                     </div>
-                    {o.items_count && (
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]" style={{ fontFamily: "'DM Mono', monospace" }}>Item Count</p>
-                        <p className="text-lg font-medium text-[var(--text-primary)]">{o.items_count}</p>
-                      </div>
-                    )}
+                    
+                    <div className="text-right">
+                       <Link
+                         href={`/e-commerce/order-tracking/${o.order_number}`}
+                         className="font-neo font-black text-[9px] uppercase tracking-[0.3em] text-black/40 hover:text-black border-b-2 border-black/10 hover:border-black py-1 transition-all"
+                       >
+                         Initialize Tracking Protocol
+                       </Link>
+                    </div>
                   </div>
-
-                  {/* 8.1 — Refined Timeline Bar */}
-                  {(status === 'shipped' || status === 'processing' || status === 'delivered' || status === 'pending') && (
-                    <div className="pt-8 border-t border-[var(--border-default)]">
-                      <div className="flex justify-between relative">
-                        <div className="absolute top-[5px] left-0 right-0 h-[2px] bg-[var(--bg-lifted)] rounded-full -z-0" />
-                        
-                        {steps.map((step, idx) => {
-                          const isCompleted = idx < currentStepIdx || status === 'delivered';
-                          const isActive = idx === currentStepIdx && status !== 'delivered';
-                          
-                          return (
-                            <div key={step} className="flex flex-col items-center gap-3 relative z-10 flex-1">
-                              <div 
-                                className={`w-3 h-3 rounded-full border-2 transition-all duration-500 ${
-                                  isCompleted 
-                                    ? 'bg-[var(--status-success)] border-[var(--status-success)]' 
-                                    : isActive 
-                                      ? 'bg-[var(--cyan)] border-[var(--cyan)] shadow-[0_0_12px_var(--cyan-glow)]' 
-                                      : 'bg-[var(--bg-lifted)] border-[var(--border-strong)]'
-                                }`} 
-                              />
-                              <span 
-                                className={`text-[9px] font-bold uppercase tracking-widest transition-colors duration-300 ${
-                                  isActive ? 'text-[var(--cyan)]' : 'text-[var(--text-muted)]'
-                                }`}
-                                style={{ fontFamily: "'DM Mono', monospace" }}
-                              >
-                                {step}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
+              </NeoCard>
             );
           })}
 
-          {!orders.length ? (
-            <div className="text-center py-12 bg-neutral-100/5 rounded-2xl border border-white/5">
-              <ShoppingBag className="mx-auto mb-4 text-white/20" size={48} />
-              <p className="text-white/60">No orders found.</p>
-              <Link href="/e-commerce/" className="mt-4 ec-btn ec-btn-gold">
-                Start Shopping
-              </Link>
+          {!orders.length && (
+            <div className="text-center py-40 border-4 border-black bg-white shadow-[12px_12px_0_0_rgba(0,0,0,1)] relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-black/[0.02] flex items-center justify-center -rotate-12 translate-x-12 -translate-y-12">
+                 <ShoppingBag size={100} />
+              </div>
+              <ShoppingBag className="mx-auto mb-10 text-black/10" size={64} />
+              <h3 className="font-neo font-black text-3xl uppercase italic mb-6">Ledger Empty</h3>
+              <p className="font-neo font-bold text-[11px] uppercase tracking-widest text-black/40 mb-12">No historical displacement logs found in current registry.</p>
+              <NeoButton 
+                variant="primary" 
+                className="px-20 py-5 text-lg uppercase italic"
+                onClick={() => router.push('/e-commerce')}
+              >
+                Start Procurement
+              </NeoButton>
             </div>
-          ) : null}
+          )}
         </div>
       )}
+      
+      <div className="mt-40 pt-20 border-t-4 border-black text-center">
+          <p className="font-neo font-black text-[10px] uppercase tracking-[0.8em] text-black/30 italic">Errum Digital Record Systems • Archive Deck 01 • MMXXVI</p>
+      </div>
     </MyAccountShell>
   );
 }
