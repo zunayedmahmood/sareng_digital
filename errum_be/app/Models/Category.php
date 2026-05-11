@@ -15,6 +15,7 @@ class Category extends Model
         'title',
         'description',
         'image',
+        'banner',
         'color',
         'icon',
         'slug',
@@ -33,6 +34,7 @@ class Category extends Model
 
     protected $appends = [
         'image_url',
+        'banner_url',
     ];
 
     // Boot method to auto-update level and path
@@ -190,7 +192,20 @@ class Category extends Model
     public function getImageUrlAttribute()
     {
         if ($this->image) {
-            return asset('storage/' . $this->image);
+            // Using config('app.url') to avoid misconfigured APP_URL and proxy host overwrites
+            return rtrim(config('app.url'), '/') . '/storage/' . ltrim($this->image, '/');
+        }
+        return null;
+    }
+
+    /**
+     * Get the full URL for the category banner image
+     */
+    public function getBannerUrlAttribute()
+    {
+        if ($this->banner) {
+            // Using config('app.url') to avoid proxy host overwrites
+            return rtrim(config('app.url'), '/') . '/storage/' . ltrim($this->banner, '/');
         }
         return null;
     }

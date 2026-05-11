@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { useCart } from '@/app/CartContext';
+import { useCart } from '@/app/e-commerce/CartContext';
 import catalogService, { SimpleProduct } from '@/services/catalogService';
 import { getCardNewestSortKey } from '@/lib/ecommerceCardUtils';
 import { getBaseProductName } from '@/lib/productNameUtils';
@@ -168,7 +168,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ categoryId, limit =
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ height: '1px', flex: 1, maxWidth: '40px', background: '#111111' }} />
             <h2 style={{
-              fontFamily: "'Jost', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '18px',
               fontWeight: 800,
               textTransform: 'uppercase',
@@ -183,7 +183,7 @@ const FeaturedProducts: React.FC<FeaturedProductsProps> = ({ categoryId, limit =
           <button
             onClick={() => router.push('/e-commerce/products')}
             style={{
-              fontFamily: "'Jost', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: '12px',
               fontWeight: 700,
               textTransform: 'uppercase',

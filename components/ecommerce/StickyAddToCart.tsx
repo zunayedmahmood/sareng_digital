@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ShoppingBag } from 'lucide-react';
-import NeoButton from './ui/NeoButton';
+import { ShoppingCart } from 'lucide-react';
 
 interface StickyAddToCartProps {
   isVisible: boolean;
@@ -23,32 +22,30 @@ const StickyAddToCart: React.FC<StickyAddToCartProps> = ({
 }) => {
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[60] bg-white border-t-4 border-black p-4 transition-all duration-500 pb-[calc(1rem+env(safe-area-inset-bottom))] ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'
-        } sm:hidden lg:flex lg:justify-center`}
+      className={`fixed top-0 left-0 right-0 z-[60] bg-white border-b border-gray-100 p-4 transition-all duration-500 pt-[calc(1rem+env(safe-area-inset-top))] ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        } sm:hidden shadow-lg`}
     >
-      <div className="container mx-auto flex items-center justify-between gap-6 max-w-4xl">
+      <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h4 className="font-neo font-black text-sm uppercase tracking-tighter text-black line-clamp-1 leading-tight">
+          <h4 className="text-[12px] font-bold text-gray-900 line-clamp-1 uppercase tracking-tight leading-tight mb-0.5">
             {productName}
           </h4>
-          <p className="font-neo font-black text-lg text-sd-gold">
+          <p className="text-[14px] font-bold text-gray-900">
             {priceText}
           </p>
         </div>
-        <NeoButton
-          variant="primary"
+        <button
           onClick={onAddToCart}
           disabled={disabled || isAdding}
-          className="h-14 px-8 min-w-[160px]"
+          className="h-11 px-5 rounded-lg bg-black text-white text-[14px] font-bold uppercase tracking-wider flex items-center gap-2 active:scale-95 disabled:bg-gray-100 disabled:text-gray-400 transition-all shadow-md"
         >
           {isAdding ? (
-            <span className="font-neo font-black text-[10px] uppercase">Processing...</span>
+            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            <span className="flex items-center gap-3 font-neo font-black text-[10px] uppercase">
-              <ShoppingBag size={16} /> Acquire Artifact
-            </span>
+            <ShoppingCart size={18} />
           )}
-        </NeoButton>
+          {isAdding ? 'ADDING...' : 'ADD TO CART'}
+        </button>
       </div>
     </div>
   );

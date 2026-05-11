@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
+
 import { ProductVariant } from '@/app/e-commerce/product/[id]/page';
-import NeoBadge from './ui/NeoBadge';
 
 interface VariantSelectorProps {
   variants: ProductVariant[];
@@ -12,44 +12,16 @@ interface VariantSelectorProps {
 }
 
 const formatVariantLabelForCard = (v: ProductVariant) => {
+  // Use variation_suffix as the primary source of truth
   let source = v.variation_suffix || v.name || '';
-  let clean = source.replace(/^\[|\]$/g, '').trim();
-  while (clean.startsWith('-')) clean = clean.substring(1);
-  while (clean.endsWith('-')) clean = clean.substring(0, clean.length - 1);
 
-  const parts = clean.split(/[-/]/).map(p => p.trim()).filter(p => {
-    const lp = p.toLowerCase();
-    return lp !== 'na' && lp !== 'not applicable' && lp !== 'none' && lp !== '';
-  });
-
-  let usIndex = -1;
-  let usVal = '';
-  let euVal = '';
-
-  for (let i = 0; i < parts.length; i++) {
-    const low = parts[i].toLowerCase();
-    if (low === 'us' && i + 1 < parts.length && !isNaN(Number(parts[i + 1]))) {
-      usIndex = i;
-      usVal = parts[i + 1];
-      break;
-    }
+  // Strip only leading dashes as requested
+  let clean = source.trim();
+  while (clean.startsWith('-')) {
+    clean = clean.substring(1).trim();
   }
-
-  if (usIndex !== -1) {
-    for (let i = 0; i < parts.length; i++) {
-      if (i !== usIndex && i !== (usIndex + 1) && !isNaN(Number(parts[i]))) {
-        euVal = parts[i];
-        break;
-      }
-    }
-    if (usVal && euVal) {
-      const others = parts.filter((_, i) => i !== usIndex && i !== (usIndex + 1) && parts[i] !== euVal);
-      const sizeStr = `US ${usVal} / EU ${euVal}`;
-      return others.length > 0 ? `${sizeStr} - ${others.join(' - ')}` : sizeStr;
-    }
-  }
-
-  return parts.join(' - ') || 'Standard';
+  
+  return clean || 'Standard';
 };
 
 const VariantSelector: React.FC<VariantSelectorProps> = ({
@@ -57,46 +29,58 @@ const VariantSelector: React.FC<VariantSelectorProps> = ({
   selectedVariant,
   onVariantChange,
 }) => {
+  const activeLabel = formatVariantLabelForCard(selectedVariant);
+  
+  // Check if variants are primarily numeric sizes to adjust label
+  const isSizeSet = variants.some(v => {
+    const l = formatVariantLabelForCard(v).toLowerCase();
+    return /\d/.test(l) || l.includes('us') || l.includes('eu') || l.includes('uk');
+  });
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-           <span className="font-neo font-black text-[10px] uppercase tracking-widest text-sd-gold">Registry Variations</span>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className="text-[10px] font-bold tracking-widest text-gray-900 uppercase">
+            {isSizeSet ? 'Select Size' : 'Select Option'}:
+          </span>
+          <span className="text-[10px] font-semibold text-[#b83228] uppercase tracking-wider">
+            {activeLabel}
+          </span>
         </div>
-        <NeoBadge variant="gold" className="text-[10px] shadow-none">{variants.length} ENTRIES</NeoBadge>
-      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {variants.map((v) => {
-          const isSelected = selectedVariant.id === v.id;
-          const isAvailable = v.in_stock && (v.available_inventory ?? 0) > 0;
-          const label = formatVariantLabelForCard(v);
+        <div className="flex flex-wrap gap-2.5">
+          {variants.map((v) => {
+            const isSelected = selectedVariant.id === v.id;
+            const isAvailable = v.in_stock && (v.available_inventory ?? 0) > 0;
+            const label = formatVariantLabelForCard(v);
+            
+            // Show full label as requested, no more stripping
+            const displayLabel = label;
 
-          return (
-            <button
-              key={v.id}
-              onClick={() => isAvailable && onVariantChange(v)}
-              className={`
-                group relative min-h-[60px] px-4 py-3 neo-border-2 transition-all flex flex-col items-center justify-center text-center
-                ${isSelected 
-                  ? 'bg-black text-white neo-shadow-sm -translate-y-1' 
-                  : isAvailable 
-                    ? 'bg-white text-black hover:bg-sd-gold hover:neo-shadow-sm hover:-translate-y-1'
-                    : 'bg-black/5 text-black/20 neo-border-4 border-dashed border-black/10 cursor-not-allowed'}
-              `}
-            >
-              <span className={`text-[11px] font-neo font-black uppercase tracking-widest leading-tight`}>
-                 {label}
-              </span>
-              
-              {!isAvailable && (
-                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-                    <div className="w-full h-[2px] bg-black/10 -rotate-12" />
-                 </div>
-              )}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={v.id}
+                onClick={() => onVariantChange(v)}
+                className={`group relative flex items-center justify-center h-11 min-w-[44px] px-4 rounded-lg border text-[11px] font-bold uppercase tracking-wider transition-all duration-300 active:scale-95 whitespace-nowrap flex-shrink-0 ${
+                  isSelected
+                    ? 'bg-black border-black text-white shadow-md'
+                    : isAvailable
+                      ? 'bg-white border-gray-200 text-gray-900 hover:border-black'
+                      : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                <span className="relative z-10">{displayLabel}</span>
+                
+                {!isAvailable && (
+                  <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none opacity-50">
+                    <div className="w-[150%] h-[1px] bg-current -rotate-45" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

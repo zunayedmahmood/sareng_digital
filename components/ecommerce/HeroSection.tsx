@@ -1,127 +1,408 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ArrowRight, Star } from 'lucide-react';
-import NeoButton from './ui/NeoButton';
-import NeoCard from './ui/NeoCard';
-import NeoBadge from './ui/NeoBadge';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { Search as SearchIcon, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1541140134513-85a161dc4a00?q=80&w=2070&auto=format&fit=crop';
+export interface HeroImage {
+  url: string;
+  path?: string;
+}
 
+export default function HeroSection({
+  images = [],
+  title: initialTitle,
+  showTitle = true,
+  slideshowEnabled = true,
+  autoplaySpeed = 5000,
+  textPosition = 'center',
+  textColor = '#ffffff',
+  fontSize = 84,
+  transitionType = 'fade'
+}: {
+  images?: HeroImage[];
+  title?: string;
+  showTitle?: boolean;
+  slideshowEnabled?: boolean;
+  autoplaySpeed?: number;
+  textPosition?: string;
+  textColor?: string;
+  fontSize?: number;
+  transitionType?: 'fade' | 'slide';
+}) {
+  const hexToRgba = (hex: string, alpha: number) => {
+    if (!hex || !hex.startsWith('#')) return hex;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
-const HeroSection: React.FC = () => {
-  return (
-    <section className="relative min-h-screen pt-32 pb-24 flex flex-col items-center justify-center bg-sd-ivory overflow-hidden px-4 sm:px-6 lg:px-12">
-      {/* Background Text Texture */}
-      <div className="absolute top-[20%] left-[-5%] opacity-[0.03] select-none pointer-events-none">
-        <span className="text-[30vw] font-neo font-black uppercase leading-none">Registry</span>
-      </div>
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-      <div className="container mx-auto relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+  const [query, setQuery] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-          {/* Text Content */}
-          <div className="lg:col-span-7 flex flex-col items-start text-left">
-            <motion.div
-              initial={{ x: -100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ type: 'spring', damping: 20 }}
-              className="flex items-center gap-4 mb-6"
-            >
-              <NeoBadge variant="gold" isRotated className="text-xs sm:text-sm px-4 py-2">
-                Curated Collection 2026
-              </NeoBadge>
-              <span className="font-neo font-black text-[10px] sm:text-xs uppercase tracking-widest text-black/40">
-                Registry ID: SDK-AR-09
-              </span>
-            </motion.div>
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-            <motion.h1
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-              className="font-neo font-black text-6xl sm:text-8xl lg:text-[140px] leading-[0.8] uppercase tracking-tighter text-black mb-8 lg:-ml-2"
-            >
-              Archive <br />
-              <span className="text-sd-gold">Digital</span> <br />
-              <span className="relative">
-                Objects
-                <Star className="absolute -top-6 -right-16 text-black w-20 h-20 animate-spin-slow hidden sm:block" />
-              </span>
-            </motion.h1>
+  // Slideshow Autoplay Logic
+  useEffect(() => {
+    if (!slideshowEnabled || images.length <= 1) return;
 
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="max-w-xl mb-12"
-            >
-              <NeoCard variant="white" className="p-6 sm:p-8 -rotate-1">
-                <p className="font-neo font-bold text-xl sm:text-2xl uppercase leading-tight text-black">
-                  High-stakes character artifacts for the modern desktop registry. Precision acoustic engineering meets playful geometric form.
-                </p>
-              </NeoCard>
-            </motion.div>
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, autoplaySpeed);
 
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-6 w-full sm:w-auto"
-            >
-              <Link href="/e-commerce/products" className="w-full sm:w-auto">
-                <NeoButton variant="primary" size="xl" isFullWidth className="group">
-                  Explore Archive <ArrowRight className="group-hover:translate-x-2 transition-transform" />
-                </NeoButton>
-              </Link>
-              <Link href="/e-commerce/about" className="w-full sm:w-auto">
-                <NeoButton variant="secondary" size="xl" isFullWidth>
-                  Our Story
-                </NeoButton>
-              </Link>
-            </motion.div>
-          </div>
+    return () => clearInterval(interval);
+  }, [slideshowEnabled, autoplaySpeed, images.length, currentIndex]); // currentIndex dependency ensures reset on manual navigation
 
-          {/* Image Showcase */}
-          <div className="lg:col-span-5 relative mt-12 lg:mt-0">
-            <motion.div
-              animate={{ rotate: [0, 2, -2, 0] }}
-              transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-              className="relative z-20"
-            >
-              <NeoCard variant="white" className="p-4 sm:p-6 neo-shadow-xl rotate-3 h-[400px] sm:h-[600px] overflow-hidden group">
-                <div className="relative w-full h-full">
-                  <Image
-                    src={HERO_IMAGE}
-                    alt="Artifact"
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 40vw"
-                    className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
-                  />
-                </div>
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
 
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
-                {/* Sticker Badges Overlay */}
-                <NeoBadge variant="violet" className="absolute top-10 -left-6 z-30 -rotate-12 text-sm px-6 py-2">
-                  Certified Authentic
-                </NeoBadge>
-                <NeoBadge variant="black" className="absolute bottom-20 -right-6 z-30 rotate-12 text-sm px-6 py-2">
-                  Unit #409
-                </NeoBadge>
-              </NeoCard>
-            </motion.div>
+  // Swipe handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
 
-            {/* Decorative Background Shape */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-sd-gold/10 -rotate-6 neo-border-8 -z-10" />
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) nextSlide();
+    if (isRightSwipe) prevSlide();
+  };
+
+  // If no images are provided yet, we'll return a loading skeleton or null to prevent flashing hardcoded defaults
+  if (!images || images.length === 0) {
+    return (
+      <section style={{ minHeight: '100vh', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="animate-pulse flex flex-col items-center gap-8 w-full max-w-3xl px-6">
+          <div className="h-16 bg-white/10 rounded-xl w-full" />
+          <div className="flex gap-4">
+            <div className="h-12 bg-white/10 rounded w-32" />
+            <div className="h-12 bg-white/10 rounded w-32" />
           </div>
         </div>
+      </section>
+    );
+  }
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    router.push(`/e-commerce/search?q=${encodeURIComponent(q)}`);
+  };
+
+  const clear = () => {
+    setQuery('');
+    inputRef.current?.focus();
+  };
+
+  return (
+    <section
+      style={{ position: 'relative', overflow: 'hidden', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Background images slider */}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        {images.map((img, idx) => (
+          <div
+            key={idx}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              opacity: transitionType === 'fade' ? (currentIndex === idx ? 1 : 0) : 1,
+              transform: transitionType === 'slide' 
+                ? `translateX(${(idx - currentIndex) * 100}%)`
+                : 'none',
+              transition: transitionType === 'fade'
+                ? 'opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                : 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              zIndex: transitionType === 'fade' ? (currentIndex === idx ? 1 : 0) : 1
+            }}
+          >
+            <Image
+              src={img.url}
+              alt={`Hero background ${idx + 1}`}
+              fill
+              className="object-cover object-center"
+              priority={idx === 0}
+            />
+            {/* Dark overlay */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.4))' }} />
+          </div>
+        ))}
       </div>
+
+      {/* Slide Navigation Indicators (Dots/Dashes) */}
+      {images.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          bottom: '40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 30,
+          display: 'flex',
+          gap: '12px',
+          alignItems: 'center'
+        }}>
+          {images.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              style={{
+                width: currentIndex === idx ? '40px' : '12px',
+                height: '4px',
+                borderRadius: '2px',
+                background: currentIndex === idx ? '#ffffff' : 'rgba(255,255,255,0.4)',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="ec-container" style={{
+        position: 'relative',
+        zIndex: 10,
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        padding: '0 20px'
+      }}>
+
+        {/* TOP SECTION: Search + Buttons */}
+        <div style={{
+          marginTop: '120px', // A little below the top
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '32px',
+          width: '100%',
+          zIndex: 20,
+        }}>
+          {/* Search bar - Adaptive width, centered, focus-based opacity */}
+          <form
+            onSubmit={onSubmit}
+            style={{
+              minWidth: '300px',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: isFocused ? 1 : 0.8,
+            }}
+            className="w-[90vw] md:w-[60vw] max-w-[1200px]"
+          >
+            <div style={{
+              position: 'relative',
+              background: isFocused ? '#ffffff' : 'rgba(255,255,255,0.12)',
+              backdropFilter: isFocused ? 'none' : 'blur(24px)',
+              borderRadius: '12px',
+              boxShadow: isFocused ? '0 12px 48px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              overflow: 'hidden',
+              padding: '1px',
+              border: `1px solid ${isFocused ? '#ffffff' : 'rgba(255,255,255,0.4)'}`,
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+            }}>
+              <button
+                type="submit"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isFocused ? '#111111' : '#ffffff',
+                  zIndex: 20,
+                  transition: 'color 0.3s ease'
+                }}
+                aria-label="Search"
+              >
+                <SearchIcon style={{ width: '18px', height: '18px' }} />
+              </button>
+              <input
+                ref={inputRef}
+                value={query}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search premium lifestyle essentials..."
+                className={`w-full bg-transparent py-2.5 text-sm outline-none border-none font-poppins transition-colors duration-300 ${isFocused ? 'text-neutral-900 placeholder:text-neutral-500' : 'text-white placeholder:text-neutral-300'}`}
+                style={{
+                  paddingLeft: '52px',
+                  paddingRight: query ? '44px' : '16px',
+                }}
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={clear}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    padding: '6px',
+                    color: isFocused ? '#111111' : '#ffffff',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    zIndex: 20,
+                    transition: 'color 0.3s ease'
+                  }}
+                >
+                  <X style={{ width: '16px', height: '16px' }} />
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* CTAs */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '20px',
+            transition: 'all 0.4s ease',
+            opacity: isFocused ? 0.3 : 1, // Dim buttons when focused
+            transform: isFocused ? 'scale(0.98)' : 'scale(1)',
+          }}>
+            <Link href="/e-commerce/products" style={{
+              padding: '12px 36px',
+              background: '#ffffff',
+              color: '#111111',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 800,
+              fontFamily: "var(--font-poppins), sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              textDecoration: 'none',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+            }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = '#f8f8f8';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.2)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = '#ffffff';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+              }}
+            >
+              Shop Now
+            </Link>
+            <Link href="/e-commerce/products?category=all" style={{
+              padding: '12px 36px',
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(12px)',
+              color: '#ffffff',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 800,
+              fontFamily: "var(--font-poppins), sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '0.15em',
+              textDecoration: 'none',
+              border: '1px solid rgba(255,255,255,0.3)',
+              transition: 'all 0.3s ease'
+            }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.2)';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.1)';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              }}
+            >
+              Collections
+            </Link>
+          </div>
+        </div>
+
+        {/* CENTER SECTION: Hero Text */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: (!isMobile && textPosition.includes('left')) ? 'flex-start' : 
+                      (!isMobile && textPosition.includes('right')) ? 'flex-end' : 'center',
+          justifyContent: (!isMobile && textPosition.includes('top')) ? 'flex-start' : 
+                          (!isMobile && textPosition.includes('bottom')) ? 'flex-end' : 'center',
+          textAlign: (!isMobile && textPosition.includes('left')) ? 'left' : 
+                     (!isMobile && textPosition.includes('right')) ? 'right' : 'center',
+          width: '100%',
+          marginTop: 0, // Remove negative margin to prevent overlap with buttons
+          paddingTop: !isMobile && textPosition.includes('top') ? '60px' : '0',
+          paddingBottom: !isMobile ? '90px' : '0',
+          paddingLeft: !isMobile ? '32.5px' : '20px',
+          paddingRight: !isMobile ? '32.5px' : '20px',
+          zIndex: 10,
+          pointerEvents: 'none'
+        }}>
+          {showTitle && (
+            <div style={{ maxWidth: '900px', pointerEvents: 'auto' }}>
+              <h1 style={{
+                fontFamily: "var(--font-poppins), sans-serif",
+                fontSize: `clamp(48px, 10vw, ${fontSize}px)`,
+                fontWeight: 500,
+                color: hexToRgba(textColor || '#ffffff', 0.9),
+                lineHeight: 1.0,
+                letterSpacing: '-0.04em',
+                textShadow: '0 8px 48px rgba(0,0,0,0.5)',
+                whiteSpace: 'pre-line',
+                textTransform: 'none',
+                margin: 0
+              }}>
+                {initialTitle}
+              </h1>
+            </div>
+          )}
+        </div>
+      </div>
+
     </section>
   );
-};
-
-export default HeroSection;
+}

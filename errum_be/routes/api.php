@@ -39,6 +39,8 @@ use App\Http\Controllers\PriceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\BusinessAnalyticsController;
 use App\Http\Controllers\StockIntelligenceController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ExchangeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -155,6 +157,7 @@ Route::prefix('promotions')->group(function () {
 // ============================================
 
 Route::prefix('catalog')->group(function () {
+    Route::get('/homepage-settings', [\App\Http\Controllers\SettingController::class, 'getHomepageSettings']);
     Route::get('/products', [\App\Http\Controllers\EcommerceCatalogController::class, 'getProducts']);
     Route::get('/products/{identifier}', [\App\Http\Controllers\EcommerceCatalogController::class, 'getProduct']);
     Route::get('/categories', [\App\Http\Controllers\EcommerceCatalogController::class, 'getCategories']);
@@ -164,6 +167,7 @@ Route::prefix('catalog')->group(function () {
     Route::get('/search', [\App\Http\Controllers\EcommerceCatalogController::class, 'searchProducts']);
     Route::get('/price-range', [\App\Http\Controllers\EcommerceCatalogController::class, 'getPriceRange']);
     Route::get('/find-stock/{barcode}', [\App\Http\Controllers\EcommerceCatalogController::class, 'findStockByBarcode']);
+    Route::get('/collections/{slug}', [\App\Http\Controllers\EcommerceCatalogController::class, 'getCollection']);
 
     // Global inventory overview across all stores (Public)
     Route::prefix('inventory')->group(function () {
@@ -285,6 +289,11 @@ Route::middleware('auth:api')->group(function () {
 
 // Protected routes
 Route::middleware('auth:api')->group(function () {
+    Route::prefix('settings')->group(function () {
+        Route::get('/homepage', [\App\Http\Controllers\SettingController::class, 'getAdminHomepageSettings']);
+        Route::post('/homepage', [\App\Http\Controllers\SettingController::class, 'updateHomepageSettings']);
+    });
+
     // ============================================
     // PRE-ORDER MANAGEMENT ROUTES (ERP)
     // Manage orders with out-of-stock items
@@ -438,6 +447,8 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/holidays', [\App\Http\Controllers\AttendanceController::class, 'declareHoliday']);
             Route::get('/holidays', [\App\Http\Controllers\AttendanceController::class, 'listHolidays']);
             
+            
+            Route::get('/schedules', [\App\Http\Controllers\AttendanceController::class, 'getSchedules']); // added
             Route::post('/schedules', [\App\Http\Controllers\AttendanceController::class, 'assignSchedule']);
             
             Route::post('/mark', [\App\Http\Controllers\AttendanceController::class, 'markAttendance']);
@@ -536,6 +547,7 @@ Route::middleware('auth:api')->group(function () {
             Route::post('/approve', [PurchaseOrderController::class, 'approve']);
             Route::post('/receive', [PurchaseOrderController::class, 'receive']);
             Route::post('/cancel', [PurchaseOrderController::class, 'cancel']);
+            Route::put('/bulk-update', [PurchaseOrderController::class, 'bulkUpdate']);
             
             // PO Items management
             Route::post('/items', [PurchaseOrderController::class, 'addItem']);
@@ -836,12 +848,22 @@ Route::middleware('auth:api')->group(function () {
     // ============================================
 
     Route::prefix('cash-sheet')->group(function () {
-        // GET  /api/cash-sheet?month=2026-04   → full monthly sheet
+        // GET  /api/cash-sheet?month=2026-04          → full monthly sheet
         Route::get('/', [\App\Http\Controllers\CashSheetController::class, 'index']);
-        // POST /api/cash-sheet/branch          → branch manager saves daily cost + salary
-        Route::post('/branch', [\App\Http\Controllers\CashSheetController::class, 'saveBranch']);
-        // POST /api/cash-sheet/owner           → admin/owner saves disbursements + boss entries
-        Route::post('/owner', [\App\Http\Controllers\CashSheetController::class, 'saveOwner']);
+        // GET  /api/cash-sheet/entries?date=2026-04-14 → raw entries for a date (detail panel)
+        Route::get('/entries', [\App\Http\Controllers\CashSheetController::class, 'entries']);
+
+        // Branch cost entries (branch managers)
+        Route::post('/branch-cost', [\App\Http\Controllers\CashSheetController::class, 'storeBranchCost']);
+        Route::delete('/branch-cost/{id}', [\App\Http\Controllers\CashSheetController::class, 'destroyBranchCost']);
+
+        // Admin entries (salary set-aside, cash→bank, sslzc, pathao)
+        Route::post('/admin', [\App\Http\Controllers\CashSheetController::class, 'storeAdmin']);
+        Route::delete('/admin/{id}', [\App\Http\Controllers\CashSheetController::class, 'destroyAdmin']);
+
+        // Owner entries (investments + costs)
+        Route::post('/owner', [\App\Http\Controllers\CashSheetController::class, 'storeOwner']);
+        Route::delete('/owner/{id}', [\App\Http\Controllers\CashSheetController::class, 'destroyOwner']);
     });
 
     // ============================================
@@ -993,6 +1015,12 @@ Route::middleware('auth:api')->group(function () {
     Route::prefix('variant-options')->group(function () {
         Route::get('/', [ProductVariantController::class, 'getOptions']);
         Route::post('/', [ProductVariantController::class, 'storeOption']);
+    });
+
+    // Dedicated Size Management
+    Route::prefix('sizes')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SizeController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\SizeController::class, 'store']);
     });
     
     // Product variants
@@ -1158,6 +1186,8 @@ Route::middleware('auth:api')->group(function () {
 
         // Bulk operations
         Route::post('/bulk-send-to-pathao', [ShipmentController::class, 'bulkSendToPathao']);
+        Route::post('/bulk-send-orders-to-pathao', [ShipmentController::class, 'bulkSendOrdersToPathao']);
+        Route::post('/pathao-queue-tick', [ShipmentController::class, 'runPathaoQueueTick']);
         Route::post('/bulk-sync-pathao-status', [ShipmentController::class, 'bulkSyncPathaoStatus']);
         
         // Pathao status sync scheduler trigger (manual trigger for admins)
@@ -1169,6 +1199,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/bulk-status/{batchCode}', [ShipmentController::class, 'bulkStatus']);
         Route::get('/bulk-status/{batchCode}/details', [ShipmentController::class, 'bulkStatusDetails']);
         Route::post('/bulk-status/{batchCode}/cancel', [ShipmentController::class, 'bulkCancel']);
+        Route::post('/bulk-status/{batchCode}/retry-failed', [ShipmentController::class, 'retryFailedPathaoBatch']);
 
         // Create shipment from order
         Route::post('/', [ShipmentController::class, 'create']);
@@ -1258,6 +1289,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Product Management Routes (with custom fields support)
     Route::prefix('products')->group(function () {
+        Route::post('/{id}/sync-sku-images', [ProductController::class, 'syncSkuImages']);
         Route::get('/', [ProductController::class, 'index']);
         Route::post('/', [ProductController::class, 'create']);
         Route::get('/stats', [ProductController::class, 'getStatistics']);
@@ -1394,6 +1426,7 @@ Route::middleware('auth:api')->group(function () {
 
     // Update all batch prices for a product
     Route::post('/products/{product_id}/batches/update-price', [ProductBatchController::class, 'updateAllBatchPrices']);
+    Route::post('/products/{product_id}/batches/update-cost', [ProductBatchController::class, 'updateAllBatchCostPrices']);
 
     // Product Barcode Management Routes
     Route::prefix('barcodes')->group(function () {

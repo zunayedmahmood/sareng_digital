@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Field;
 use App\Models\ProductField;
+use App\Models\ProductImage;
 use App\Models\Category;
 use App\Models\Vendor;
 use App\Traits\DatabaseAgnosticSearch;
 use App\Traits\ProductImageFallback;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
@@ -106,8 +109,112 @@ class ProductController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc');
+        $perPage = $request->get('per_page', 15);
         
         $allowedSortFields = ['name', 'sku', 'created_at', 'updated_at', 'price'];
+
+        // Handle Grouping by SKU
+        if ($request->boolean('group_by_sku', true)) {
+            // Step 1: Get the list of SKUs that match the filters
+            // We use a subquery approach to ensure pagination works on groups, not individual products
+            $filteredSkuQuery = clone $query;
+            
+            // If sorting by price, we need to join batches to the subquery
+            if ($sortBy === 'price') {
+                $filteredSkuQuery->addSelect([
+                    'min_price' => \App\Models\ProductBatch::select('sell_price')
+                        ->whereColumn('product_id', 'products.id')
+                        ->where('is_active', true)
+                        ->where('availability', true)
+                        ->orderBy('sell_price', 'asc')
+                        ->limit(1)
+                ]);
+            }
+
+            // Create a sub-select to get unique SKUs and their representative (latest created product)
+            $subQuery = DB::table('products')
+                ->whereIn('id', function($q) use ($filteredSkuQuery) {
+                    $q->select('id')->fromSub($filteredSkuQuery, 'sq');
+                })
+                ->select('sku', DB::raw('MAX(id) as representative_id'))
+                ->groupBy('sku');
+
+            // Apply sorting to the groups
+            if ($sortBy === 'name') {
+                // For name, we pick the MAX name in the group (usually consistent)
+                $subQuery->addSelect(DB::raw('MAX(name) as sort_name'))->orderBy('sort_name', $sortDirection);
+            } elseif ($sortBy === 'sku') {
+                $subQuery->orderBy('sku', $sortDirection);
+            } elseif ($sortBy === 'price') {
+                // This is slightly complex, ideally we sort by the MIN price within the SKU group
+                $subQuery->addSelect(DB::raw('(SELECT MIN(sell_price) FROM product_batches WHERE product_id IN (SELECT id FROM products p2 WHERE p2.sku = products.sku)) as min_group_price'))
+                         ->orderBy('min_group_price', $sortDirection);
+            } else {
+                // Default to created_at
+                $subQuery->addSelect(DB::raw('MAX(created_at) as latest_created'))->orderBy('latest_created', $sortDirection);
+            }
+
+            $pagedGroups = $request->boolean('no_pagination') ? $subQuery->get() : $subQuery->paginate($perPage);
+            
+            $items = ($pagedGroups instanceof \Illuminate\Pagination\LengthAwarePaginator) 
+                ? $pagedGroups->items() 
+                : $pagedGroups->all();
+
+            $representativeIds = collect($items)->pluck('representative_id')->filter()->values();
+            $skus = collect($items)->pluck('sku')->filter()->values();
+
+            // Load full models for the representatives
+            $products = Product::with(['category', 'vendor', 'productFields.field', 'images' => function($q) {
+                $q->where('is_active', true)->orderBy('is_primary', 'desc')->orderBy('sort_order');
+            }])
+            ->whereIn('id', $representativeIds)
+            ->get();
+
+            // Sort products to match the items order
+            $products = $products->sortBy(function($product) use ($representativeIds) {
+                return $representativeIds->search($product->id);
+            })->values();
+
+            // Load variants for these SKUs
+            $allVariants = Product::with(['productFields.field', 'images' => function($q) {
+                $q->where('is_active', true)->orderBy('is_primary', 'desc')->orderBy('sort_order');
+            }])
+            ->whereIn('sku', $skus)
+            ->whereNotIn('id', $representativeIds)
+            ->where('is_archived', false) // Only active variants by default
+            ->get()
+            ->groupBy('sku');
+
+            foreach ($products as $product) {
+                $product->variants = $allVariants->get($product->sku, collect());
+                $product->has_variants = $product->variants->isNotEmpty();
+                $product->variants_count = $product->variants->count() + 1;
+                $product->custom_fields = $this->formatCustomFields($product);
+                
+                foreach ($product->variants as $variant) {
+                    $variant->custom_fields = $this->formatCustomFields($variant);
+                }
+            }
+
+            if ($pagedGroups instanceof \Illuminate\Pagination\LengthAwarePaginator) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $pagedGroups->setCollection($products)
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'data' => $products,
+                    'total' => $products->count(),
+                    'current_page' => 1,
+                    'last_page' => 1
+                ]
+            ]);
+        }
+
+        // --- Flat (non-grouped) fallback logic ---
         
         if ($sortBy === 'price') {
             $query->addSelect([
@@ -122,11 +229,14 @@ class ProductController extends Controller
             $query->orderBy($sortBy, $sortDirection);
         }
 
-        $products = $query->paginate($request->get('per_page', 15));
+        $products = $query->paginate($perPage);
 
         // Transform to include formatted custom fields
         foreach ($products as $product) {
             $product->custom_fields = $this->formatCustomFields($product);
+            $product->has_variants = false;
+            $product->variants = [];
+            $product->variants_count = 1;
         }
 
         return response()->json([
@@ -827,6 +937,159 @@ class ProductController extends Controller
             ->where('product_batches.quantity', '>', 0)
             ->selectRaw('SUM(product_batches.quantity * product_batches.cost_price) as total_value')
             ->value('total_value') ?? 0;
+    }
+
+    /**
+     * Sync images for an entire SKU group (all variants that share the same SKU).
+     *
+     * Behaviour (all-or-nothing via DB transaction):
+     *   1. Deletes ALL existing images (files + DB records) for every product in the group.
+     *   2. Uploads the provided images to every variant in serial order.
+     *   3. Sets `is_primary = true` on the image at `primary_index` (default: 0).
+     *
+     * POST /api/products/{id}/sync-sku-images
+     *
+     * Body (multipart/form-data):
+     *   - images[]:       file[]   (required, ≥1 image, max 10, mimes: jpeg,png,jpg,gif,webp, max 5 MB each)
+     *   - primary_index:  integer  (optional, default 0 — which image in the uploaded array becomes primary)
+     *
+     * @param Request $request
+     * @param int|string $id  Any product ID belonging to the target SKU group.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function syncSkuImages(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $request->validate([
+            'images'           => 'nullable|array|max:10',
+            'images.*'         => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'existing_paths'   => 'nullable|array',
+            'existing_paths.*' => 'required|string',
+            'primary_index'    => 'nullable|integer|min:0',
+            'image_sequence'   => 'nullable|array', // Array of {type: 'existing'|'new', value: string|number}
+            'alt_texts'        => 'nullable|array',
+            'alt_texts.*'      => 'nullable|string|max:255',
+        ]);
+
+        $primaryIndex   = (int) ($request->input('primary_index', 0));
+        $newFiles       = $request->file('images') ?? [];
+        $existingPaths  = $request->input('existing_paths') ?? [];
+        $imageSequence  = $request->input('image_sequence') ?? [];
+        $altTexts       = $request->input('alt_texts') ?? [];
+        $sku            = $product->sku;
+
+        if (empty($newFiles) && empty($existingPaths)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No images provided to sync.',
+            ], 422);
+        }
+
+        // Get all products in SKU group once
+        $skuProducts = Product::where('sku', $sku)->get();
+        $skuProductIds = $skuProducts->pluck('id')->toArray();
+
+        if (empty($skuProductIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No products found for SKU: ' . ($sku ?: 'EMPTY'),
+            ], 404);
+        }
+
+        $uploadedPaths = [];
+
+        DB::beginTransaction();
+        try {
+            // 1. Process and upload new files first so we have all paths
+            $uploadedNewPaths = [];
+            foreach ($newFiles as $idx => $file) {
+                $extension = Str::lower($file->getClientOriginalExtension());
+                $imageName = time() . '_' . $idx . '_' . Str::random(5) . '.' . $extension;
+                $imagePath = $file->storeAs('products/sku-' . $sku, $imageName, 'public');
+                $uploadedPaths[] = $imagePath;
+                $uploadedNewPaths[$idx] = $imagePath;
+            }
+
+            // 2. Build the final ordered list of paths
+            $allImagePaths = [];
+            if (!empty($imageSequence)) {
+                foreach ($imageSequence as $item) {
+                    $type = $item['type'] ?? '';
+                    $val  = $item['value'] ?? '';
+                    if ($type === 'existing') {
+                        $allImagePaths[] = $val;
+                    } elseif ($type === 'new' && isset($uploadedNewPaths[(int)$val])) {
+                        $allImagePaths[] = $uploadedNewPaths[(int)$val];
+                    }
+                }
+            } else {
+                // Fallback to existing first, then new
+                $allImagePaths = array_merge($existingPaths, array_values($uploadedNewPaths));
+            }
+
+            // 3. Delete old image records and files (if not in use)
+            foreach ($skuProducts as $skuProduct) {
+                $existingImages = ProductImage::where('product_id', $skuProduct->id)->get();
+                foreach ($existingImages as $img) {
+                    // Only delete file if it's NOT in our new set AND not used by ANY other product
+                    if (!in_array($img->image_path, $allImagePaths)) {
+                        $otherUsage = ProductImage::where('image_path', $img->image_path)
+                            ->whereNotIn('product_id', $skuProductIds)
+                            ->exists();
+                        
+                        if (!$otherUsage && Storage::disk('public')->exists($img->image_path)) {
+                            Storage::disk('public')->delete($img->image_path);
+                        }
+                    }
+                    $img->delete();
+                }
+            }
+
+            // 4. Persist the new sequence for every variant
+            foreach ($allImagePaths as $idx => $path) {
+                $isPrimary = ($idx === $primaryIndex);
+                $altText   = $altTexts[$idx] ?? null;
+                
+                foreach ($skuProducts as $skuProduct) {
+                    ProductImage::create([
+                        'product_id' => $skuProduct->id,
+                        'image_path' => $path,
+                        'alt_text'   => $altText ?? $skuProduct->name,
+                        'is_primary' => $isPrimary,
+                        'sort_order' => $idx,
+                        'is_active'  => true,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success'          => true,
+                'message'          => 'Images synced successfully across ' . count($skuProductIds) . ' variants.',
+                'variants_updated' => count($skuProductIds),
+                'images_synced'    => count($allImagePaths),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            foreach ($uploadedPaths as $path) {
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+
+            \Log::error('SKU Image Sync Failed: ' . $e->getMessage(), [
+                'product_id' => $id,
+                'sku' => $sku,
+                'exception' => $e
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to sync SKU images: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

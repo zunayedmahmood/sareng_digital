@@ -240,50 +240,20 @@ export default function ProductPage() {
         apiSortDir = 'desc';
       }
 
-      // Proposal 5: use advanced search when query is ≥ 2 chars
-      if (debouncedSearchQuery.trim().length >= 2) {
-        try {
-          response = await productService.advancedSearch({
-            query: debouncedSearchQuery.trim(),
-            category_id: selectedCategory ? Number(selectedCategory) : undefined,
-            vendor_id: selectedVendor ? Number(selectedVendor) : undefined,
-            per_page: SERVER_PAGE_SIZE,
-            page: pageToLoad,
-            enable_fuzzy: true,
-            in_stock: stockStatus === 'in_stock' ? 'true' : stockStatus === 'not_in_stock' ? 'false' : undefined,
-          });
-        } catch {
-          // Advanced search unavailable — fall back to standard endpoint
-          response = await productService.getAll({
-            page: pageToLoad,
-            per_page: SERVER_PAGE_SIZE,
-            search: debouncedSearchQuery || undefined,
-            category_id: selectedCategory ? Number(selectedCategory) : undefined,
-            vendor_id: selectedVendor ? Number(selectedVendor) : undefined,
-            group_by_sku: true,
-            min_price: minPrice ? Number(minPrice) : undefined,
-            max_price: maxPrice ? Number(maxPrice) : undefined,
-            in_stock: stockStatus === 'in_stock' ? 'true' : stockStatus === 'not_in_stock' ? 'false' : undefined,
-            sort_by: apiSortBy,
-            sort_direction: apiSortDir,
-          });
-        }
-      } else {
-        // Proposal 1 + 2: grouped endpoint with optional server-side price filter
-        response = await productService.getAll({
-          page: pageToLoad,
-          per_page: SERVER_PAGE_SIZE,
-          search: debouncedSearchQuery || undefined,
-          category_id: selectedCategory ? Number(selectedCategory) : undefined,
-          vendor_id: selectedVendor ? Number(selectedVendor) : undefined,
-          group_by_sku: true,
-          min_price: minPrice ? Number(minPrice) : undefined,
-          max_price: maxPrice ? Number(maxPrice) : undefined,
-          in_stock: stockStatus === 'in_stock' ? 'true' : stockStatus === 'not_in_stock' ? 'false' : undefined,
-          sort_by: apiSortBy,
-          sort_direction: apiSortDir,
-        });
-      }
+      // Fetch using the standard endpoint with optional server-side price and search filters
+      response = await productService.getAll({
+        page: pageToLoad,
+        per_page: SERVER_PAGE_SIZE,
+        search: debouncedSearchQuery || undefined,
+        category_id: selectedCategory ? Number(selectedCategory) : undefined,
+        vendor_id: selectedVendor ? Number(selectedVendor) : undefined,
+        group_by_sku: true,
+        min_price: minPrice ? Number(minPrice) : undefined,
+        max_price: maxPrice ? Number(maxPrice) : undefined,
+        in_stock: stockStatus === 'in_stock' ? 'true' : stockStatus === 'not_in_stock' ? 'false' : undefined,
+        sort_by: apiSortBy,
+        sort_direction: apiSortDir,
+      });
 
       const nextProducts = Array.isArray(response.data) ? response.data : [];
       const nextLastPage = Math.max(1, Number(response.last_page || 1));
@@ -406,27 +376,7 @@ export default function ProductPage() {
    * Uses custom_fields if present; otherwise parses the name.
    */
   const getBaseName = (product: Product): string => {
-    const { color, size } = getColorAndSize(product);
-    const original = (product.name || '').trim();
-    let name = original;
-
-    // If the backend has custom fields, we can safely strip suffixes.
-    if (color && size) {
-      const pattern = new RegExp(`\\s*-\\s*${String(color).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*-\\s*${String(size).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}$`, 'i');
-      name = name.replace(pattern, '');
-    } else if (color) {
-      const pattern = new RegExp(`\\s*-\\s*${String(color).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}$`, 'i');
-      name = name.replace(pattern, '');
-    } else if (size) {
-      const pattern = new RegExp(`\\s*-\\s*${String(size).replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}$`, 'i');
-      name = name.replace(pattern, '');
-    } else {
-      // Fallback: parse "Base - Color - Size" naming
-      const parsed = parseVariantFromName(original);
-      if (parsed.base) name = parsed.base;
-    }
-
-    return (name || original).trim();
+    return ((product as any).base_name || product.name || '').trim();
   };
 
   /**
@@ -434,34 +384,11 @@ export default function ProductPage() {
    * If variants use a consistent naming scheme ("Base - Color - Size"),
    * we pick the most common parsed base across variants.
    */
-  const getGroupBaseName = (variants: { name: string }[], fallbackName: string) => {
-    const bases = variants
-      .map(v => (parseVariantFromName(v.name).base || '').trim())
-      .filter(Boolean);
-    if (bases.length === 0) return fallbackName;
-
-    const counts = new Map<string, number>();
-    const originalMap = new Map<string, string>();
-    bases.forEach(b => {
-      const key = b.toLowerCase();
-      counts.set(key, (counts.get(key) || 0) + 1);
-      if (!originalMap.has(key)) originalMap.set(key, b);
-    });
-
-    // Pick most frequent; tie-breaker: shortest (cleanest)
-    let bestKey = '';
-    let bestCount = -1;
-    let bestLen = Infinity;
-    for (const [key, c] of counts.entries()) {
-      const candidate = originalMap.get(key) || key;
-      const len = candidate.length;
-      if (c > bestCount || (c === bestCount && len < bestLen)) {
-        bestKey = key;
-        bestCount = c;
-        bestLen = len;
-      }
-    }
-    return (originalMap.get(bestKey) || fallbackName).trim();
+  const getGroupBaseName = (variants: any[], fallbackName: string) => {
+    if (!variants || variants.length === 0) return fallbackName;
+    // Pick the first product of the group and use its base_name
+    const first = variants[0];
+    return (first.base_name || first.name || fallbackName).trim();
   };
 
   // Enhanced image URL processing
@@ -485,7 +412,7 @@ export default function ProductPage() {
     if (products.length === 0) return [];
 
     // Detect grouped response: any product has the `has_variants` field
-    const isGrouped = products.some(p => typeof (p as any).has_variants === 'boolean');
+    const isGrouped = products.some(p => (p as any).has_variants !== undefined);
 
     if (isGrouped) {
       return products.map((product) => {
@@ -511,7 +438,7 @@ export default function ProductPage() {
             const vImgUrl = vImg
               ? (vImg.url?.startsWith('http') ? vImg.url : getImageUrl(vImg.image_path ?? vImg.url))
               : null;
-            
+
             const vColorSize = getColorAndSize(v);
 
             return {
@@ -580,6 +507,7 @@ export default function ProductPage() {
       group.variants.push({
         id: product.id,
         name: product.name,
+        base_name: (product as any).base_name,
         sku: product.sku,
         color,
         size,

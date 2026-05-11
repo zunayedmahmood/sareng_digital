@@ -102,7 +102,8 @@ class ProductImageController extends Controller
         try {
             // Handle file upload
             $image = $request->file('image');
-            $imageName = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+            $extension = Str::lower($image->getClientOriginalExtension());
+            $imageName = time() . '_' . Str::random(10) . '.' . $extension;
             $imagePath = $image->storeAs('products/' . $productId, $imageName, 'public');
 
             // Create image record
@@ -181,7 +182,8 @@ class ProductImageController extends Controller
             $maxSortOrder = ProductImage::byProduct($productId)->max('sort_order') ?? 0;
 
             foreach ($images as $index => $image) {
-                $imageName = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+                $extension = Str::lower($image->getClientOriginalExtension());
+                $imageName = time() . '_' . Str::random(10) . '.' . $extension;
                 $imagePath = $image->storeAs('products/' . $productId, $imageName, 'public');
 
                 $productImage = ProductImage::create([
@@ -350,9 +352,15 @@ class ProductImageController extends Controller
 
         DB::beginTransaction();
         try {
-            // Delete file from storage
-            if (Storage::disk('public')->exists($image->image_path)) {
-                Storage::disk('public')->delete($image->image_path);
+            // Delete file from storage ONLY if no other product image records use it
+            if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+                $otherUsage = ProductImage::where('image_path', $image->image_path)
+                    ->where('id', '!=', $image->id)
+                    ->exists();
+                
+                if (!$otherUsage) {
+                    Storage::disk('public')->delete($image->image_path);
+                }
             }
 
             // Delete database record
@@ -400,8 +408,14 @@ class ProductImageController extends Controller
             $images = ProductImage::byProduct($productId)->get();
 
             foreach ($images as $image) {
-                if (Storage::disk('public')->exists($image->image_path)) {
-                    Storage::disk('public')->delete($image->image_path);
+                if ($image->image_path && Storage::disk('public')->exists($image->image_path)) {
+                    $otherUsage = ProductImage::where('image_path', $image->image_path)
+                        ->where('product_id', '!=', $productId)
+                        ->exists();
+                        
+                    if (!$otherUsage) {
+                        Storage::disk('public')->delete($image->image_path);
+                    }
                 }
                 $image->delete();
             }

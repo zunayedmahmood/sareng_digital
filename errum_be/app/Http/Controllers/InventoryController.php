@@ -20,12 +20,27 @@ class InventoryController extends Controller
     public function getGlobalInventory(Request $request)
     {
         try {
-            $query = ProductBatch::with(['product', 'store'])
+            $query = ProductBatch::whereHas('product', function($q) {
+                    $q->where('is_archived', false);
+                })
+                ->with(['product', 'store'])
                 ->where('quantity', '>', 0);
 
             // Filter by product
             if ($request->has('product_id')) {
                 $query->where('product_id', $request->product_id);
+            }
+
+            // Filter by category
+            if ($request->has('category_id')) {
+                $categoryId = $request->category_id;
+                $category = \App\Models\Category::find($categoryId);
+                if ($category) {
+                    $categoryIds = $category->descendants()->pluck('id')->push($category->id)->toArray();
+                    $query->whereHas('product', function($q) use ($categoryIds) {
+                        $q->whereIn('category_id', $categoryIds);
+                    });
+                }
             }
 
             // Filter by store
@@ -39,7 +54,7 @@ class InventoryController extends Controller
             }
 
             // Group by product and aggregate across stores
-            $inventory = $query->get()
+            $inventory = $query->with(['product.category.parent', 'store'])->get()
                 ->groupBy('product_id')
                 ->map(function ($batches, $productId) {
                     $product = $batches->first()->product;
@@ -62,10 +77,18 @@ class InventoryController extends Controller
                     $availableQuantity = $reservedRecord ? max(0, $reservedRecord->available_inventory) : $totalQuantity;
                     $reservedQuantity = $reservedRecord ? $reservedRecord->reserved_inventory : 0;
 
+                    // Resolve category hierarchy
+                    $category = $product->category;
+                    $parent = $category ? $category->parent : null;
+
                     return [
                         'product_id' => $product->id,
+                        'category_id' => $product->category_id,
+                        'category_name' => $parent ? $parent->title : ($category ? $category->title : 'Uncategorized'),
+                        'subcategory_name' => $parent ? $category->title : '-',
                         'product_name' => $product->name,
                         'base_name' => $product->base_name,
+                        'variation_suffix' => $product->variation_suffix ?: trim(str_replace($product->base_name, '', $product->name)),
                         'sku' => $product->sku,
                         'total_quantity' => $totalQuantity,
                         'available_quantity' => $availableQuantity,
@@ -103,9 +126,10 @@ class InventoryController extends Controller
             $search = $request->search;
 
             // Search products by name or SKU
-            $products = Product::query();
+            $products = Product::where('is_archived', false);
             $this->whereAnyLike($products, ['name', 'sku'], $search);
-            $products = $products->with(['productBatches' => function ($query) {
+            
+            $products = $products->with(['category.parent', 'productBatches' => function ($query) {
                     $query->where('quantity', '>', 0)->with('store');
                 }])
                 ->get()
@@ -129,9 +153,18 @@ class InventoryController extends Controller
                     $availableQuantity = $reservedRecord ? max(0, $reservedRecord->available_inventory) : $totalQuantity;
                     $reservedQuantity = $reservedRecord ? $reservedRecord->reserved_inventory : 0;
 
+                    // Resolve category hierarchy
+                    $category = $product->category;
+                    $parent = $category ? $category->parent : null;
+
                     return [
                         'product_id' => $product->id,
+                        'category_id' => $product->category_id,
+                        'category_name' => $parent ? $parent->title : ($category ? $category->title : 'Uncategorized'),
+                        'subcategory_name' => $parent ? $category->title : '-',
                         'product_name' => $product->name,
+                        'base_name' => $product->base_name,
+                        'variation_suffix' => $product->variation_suffix ?: trim(str_replace($product->base_name, '', $product->name)),
                         'sku' => $product->sku,
                         'total_quantity' => $totalQuantity,
                         'available_quantity' => $availableQuantity,

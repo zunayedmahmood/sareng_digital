@@ -4,42 +4,39 @@ import { Suspense } from 'react';
 import { CustomerAuthProvider } from '@/contexts/CustomerAuthContext';
 
 import { PromotionProvider } from '@/contexts/PromotionContext';
-import { CartProvider } from './CartContext';
 import Footer from '@/components/ecommerce/Footer';
 import ScrollToTopOnRouteChange from '@/components/ecommerce/ScrollToTopOnRouteChange';
 import GlobalCartSidebar from '@/components/ecommerce/cart/GlobalCartSidebar';
-import TabManager from '@/components/ecommerce/TabManager';
+
 
 export default function EcommerceLayout({ children }: { children: React.ReactNode }) {
   return (
     <CustomerAuthProvider>
       <PromotionProvider>
-        <CartProvider>
-          <TabManager />
-          <Suspense fallback={null}>
-            <ScrollToTopOnRouteChange />
-          </Suspense>
+        <Suspense fallback={null}>
+          <ScrollToTopOnRouteChange />
+        </Suspense>
 
-          <GlobalCartSidebar />
+        <GlobalCartSidebar />
 
-          {/* Clean white e-commerce layout */}
-          <div
-            className="ec-root"
-            style={{
-              minHeight: '100vh',
-              backgroundColor: '#ffffff',
-              position: 'relative',
-            }}
-          >
-            {/* All page content */}
-            <div style={{ position: 'relative', zIndex: 10 }}>
-              {children}
-            </div>
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <Footer />
-            </div>
+        {/* Clean white e-commerce layout */}
+        <div
+          className="ec-root"
+          style={{
+            minHeight: '100vh',
+            backgroundColor: '#ffffff',
+            position: 'relative',
+          }}
+        >
+
+          {/* All page content */}
+          <div style={{ position: 'relative', zIndex: 10 }}>
+            {children}
           </div>
-        </CartProvider>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <Footer />
+          </div>
+        </div>
       </PromotionProvider>
     </CustomerAuthProvider>
   );

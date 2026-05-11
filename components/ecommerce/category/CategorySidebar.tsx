@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Hash, DollarSign, Layers, Check } from 'lucide-react';
-import NeoCard from '../ui/NeoCard';
-import NeoBadge from '../ui/NeoBadge';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Category {
   id: number;
@@ -19,12 +18,13 @@ interface CategorySidebarProps {
   onCategoryChange: (category: string) => void;
   selectedPriceRange: string;
   onPriceRangeChange: (range: string) => void;
-  selectedStock?: string;
-  onStockChange?: (stock: string) => void;
+  selectedStock: string;
+  onStockChange: (stock: string) => void;
   selectedSort?: string;
   onSortChange?: (sort: any) => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
   useIdForRouting?: boolean;
 }
 
@@ -42,12 +42,16 @@ export default function CategorySidebar({
   onCategoryChange,
   selectedPriceRange,
   onPriceRangeChange,
+  selectedStock,
+  onStockChange,
   selectedSort,
   onSortChange,
   searchQuery,
   onSearchChange,
+  searchInputRef,
   useIdForRouting = false,
 }: CategorySidebarProps) {
+  const router = useRouter();
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
   const toggleCategory = (categoryId: number) => {
@@ -62,48 +66,52 @@ export default function CategorySidebar({
 
   const isActive = (category: Category) => {
     const normalizedActive = decodeURIComponent(activeCategory || '').toLowerCase();
+
+    // Check ID match
     if (normalizedActive === String(category.id)) return true;
+
+    // Legacy/Slug match
     const slug = (category.slug || slugify(category.name)).toLowerCase();
     return normalizedActive === slug || normalizedActive === category.name.toLowerCase();
   };
 
   const categoryRouteValue = (category: Category) => 
-    useIdForRouting ? String(category.id) : (category.slug || slugify(category.name));
+    useIdForRouting ? String(category.id) : slugify(category.name);
 
   const renderCategory = (category: Category, level = 0) => {
     const hasChildren = category.children && category.children.length > 0;
     const isExpanded = expandedCategories.has(category.id);
-    const active = isActive(category);
 
     return (
-      <div key={category.id} className="group">
-        <button
-          onClick={() => onCategoryChange(categoryRouteValue(category))}
-          className={`
-            w-full flex items-center justify-between py-3 px-4 transition-all duration-100
-            ${active 
-              ? 'bg-sd-black text-sd-gold font-black z-10' 
-              : 'hover:bg-sd-gold/10 text-black font-bold'}
-          `}
-          style={{ paddingLeft: `${16 + level * 16}px` }}
+      <div key={category.id} className="mb-1">
+        <div
+          className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${isActive(category)
+              ? 'bg-[var(--cyan-pale)] text-[var(--cyan)] font-medium border border-[var(--cyan-border)]'
+              : 'hover:bg-[var(--ivory-ghost)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          style={{ paddingLeft: `${8 + level * 16}px` }}
         >
-          <span className="font-neo text-[10px] uppercase tracking-widest text-left">
+          <span
+            onClick={() => {
+              const slug = slugify(category.name);
+              router.push(`/e-commerce/${encodeURIComponent(slug)}`);
+              onCategoryChange(categoryRouteValue(category));
+            }}
+            className="flex-1"
+          >
             {category.name}
           </span>
           {hasChildren && (
-            <div
-               onClick={(e) => {
-                 e.stopPropagation();
-                 toggleCategory(category.id);
-               }}
-               className="p-1 hover:text-sd-gold transition-colors"
+            <button
+              onClick={() => toggleCategory(category.id)}
+              className="p-1 hover:bg-[var(--cyan-pale)] hover:text-[var(--cyan)] rounded transition-colors"
             >
-               {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </div>
+              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
           )}
-        </button>
+        </div>
         {hasChildren && isExpanded && (
-          <div className="border-l-2 border-black ml-4">
+          <div className="mt-1 max-h-[400px] overflow-y-auto ec-scrollbar pr-1">
             {category.children!.map(child => renderCategory(child, level + 1))}
           </div>
         )}
@@ -112,112 +120,95 @@ export default function CategorySidebar({
   };
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* ── Search Protocol ── */}
+    <div className="space-y-6">
       {onSearchChange && (
-        <section className="space-y-4">
-           <div className="flex items-center gap-2">
-              <Hash size={14} className="text-sd-gold" />
-              <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Query Engine</h3>
-           </div>
-           <NeoCard variant="white" hasHover={false} className="p-1 neo-shadow-sm border-2">
-              <input 
-                type="text" 
-                placeholder="REGISTRY FILTER..."
-                value={searchQuery || ''}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full bg-white px-4 py-3 font-neo text-[11px] font-black text-black focus:outline-none placeholder:text-black/20 uppercase tracking-widest"
-              />
-           </NeoCard>
-        </section>
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>Search</h3>
+          <div className="relative">
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              placeholder="Size, color, fabric..."
+              value={searchQuery || ''}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full bg-[var(--bg-root)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--cyan)] transition-all placeholder:text-[var(--text-muted)]"
+            />
+          </div>
+        </div>
       )}
 
-      {/* ── Sections ── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-           <Layers size={14} className="text-sd-gold" />
-           <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Archival Nodes</h3>
-        </div>
-        <NeoCard variant="white" hasHover={false} className="overflow-hidden border-2 p-0 neo-shadow-sm">
-          <button
-            className={`
-              w-full text-left py-4 px-5 text-[11px] font-neo font-black uppercase tracking-widest transition-all
-              ${activeCategory === 'products' || activeCategory === 'all' || activeCategory === ''
-                ? 'bg-sd-black text-sd-gold'
-                : 'bg-white text-black hover:bg-sd-gold/10'}
-            `}
-            onClick={() => onCategoryChange('all')}
-          >
-            All Collections
-          </button>
-          <div className="divide-y-2 divide-black border-t-2 border-black">
-            {categories.map(category => renderCategory(category))}
-          </div>
-        </NeoCard>
-      </section>
-
-      {/* ── Value Tiers ── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-           <DollarSign size={14} className="text-sd-gold" />
-           <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Investment Range</h3>
-        </div>
-        <NeoCard variant="white" hasHover={false} className="p-4 border-2 neo-shadow-sm space-y-2">
-           {[
-             { value: 'all', label: 'Full Spectrum' },
-             { value: '0-500', label: 'Under ৳500' },
-             { value: '500-1000', label: '৳500 — ৳1,000' },
-             { value: '1000-2000', label: '৳1,000 — ৳2,000' },
-             { value: '2000-5000', label: '৳2,000 — ৳5,000' },
-             { value: '5000-999999', label: 'Premium ৳5,000+' },
-           ].map((range) => (
-             <label key={range.value} className="flex items-center justify-between group cursor-pointer py-1.5 px-3 hover:bg-sd-gold/10 transition-colors">
-               <span className={`font-neo text-[10px] font-black uppercase tracking-widest transition-all ${selectedPriceRange === range.value ? 'text-sd-black' : 'text-black/50 group-hover:text-black'}`}>
-                  {range.label}
-               </span>
-               <input
-                 type="radio"
-                 name="priceRange"
-                 value={range.value}
-                 checked={selectedPriceRange === range.value}
-                 onChange={(e) => onPriceRangeChange(e.target.value)}
-                 className="hidden"
-               />
-               <div className={`w-4 h-4 border-2 border-black flex items-center justify-center transition-all ${selectedPriceRange === range.value ? 'bg-sd-gold' : 'bg-white'}`}>
-                  {selectedPriceRange === range.value && <Check size={10} strokeWidth={4} />}
-               </div>
-             </label>
-           ))}
-        </NeoCard>
-      </section>
-
-      {/* ── Sequence ── */}
       {onSortChange && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-             <Layers size={14} className="text-sd-gold" />
-             <h3 className="font-neo text-[10px] font-black uppercase tracking-[0.3em] text-black italic">Registry Order</h3>
-          </div>
-          <div className="grid grid-cols-1 gap-2">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
+          <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Sort By</h3>
+          <div className="space-y-2">
             {[
-              { id: 'newest', label: 'Newest Retrieval' },
-              { id: 'price_asc', label: 'Price: Low-High' },
-              { id: 'price_desc', label: 'Price: High-Low' },
+              { id: 'newest', label: 'Newest Arrivals' },
+              { id: 'price_asc', label: 'Price: Low to High' },
+              { id: 'price_desc', label: 'Price: High to Low' },
             ].map((option) => (
-              <NeoCard
-                key={option.id}
-                variant={selectedSort === option.id ? 'black' : 'white'}
-                onClick={() => onSortChange(option.id)}
-                className={`py-3 px-4 text-center cursor-pointer border-2 neo-shadow-sm ${selectedSort === option.id ? 'text-sd-gold' : 'text-black font-black'}`}
-              >
-                <span className="font-neo text-[10px] uppercase tracking-widest">
-                   {option.label}
+              <label key={option.id} className="flex items-center cursor-pointer group">
+                <input
+                  type="radio"
+                  name="sortOrder"
+                  value={option.id}
+                  checked={selectedSort === option.id}
+                  onChange={(e) => onSortChange(e.target.value)}
+                  className="mr-2 accent-[var(--cyan)]"
+                />
+                <span className={`text-sm transition-colors ${selectedSort === option.id ? 'text-[var(--cyan)] font-medium' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                  {option.label}
                 </span>
-              </NeoCard>
+              </label>
             ))}
           </div>
-        </section>
+        </div>
       )}
+
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
+        <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Categories</h3>
+        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 ec-scrollbar">
+          <div
+            className={`p-2 rounded cursor-pointer transition-colors ${activeCategory === 'all'
+                ? 'bg-[var(--cyan-pale)] text-[var(--cyan)] font-medium border border-[var(--cyan-border)]'
+                : 'hover:bg-[var(--ivory-ghost)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            onClick={() => {
+              router.push('/e-commerce/products');
+              onCategoryChange('all');
+            }}
+          >
+            All Categories
+          </div>
+          {categories.map(category => renderCategory(category))}
+        </div>
+      </div>
+
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[var(--radius-lg)] p-4">
+        <h3 className="font-semibold text-[var(--text-primary)] mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>Price Range</h3>
+        <div className="space-y-2">
+          {[
+            { value: 'all', label: 'All Prices' },
+            { value: '0-500', label: 'Under ৳500' },
+            { value: '500-1000', label: '৳500 - ৳1,000' },
+            { value: '1000-2000', label: '৳1,000 - ৳2,000' },
+            { value: '2000-5000', label: '৳2,000 - ৳5,000' },
+            { value: '5000-999999', label: 'Above ৳5,000' },
+          ].map((range) => (
+            <label key={range.value} className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name="priceRange"
+                value={range.value}
+                checked={selectedPriceRange === range.value}
+                onChange={(e) => onPriceRangeChange(e.target.value)}
+                className="mr-2 accent-[var(--cyan)] focus:ring-[var(--cyan-border)]"
+              />
+              <span className="text-sm text-[var(--text-secondary)]">{range.label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

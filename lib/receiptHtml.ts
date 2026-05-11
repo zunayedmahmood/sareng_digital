@@ -24,22 +24,39 @@ function compactAddress(lines?: string[]) {
   return (lines || []).map((x) => String(x || '').trim()).filter(Boolean).join(', ');
 }
 
+function extractAddressFromNotes(rawNotes: unknown) {
+  const text = String(rawNotes || '').trim();
+  if (!text) return '';
+
+  const match = text.match(/(?:^|[\n|])\s*Address:\s*(.+?)(?=(?:,\s*Change Given:|[\n|]|$))/i);
+  return match?.[1]?.trim() || '';
+}
+
+function cleanAddressText(value: unknown) {
+  return String(value || '')
+    .replace(/^Address:\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function receiptBody(r: ReceiptOrder) {
-  const brand = r.storeName || "ERRUMBD";
+  const brand = 'ERRUMBD';
   const orderNo = r.orderNo || String(r.id || '—');
   const createdAt = r.dateTime || new Date().toLocaleString();
+  const paidAmount = Math.max(0, Number(r.totals?.paid ?? 0));
   const codAmount = Math.max(0, Number(r.totals?.due ?? r.totals?.total ?? 0));
   const phone = r.customerPhone || 'N/A';
-  const address = compactAddress(r.customerAddressLines) || 'Address not provided';
+  const address =
+    cleanAddressText(compactAddress(r.customerAddressLines)) ||
+    cleanAddressText(extractAddressFromNotes(r.notes)) ||
+    'Address not provided';
   const itemCount = (r.items || []).reduce((sum, item) => sum + Number(item.qty || 0), 0);
-
-
 
   return `
     <div class="sticker">
       <div class="brandBox">
         <div class="brand">${escapeHtml(brand)}</div>
-        <div class="sub">Parcel Sticker</div>
+        <div class="orderNoTop">${escapeHtml(orderNo)}</div>
       </div>
 
       <div class="contactBox">
@@ -52,15 +69,18 @@ function receiptBody(r: ReceiptOrder) {
         <div class="address">${escapeHtml(address)}</div>
       </div>
 
-      <div class="metaGrid">
-        <div class="metaItem">
-          <span class="k">Order</span>
-          <span class="v">${escapeHtml(orderNo)}</span>
+      <div class="paymentGrid">
+        <div class="payItem highlightLight">
+          <span class="k">Paid</span>
+          <span class="v payValue">${escapeHtml(money(paidAmount))}</span>
         </div>
-        <div class="metaItem highlight">
+        <div class="payItem highlightLight">
           <span class="k">COD</span>
-          <span class="v">${escapeHtml(money(codAmount))}</span>
+          <span class="v payValue">${escapeHtml(money(codAmount))}</span>
         </div>
+      </div>
+
+      <div class="metaGrid">
         <div class="metaItem">
           <span class="k">Items</span>
           <span class="v">${escapeHtml(String(itemCount || r.items.length || 0))}</span>
@@ -119,12 +139,13 @@ function wrapHtml(title: string, inner: string, opts?: { embed?: boolean }) {
       letter-spacing: 0.8px;
       text-align: center;
     }
-    .sub {
-      font-size: 10px;
+    .orderNoTop {
+      font-size: 12px;
       text-align: center;
-      margin-top: 2px;
-      text-transform: uppercase;
-      letter-spacing: 1.1px;
+      margin-top: 4px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      word-break: break-word;
     }
     .contactBox {
       border: 2px solid #111;
@@ -180,6 +201,38 @@ function wrapHtml(title: string, inner: string, opts?: { embed?: boolean }) {
       font-weight: 600;
       word-break: break-word;
     }
+    .paymentGrid {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .payItem {
+      border: 1px solid #111;
+      padding: 7px 6px;
+      min-height: 52px;
+      display:flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+    .payItem .k {
+      margin-bottom: 2px;
+    }
+    .payItem .payValue {
+      font-size: 18px;
+      font-weight: 800;
+      text-align: center;
+    }
+    .highlightLight {
+      background: #f4f4f4;
+    }
+    .highlightDark {
+      background: #111;
+      color: #fff;
+    }
+    .highlightDark .k,
+    .highlightDark .v { color: #fff; }
     .metaGrid {
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -193,13 +246,6 @@ function wrapHtml(title: string, inner: string, opts?: { embed?: boolean }) {
       flex-direction: column;
       justify-content: center;
     }
-    .metaItem.highlight {
-      background: #111;
-      color: #fff;
-    }
-    .metaItem.highlight .k,
-    .metaItem.highlight .v { color: #fff; }
-    .metaItem.highlight .v { font-size: 18px; }
   </style>
 </head>
 <body>
